@@ -17,6 +17,11 @@ export class TenantsController {
     return this.service.list();
   }
 
+  @Get('inps-offices')
+  inpsOffices() {
+    return this.service.inpsOffices();
+  }
+
   @Get('me')
   me(@TenantId() tenantId: string) {
     return this.service.getWithProfile(tenantId);

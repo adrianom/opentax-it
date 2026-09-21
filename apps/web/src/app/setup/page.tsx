@@ -7,6 +7,7 @@ import { TenantForm } from './tenant-form';
 
 export default async function SetupPage() {
   const tenants = (await fetchOrNull(() => api.tenants())) ?? [];
+  const offices = (await fetchOrNull(() => api.inpsOffices())) ?? [];
   const current = await currentTenantId();
   return (
     <main className="mx-auto w-full max-w-3xl space-y-6 p-6">
@@ -33,7 +34,7 @@ export default async function SetupPage() {
           <CardDescription>Dati del cedente/prestatore usati nelle fatture elettroniche (FatturaPA, CedentePrestatore).</CardDescription>
         </CardHeader>
         <CardContent>
-          <TenantForm />
+          <TenantForm offices={offices} />
         </CardContent>
       </Card>
     </main>

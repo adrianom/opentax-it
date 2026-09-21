@@ -1,0 +1,22 @@
+import { describe, expect, it } from 'vitest';
+import { findInpsOffice, INPS_OFFICES, isValidInpsOfficeForGestioneSeparata } from './inps-offices';
+
+describe('INPS office codes (AdE table)', () => {
+  it('contains the full table with zero-padded 4-digit codes', () => {
+    expect(INPS_OFFICES.length).toBeGreaterThan(200);
+    expect(INPS_OFFICES.every((o) => /^\d{4}$/.test(o.code))).toBe(true);
+    expect(findInpsOffice('100')?.name).toBe('Agrigento');
+  });
+
+  it('5500 is Palermo and accepts other contributions', () => {
+    expect(findInpsOffice('5500')?.name).toBe('Palermo');
+    expect(isValidInpsOfficeForGestioneSeparata('5500')).toBe(true);
+  });
+
+  it('offices flagged NO for other contributions are rejected', () => {
+    const noOther = INPS_OFFICES.find((o) => !o.otherContributions);
+    expect(noOther).toBeDefined();
+    expect(isValidInpsOfficeForGestioneSeparata(noOther!.code)).toBe(false);
+    expect(isValidInpsOfficeForGestioneSeparata('0000')).toBe(false);
+  });
+});

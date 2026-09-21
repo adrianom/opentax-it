@@ -17,5 +17,6 @@ export class CreateTenantDto {
   @IsOptional() @IsBoolean() reducedRate?: boolean;
   @IsOptional() @IsBoolean() applyInpsSurcharge?: boolean;
   @IsOptional() @IsBoolean() viesRegistered?: boolean;
+  @IsOptional() @IsString() @Matches(/^\d{3,4}$/) inpsOfficeCode?: string;
   @IsOptional() @IsString() pecAddress?: string;
 }

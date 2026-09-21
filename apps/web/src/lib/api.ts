@@ -52,6 +52,7 @@ export async function fetchOrNull<T>(fn: () => Promise<T>): Promise<T | null> {
 
 export const api = {
   tenants: () => request<Tenant[]>('/tenants'),
+  inpsOffices: () => request<Array<{ code: string; name: string }>>('/tenants/inps-offices'),
   createTenant: (data: unknown) => request<Tenant>('/tenants', { method: 'POST', body: JSON.stringify(data) }),
   ruleSets: (year: number) => request<RuleSetSummary[]>(`/fiscal-rules/${year}`),
   deadlines: (year: number, intrastat = false) =>

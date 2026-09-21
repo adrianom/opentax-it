@@ -18,6 +18,7 @@ Ogni funzionalità del software è ancorata a una fonte ufficiale. Quando si agg
 | INPS GS: 26,07% / 24%, massimale 122.295, minimale 18.808 | `inps` | Circolare INPS n. 8 del 3/2/2026 §2, §6 | 2026-09-19 |
 | INPS acconti 40% + 40%, rivalsa 4% | `inps.advancePct`, `inps.surchargePct` | L. 662/1996 art. 1 c. 212 (Normattiva) | 2026-09-19 |
 | Codici tributo 1790/1791/1792/1668 | `taxCodes` | Istr. Fasc. 1 "Principali codici tributo" | 2026-09-19 |
+| Codice sede INPS nel profilo, validato sulla tabella ufficiale (colonna "altri contributi") | `inps-offices.ts`, `TenantProfile.inpsOfficeCode` | Scheda INPS "F24 per professionisti iscritti alla GS" (sede "in base alla residenza"); AdE "Tabella codici sede INPS" | 2026-09-21 |
 | Causali INPS: PXX (unica soluzione), PXXR (rate), DPPI (interessi differimento/rate), P10/P10R per aliquota 24%; codice sede per residenza; periodo 01AAAA–12AAAA | `inpsReasons` | Scheda INPS "F24 per professionisti iscritti alla Gestione Separata" (agg. 8/7/2025); tabella causali AdE (02/07/2026) | 2026-09-21 |
 | Bollo 2 € > 77,47 €, scadenze trimestrali, soglia 5.000 €, codici 2521-2524 | `stampDuty` | DM 17/06/2014 art. 6; Guida AdE bollo FE giugno 2026 | 2026-09-19 |
 | Obbligo fattura elettronica forfettari | (design) | DL 36/2022 art. 18 c. 2-3 | 2026-09-19 |
@@ -51,4 +52,4 @@ Regola del progetto: ciò che è in questa lista **non è implementato come rego
 |---|---|---|
 | Prefisso "NC-" per la numerazione delle note di credito | Scelta di progetto, non una regola: la Spec. 1.9.1 ammette lo stesso numero tra TD01 e TD04 nello stesso anno; il DPR 633/72 art. 21 c. 2 lett. b) richiede solo un numero progressivo univoco | — |
 | RiferimentoNormativo nel DatiRiepilogo ("Art. 1, commi 54-89, L. 190/2014"; "Art. 7-ter DPR 633/72") | Testo libero richiesto dalla Spec. quando Natura è valorizzata; la formulazione è una scelta di progetto | — |
-| Codice sede INPS (es. 5500) | Dipende dalla residenza (scheda INPS); non ancora nel profilo | Campo nel profilo + tabella codici sede INPS (AdE) |
+

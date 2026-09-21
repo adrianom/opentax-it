@@ -37,6 +37,7 @@ export async function createTenant(_prev: ActionState, formData: FormData): Prom
       reducedRate: formData.get('reducedRate') === 'on',
       applyInpsSurcharge: formData.get('applyInpsSurcharge') === 'on',
       viesRegistered: formData.get('viesRegistered') === 'on',
+      inpsOfficeCode: f('inpsOfficeCode') || undefined,
       pecAddress: f('pecAddress') || undefined,
     });
     const store = await cookies();
