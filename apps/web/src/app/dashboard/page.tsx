@@ -102,7 +102,7 @@ export default async function DashboardPage() {
               <TableHeader><TableRow><TableHead>Data</TableHead><TableHead>Adempimento</TableHead><TableHead>Codice</TableHead></TableRow></TableHeader>
               <TableBody>
                 {upcoming.map((d) => (
-                  <TableRow key={`${d.kind}-${d.date}`}>
+                  <TableRow key={`${d.kind}-${d.details.quarter ?? ''}-${d.nominalDate}`}>
                     <TableCell className="font-mono whitespace-nowrap">{formatDate(d.date)}</TableCell>
                     <TableCell>{describeDeadline(d)}</TableCell>
                     <TableCell className="font-mono">{d.code ?? '—'}</TableCell>

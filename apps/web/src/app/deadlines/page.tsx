@@ -125,7 +125,7 @@ export default async function DeadlinesPage({ searchParams }: PageProps<'/deadli
                   const isPast = d.date < today;
                   return (
                   <TableRow
-                    key={`${d.kind}-${d.date}-${d.description}`}
+                    key={`${d.kind}-${d.details.quarter ?? ''}-${d.nominalDate}`}
                     className={cn(isNext && 'bg-primary/10 hover:bg-primary/15 font-medium', isPast && 'text-muted-foreground')}
                     aria-current={isNext ? 'date' : undefined}
                   >
