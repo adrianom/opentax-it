@@ -2,6 +2,7 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { cn } from 'cn';
+import { HelpTip } from '@/components/help-tip';
 import { api, fetchOrNull, formatMoney, type Deadline } from '@/lib/api';
 
 const KIND_LABELS: Record<string, string> = {
@@ -24,7 +25,7 @@ function describe(d: Deadline): string {
     case 'TAX_FIRST_ADVANCE':
       return `Primo acconto imposta sostitutiva ${taxYear} (${percentage}%)`;
     case 'TAX_SECOND_ADVANCE':
-      return `Secondo acconto imposta sostitutiva ${taxYear} (${percentage}%)${splittable === false ? ' — non rateizzabile' : ''}`;
+      return `Secondo acconto imposta sostitutiva ${taxYear} (${percentage}%)`;
     case 'INPS_BALANCE':
       return `Saldo contributi INPS Gestione Separata ${taxYear}`;
     case 'INPS_FIRST_ADVANCE':
@@ -32,19 +33,34 @@ function describe(d: Deadline): string {
     case 'INPS_SECOND_ADVANCE':
       return `Secondo acconto INPS ${taxYear} (${percentage}%)`;
     case 'STAMP_DUTY': {
-      const { amount, deferredFrom } = d.details;
-      const base = `Imposta di bollo fatture elettroniche — ${quarter}° trimestre ${taxYear}`;
-      const amt = amount !== undefined ? ` — finora ${formatMoney(amount)}` : '';
-      const def = deferredFrom ? ` — differita dal ${formatDate(deferredFrom)} (importo ≤ 5.000 €, Guida AdE)` : '';
-      return `${base}${amt}${def}`;
+      const { amount } = d.details;
+      return `Bollo fatture elettroniche · ${quarter}° trimestre ${taxYear}${amount !== undefined ? ` · maturato ${formatMoney(amount)}` : ''}`;
     }
     case 'TAX_RETURN':
-      return `Presentazione telematica Redditi PF ${taxYear + 1} (periodo d'imposta ${taxYear}) — i versamenti hanno scadenze proprie`;
+      return `Presentazione telematica Redditi PF ${taxYear + 1} (periodo d'imposta ${taxYear})`;
     case 'INTRASTAT':
       return `Elenco Intrastat servizi resi — ${quarter}° trimestre ${taxYear}`;
     default:
       return d.description;
   }
+}
+
+/** Side notes shown as badges with an explanation. */
+function notes(d: Deadline): Array<{ label: string; help: string }> {
+  const out: Array<{ label: string; help: string }> = [];
+  if (d.kind === 'STAMP_DUTY' && d.details.deferredFrom) {
+    out.push({
+      label: `Differita dal ${formatDate(d.details.deferredFrom)}`,
+      help: "Guida AdE sull'imposta di bollo (giugno 2026): se l'importo dovuto per il 1° trimestre non supera 5.000 €, si può versare entro il 30 settembre; se 1° + 2° trimestre non superano 5.000 €, entro il 30 novembre. È una facoltà: la scadenza ordinaria resta valida.",
+    });
+  }
+  if (d.details.splittable === false) {
+    out.push({ label: 'Non rateizzabile', help: 'Le istruzioni Redditi PF ammettono la rateazione solo di saldo e primo acconto (D.Lgs. 33/2025 art. 10).' });
+  }
+  if (d.kind === 'TAX_RETURN') {
+    out.push({ label: 'Solo presentazione', help: 'Termine telematico (DPR 322/1998 art. 2). I versamenti di saldo e acconti hanno scadenze proprie.' });
+  }
+  return out;
 }
 
 function formatDate(iso: string) {
@@ -123,7 +139,15 @@ export default async function DeadlinesPage({ searchParams }: PageProps<'/deadli
                     <TableCell>
                       <Badge variant="secondary">{KIND_LABELS[d.kind] ?? d.kind}</Badge>
                     </TableCell>
-                    <TableCell className="text-sm">{describe(d)}</TableCell>
+                    <TableCell className="text-sm">
+                      <span>{describe(d)}</span>
+                      {notes(d).map((n) => (
+                        <span key={n.label} className="ml-2 inline-flex items-center gap-1 align-middle">
+                          <Badge variant="outline">{n.label}</Badge>
+                          <HelpTip label={n.label}><p>{n.help}</p></HelpTip>
+                        </span>
+                      ))}
+                    </TableCell>
                     <TableCell className="font-mono">{d.code ?? '—'}</TableCell>
                   </TableRow>
                   );
