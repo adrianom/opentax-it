@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { findInpsOffice, INPS_OFFICES, isValidInpsOfficeForGestioneSeparata } from './inps-offices';
+import { findInpsOffice, findInpsOffices, INPS_OFFICES, isValidInpsOfficeForGestioneSeparata } from './inps-offices';
 
 describe('INPS office codes (AdE table)', () => {
   it('contains the full table with zero-padded 4-digit codes', () => {
@@ -11,6 +11,10 @@ describe('INPS office codes (AdE table)', () => {
   it('5500 is Palermo and accepts other contributions', () => {
     expect(findInpsOffice('5500')?.name).toBe('Palermo');
     expect(isValidInpsOfficeForGestioneSeparata('5500')).toBe(true);
+  });
+
+  it('keeps the duplicated code 8103 exactly as published by AdE', () => {
+    expect(findInpsOffices('8103').map((o) => o.name)).toEqual(['Torino Nord', 'Torino Sud']);
   });
 
   it('offices flagged NO for other contributions are rejected', () => {

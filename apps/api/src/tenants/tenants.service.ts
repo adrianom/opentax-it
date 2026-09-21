@@ -19,7 +19,7 @@ export class TenantsService {
     });
   }
 
-  /** INPS offices accepting Gestione Separata contributions, for form selects. */
+  /** INPS offices accepting Gestione Separata contributions, for form selects (one entry per published row). */
   inpsOffices() {
     return INPS_OFFICES.filter((o) => o.otherContributions).map(({ code, name }) => ({ code, name }));
   }

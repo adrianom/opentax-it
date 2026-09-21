@@ -64,7 +64,7 @@ export function TenantForm({ offices }: { offices: Array<{ code: string; name: s
       >
         <NativeSelect id="inpsOfficeCode" name="inpsOfficeCode" defaultValue="">
           <option value="">— non impostata —</option>
-          {offices.map((o) => <option key={o.code} value={o.code}>{o.code} · {o.name}</option>)}
+          {offices.map((o) => <option key={`${o.code}-${o.name}`} value={o.code}>{o.code} · {o.name}</option>)}
         </NativeSelect>
       </Field>
       <div className="flex flex-col gap-2 sm:col-span-2">

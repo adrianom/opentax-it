@@ -4,6 +4,7 @@
  * https://www.agenziaentrate.gov.it/portale/strumenti/codici-attivita-e-tributo/f24-codici-tributo-per-i-versamenti/tabelle-dei-codici-tributo-e-altri-codici-per-il-modello-f24/tabelle-codici-inps-e-enti-previdenziali-ed-assicurativi/tabella-codici-sede-inps
  * Columns: medical checks / artisans and traders / other contributions (the one relevant to Gestione Separata).
  * Codes are 4 digits, zero-padded (the table prints e.g. "100" for Agrigento).
+ * Note: the official table lists code 8103 twice ("Torino Nord" and "Torino Sud"); both rows are kept as published.
  */
 export interface InpsOffice {
   code: string;
@@ -235,6 +236,11 @@ export const INPS_OFFICES: readonly InpsOffice[] = [
 
 export function findInpsOffice(code: string): InpsOffice | undefined {
   return INPS_OFFICES.find((o) => o.code === code.padStart(4, '0'));
+}
+
+/** All rows for a code (the official table can list the same code more than once). */
+export function findInpsOffices(code: string): InpsOffice[] {
+  return INPS_OFFICES.filter((o) => o.code === code.padStart(4, '0'));
 }
 
 /** True when the code exists and accepts "other contributions" (Gestione Separata). */
