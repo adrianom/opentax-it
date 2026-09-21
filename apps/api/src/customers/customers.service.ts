@@ -5,7 +5,8 @@ import type { CreateCustomerDto, UpdateCustomerDto } from './customers.dto.js';
 /**
  * Customer master data. Defaults follow the FatturaPA rules for CodiceDestinatario
  * (spec 1.9.1 §2.1.1): "0000000" for Italian customers without a registered channel,
- * "XXXXXXX" for customers not established in Italy.
+ * "XXXXXXX" for customers not established in Italy. For foreign addresses the AdE FAQ
+ * ("Fatture verso e da soggetti stranieri") prescribes CAP "00000" and no Provincia.
  */
 @Injectable()
 export class CustomersService {
@@ -16,6 +17,8 @@ export class CustomersService {
     const countryCode = dto.countryCode ?? (foreign ? undefined : 'IT');
     if (foreign && (!countryCode || countryCode === 'IT')) throw new BadRequestException('EU/NON_EU customers need a non-IT countryCode');
     if (!foreign && !dto.vatNumber && !dto.fiscalCode) throw new BadRequestException('Italian customers need a VAT number or a fiscal code');
+    // AdE FAQ (fatture verso soggetti stranieri): foreign customers are identified with IdCodice (max 28 chars, not validated by SDI).
+    if (foreign && !dto.vatNumber) throw new BadRequestException('Foreign customers need an identifier (VAT id or other code) in vatNumber');
     if (!dto.businessName && !(dto.firstName && dto.lastName)) throw new BadRequestException('businessName or firstName+lastName required');
     if (dto.kind === 'IT_PA' && !dto.recipientCode) throw new BadRequestException('Public administrations need the 6-char IPA recipient code');
     const { kind, businessName, firstName, lastName, vatNumber, fiscalCode, address, city, province, recipientPec, currency, notes } = dto;

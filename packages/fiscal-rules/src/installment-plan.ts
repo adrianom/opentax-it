@@ -16,6 +16,13 @@
  * The number of installments is NOT fixed: it depends on the first due date
  * (30/6 ordinary, 30/7 with 0.40% surcharge, or the date of a yearly extension).
  * That is why the computation always starts from the actual first date.
+ *
+ * Interest: the official table (0.18% on the 2nd installment, then +0.33%) is
+ * published by AdE for two first dates only: 30 June and 30 July. For any other
+ * first date (e.g. a yearly extension such as 20 July 2026) no official table has
+ * been found: the plan is still computed with the same percentages but flagged
+ * `interestVerified: false`, and the amounts must be checked against an official
+ * source before use. Never treat them as certain.
  */
 
 export interface InstallmentPlanParams {
@@ -33,6 +40,16 @@ export interface InstallmentPlanParams {
   interest?: { secondInstallmentPct: number; incrementPct: number };
 }
 
+/** First due dates for which AdE publishes the interest table (Redditi PF instructions, "Rateazione"). */
+const OFFICIAL_TABLE_START_DATES: ReadonlyArray<{ month: number; day: number }> = [
+  { month: 6, day: 30 },
+  { month: 7, day: 30 },
+];
+
+export function isInterestTableOfficial(firstDueDate: Date): boolean {
+  return OFFICIAL_TABLE_START_DATES.some((d) => d.month === firstDueDate.getUTCMonth() + 1 && d.day === firstDueDate.getUTCDate());
+}
+
 export interface Installment {
   number: number;
   dueDate: Date;
@@ -41,6 +58,8 @@ export interface Installment {
   interestPct: number;
   interest: number;
   total: number;
+  /** True only when the first due date is one covered by the official AdE interest table. */
+  interestVerified: boolean;
 }
 
 const DEFAULT_INSTALLMENT_DAY = 16;
@@ -105,6 +124,7 @@ export function buildInstallmentPlan(params: InstallmentPlanParams): Installment
   }
 
   const principal = round2(params.amount / n);
+  const interestVerified = isInterestTableOfficial(params.firstDueDate);
   const plan: Installment[] = [];
   let remaining = round2(params.amount);
   for (let i = 0; i < n; i++) {
@@ -120,6 +140,7 @@ export function buildInstallmentPlan(params: InstallmentPlanParams): Installment
       interestPct: pct,
       interest: int,
       total: round2(p + int),
+      interestVerified,
     });
   }
   return plan;

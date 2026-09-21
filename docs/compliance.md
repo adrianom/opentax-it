@@ -11,20 +11,24 @@ Ogni funzionalità del software è ancorata a una fonte ufficiale. Quando si agg
 | Acconti: 100%, soglie 51,65 / 257,52 €, 40% + 60% | `advancePayment` | D.Lgs. 33/2025 art. 72 (GU S.O. 8/2025); Istr. Redditi PF 2026 Fasc. 1 rigo RN62; L. 190/2014 c. 64 ultimo periodo | 2026-09-20 |
 | Scadenze 30/6, 30/11; differimento 30/7 +0,40% | `deadlines` | DPR 435/2001 art. 17; Istr. Fasc. 1 | 2026-09-19 |
 | Proroga 2026: 20/7 senza maggiorazione, 19/8 +0,80% | `deadlines.balanceAndFirstAdvanceExtended` | DL 89/2026 art. 6 (GU n. 117 del 22/05/2026) | 2026-09-19 |
-| Rate mensili al 16, fine 16/12, interessi 4% (0,18 + 0,33) | `installment-plan.ts` | D.Lgs. 33/2025 art. 10; Istr. Fasc. 1 §Rateazione (prospetto ufficiale riprodotto nei test) | 2026-09-20 |
+| Rate mensili al 16, fine 16/12, interessi 4% (0,18 + 0,33) | `installment-plan.ts` | D.Lgs. 33/2025 art. 10; DM 21/05/2009 art. 5 (4% annuo, GU 15/06/2009); Istr. Fasc. 1 §Rateazione (prospetto ufficiale riprodotto nei test, **solo per prime rate 30/6 e 30/7**) | 2026-09-21 |
 | Slittamento 1-20 agosto → 20 agosto | `installment-plan.ts`, `deadlines.augustDeferral` | D.Lgs. 33/2025 art. 11 | 2026-09-20 |
-| Slittamento sabato/festivi a giorno lavorativo | `calendar.ts` | DL 70/2011 art. 7 c. 1 lett. h) e c. 2 lett. l); applicazione nelle Istr. Fasc. 1 (31/10/2026 → 2/11/2026) | 2026-09-21 |
+| Slittamento sabato/festivi a giorno lavorativo | `calendar.ts` | DL 70/2011 art. 7 c. 1 lett. h) e c. 2 lett. l) (testo vigente letto su Normattiva); applicazione nelle Istr. Fasc. 1 (31/10/2026 → 2/11/2026) | 2026-09-21 |
 | Termine presentazione Redditi PF | `deadlines.taxReturnFiling` | Istr. Fasc. 1 (15/4 – 2/11/2026) | 2026-09-19 |
 | INPS GS: 26,07% / 24%, massimale 122.295, minimale 18.808 | `inps` | Circolare INPS n. 8 del 3/2/2026 §2, §6 | 2026-09-19 |
 | INPS acconti 40% + 40%, rivalsa 4% | `inps.advancePct`, `inps.surchargePct` | L. 662/1996 art. 1 c. 212 (Normattiva) | 2026-09-19 |
 | Codici tributo 1790/1791/1792/1668 | `taxCodes` | Istr. Fasc. 1 "Principali codici tributo" | 2026-09-19 |
-| Causali INPS PXX / PXXR / DPPI | `inpsReasons` | Tabella causali contributo AdE (02/07/2026) | 2026-09-20 |
+| Causali INPS: PXX (unica soluzione), PXXR (rate), DPPI (interessi differimento/rate), P10/P10R per aliquota 24%; codice sede per residenza; periodo 01AAAA–12AAAA | `inpsReasons` | Scheda INPS "F24 per professionisti iscritti alla Gestione Separata" (agg. 8/7/2025); tabella causali AdE (02/07/2026) | 2026-09-21 |
 | Bollo 2 € > 77,47 €, scadenze trimestrali, soglia 5.000 €, codici 2521-2524 | `stampDuty` | DM 17/06/2014 art. 6; Guida AdE bollo FE giugno 2026 | 2026-09-19 |
 | Obbligo fattura elettronica forfettari | (design) | DL 36/2022 art. 18 c. 2-3 | 2026-09-19 |
 | Termine emissione 12 gg; estero entro il 15 del mese successivo | `eInvoice.issueDays` | DPR 633/72 art. 21 c. 4 | 2026-09-19 |
 | XML FatturaPA: struttura, ordine elementi, tipi, pattern testo | `packages/fatturapa/src/builder.ts` + XSD in `schemas/` | Specifiche tecniche AdE v1.9.1 (Allegato A); XSD Schema_VFPR12_v1.2.3 (validazione xmllint nei test) | 2026-09-21 |
 | RF19, N2.2 nazionale, N2.1 estero, diciture c. 54-89 e c. 67, bollo nel totale | `eInvoice`, `builder.ts` | Guida AdE FE dicembre 2025 "Fattura elettronica per i forfettari"; Spec. 1.9.1 | 2026-09-19 |
 | Annotazioni "inversione contabile" / "operazione non soggetta" | `eInvoice.euAnnotation` | DPR 633/72 art. 21 c. 6-bis | 2026-09-19 |
+| Operazioni UE art. 21 c. 6-bis lett. a): "INVCONT" in AltriDatiGestionali/TipoDato su ogni riga | `builder.ts` (`lineManagementData`), `invoices.service.ts` | Guida AdE alla compilazione FE ed esterometro v1.10 (aprile 2025), codice N2.1 | 2026-09-21 |
+| Clienti esteri: IdPaese ≠ IT, IdCodice alfanumerico max 28 (anche per consumatori), CodiceFiscale vuoto, CAP "00000", nessuna Provincia | `customers.service.ts`, `builder.ts` → `validateInvoice` | FAQ AdE "Fatture verso e da soggetti stranieri (transfrontaliere)" | 2026-09-21 |
+| N2.2 per i forfettari | `eInvoice.domesticNature` | Guida AdE compilazione FE v1.10: "Il codice N2.2 deve essere adoperato anche dall'operatore in regime forfettario" | 2026-09-21 |
+| Bollo anche sulle note di credito (TD04) sopra 77,47 € | `invoices.service.ts` | Guida AdE bollo FE giugno 2026: criteri elenco B (natura N2.1/N2.2… e importo > 77,47 €); esclusi solo TD16-TD19, TD28 e i regimi RF05-RF09 | 2026-09-21 |
 | CodiceDestinatario XXXXXXX per esteri (errore 00313) | `builder.ts` → `validateInvoice` | Spec. 1.9.1 §2.1.1 | 2026-09-20 |
 | Rivalsa INPS in fattura: TipoCassa TC22 | `socialSecurityFund` | Spec. 1.9.1 tabella TipoCassa | 2026-09-20 |
 | Note di credito TD04 con DatiFattureCollegate | `builder.ts` | Spec. 1.9.1 (TipoDocumento; controllo unicità con TD04) | 2026-09-21 |
@@ -38,3 +42,14 @@ Ogni funzionalità del software è ancorata a una fonte ufficiale. Quando si agg
 | I24: F24 con addebito a data futura, annullamento entro terzultimo giorno lavorativo | (design, `F24.i24CancelBy`, `calendar.businessDaysBefore`) | D.Lgs. 1/2024 art. 17; Provv. AdE 313945 del 26/07/2024 | 2026-09-19 |
 | CIVIS: registro atti (numero 13 cifre) | (design, `TaxNotice`) | Guida operativa AdE "Servizio CIVIS" | 2026-09-19 |
 | CPB non applicabile ai forfettari | (design) | D.Lgs. 81/2025 art. 7 | 2026-09-20 |
+
+## Non verificato / aperto
+
+Regola del progetto: ciò che è in questa lista **non è implementato come regola**; dove serve un valore, il software lo segnala come non verificato.
+
+| Punto | Stato | Cosa serve |
+|---|---|---|
+| Interessi di rateazione quando la prima rata non è il 30/6 o il 30/7 (es. proroga al 20/7/2026) | Nessun prospetto ufficiale trovato (Istr. Redditi PF 2026 agg. 28/05/2026 non lo contengono). Il piano viene calcolato con le percentuali del prospetto ma marcato `interestVerified: false`. In un F24 reale (rata 3 di 5, 2026) gli interessi risultano pari allo 0,62% della quota: non corrisponde né allo 0,51% del prospetto né allo 0,66% ottenuto applicando il metodo commerciale del testo delle istruzioni; l'origine del valore non è nota. | Documento AdE (FAQ, comunicato, risoluzione) sul calcolo degli interessi in caso di proroga, oppure chiarimento del commercialista con riferimento normativo |
+| Prefisso "NC-" per la numerazione delle note di credito | Scelta di progetto, non una regola: la Spec. 1.9.1 ammette lo stesso numero tra TD01 e TD04 nello stesso anno; il DPR 633/72 art. 21 c. 2 lett. b) richiede solo un numero progressivo univoco | — |
+| RiferimentoNormativo nel DatiRiepilogo ("Art. 1, commi 54-89, L. 190/2014"; "Art. 7-ter DPR 633/72") | Testo libero richiesto dalla Spec. quando Natura è valorizzata; la formulazione è una scelta di progetto | — |
+| Codice sede INPS (es. 5500) | Dipende dalla residenza (scheda INPS); non ancora nel profilo | Campo nel profilo + tabella codici sede INPS (AdE) |

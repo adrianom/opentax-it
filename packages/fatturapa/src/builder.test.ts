@@ -60,6 +60,7 @@ const foreign: FlatRateInvoice = {
   vatNature: 'N2.1',
   legalReference: 'Art. 7-ter DPR 633/72 - inversione contabile',
   notes: [...notes, 'inversione contabile'],
+  lineManagementData: [{ type: 'INVCONT' }],
   socialSecurityFund: undefined,
   stampDuty: undefined,
   payment: undefined,
@@ -118,6 +119,12 @@ describe('buildInvoiceXml', () => {
     expect(xml).toContain('<IdPaese>DE</IdPaese>');
     expect(xml).toContain('<Natura>N2.1</Natura>');
     expect(xml).not.toContain('<PECDestinatario>');
+    expect(xml).toContain('<AltriDatiGestionali>');
+    expect(xml).toContain('<TipoDato>INVCONT</TipoDato>');
+  });
+
+  it('foreign customer without IdCodice is rejected (AdE FAQ)', () => {
+    expect(validateInvoice({ ...foreign, customer: { ...foreign.customer, vatNumber: undefined } })).toContain('Foreign customer needs an identifier in vatNumber (IdCodice)');
   });
 
   it('credit note references the original invoice', () => {

@@ -46,7 +46,7 @@ Fonte: Normattiva, `urn:nir:stato:legge:2014-12-23;190~art1`; Istruzioni Redditi
 - **1791** — acconto seconda rata o unica soluzione
 - **1792** — saldo
 - **1668** interessi pagamento dilazionato (sez. Erario)
-- INPS Gestione Separata professionisti (tabella causali AdE agg. 02/07/2026): **P10…PXX** "Gestione Professionisti" (contributo, debito/credito); **P10R…PXXR** "Gestione Professionisti – Rate e interessi" (solo debito); **DPPI** "Rate ed interessi" da differimento (0,40%/0,80%); **RUGS** rateazione Gestione separata (piani INPS). Periodo di riferimento formato MM/AAAA–MM/AAAA.
+- INPS Gestione Separata professionisti — scheda INPS "F24 per professionisti iscritti alla Gestione Separata" (agg. 8/7/2025): **PXX** saldo/acconto in unica soluzione (aliquota piena; **P10** per pensionati/altra copertura); **PXXR** (P10R) per i versamenti **rateali**; **DPPI** interessi di differimento (0,40%) **e** di rateazione, esposti su riga separata con gli stessi campi del contributo; codice sede in base alla residenza; periodo di riferimento "da" 01AAAA "a" 12AAAA. Tabella causali AdE (02/07/2026) coerente.
 
 ### 2.2 Acconto (Istr. Fasc. 1, rigo RN62 / LC2; applicabile all'imposta sostitutiva per L. 190 c. 64)
 - Acconto = **100%** dell'imposta dell'anno precedente ("differenza").
@@ -60,7 +60,7 @@ Fonte: Normattiva, `urn:nir:stato:legge:2014-12-23;190~art1`; Istruzioni Redditi
 ### 2.3 Rateazione (Istr. Fasc. 1 §"Rateazione"; art. 20 D.Lgs. 241/97 come modificato da D.Lgs. 1/2024 art. 8; **dal 1/1/2026 art. 10 e 11 del D.Lgs. 33/2025 "Testo unico versamenti e riscossione"** — GU S.O. n. 8 del 26/03/2025, letto integralmente: art. 10 = rate mensili di pari importo con interessi, fine 16/12, versamenti entro il 16; art. 11 = differimento 1-20 agosto → 20 agosto; art. 3 = compensazione, >5.000 € dal 10° giorno dopo la dichiarazione; art. 72 = acconto 100%, soglia 51,65 €)
 - Rate **mensili di uguale importo**, ciascuna entro il **giorno 16** del mese; il piano deve chiudersi entro il **16 dicembre** dello stesso anno.
 - Regola in vigore **dal saldo 2023 (versato nel 2024)**. Prima: fine novembre.
-- Interessi: **4% annuo**, metodo commerciale: 2ª rata **0,18%**, poi **+0,33%** per ogni rata successiva (0,51 / 0,84 / 1,17 / 1,50 / 1,83). Interessi versati separatamente con cod. 1668.
+- Interessi: **4% annuo** (DM 21/05/2009 art. 5), metodo commerciale: 2ª rata **0,18%**, poi **+0,33%** per ogni rata successiva (0,51 / 0,84 / 1,17 / 1,50 / 1,83). Interessi versati separatamente con cod. 1668. **Il prospetto ufficiale copre solo le partenze 30/6 e 30/7**: per la proroga al 20/7 non è stato trovato un prospetto AdE (vedi compliance.md, "Non verificato").
 - Il numero di rate **dipende dalla data della prima rata**:
 
 | Prima rata | Rate |

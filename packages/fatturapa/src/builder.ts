@@ -101,6 +101,11 @@ export function validateInvoice(inv: FlatRateInvoice): string[] {
   if (!inv.supplier.vatNumber) errors.push('supplier VAT number is required');
   if (!inv.customer.businessName && !(inv.customer.firstName && inv.customer.lastName)) errors.push('customer needs a business name or first and last name');
   if (inv.customer.countryCode === 'IT' && !inv.customer.vatNumber && !inv.customer.fiscalCode) errors.push('Italian customer needs a VAT number or fiscal code');
+  // AdE FAQ "Fatture verso e da soggetti stranieri": foreign customers (businesses and consumers) are identified
+  // with IdFiscaleIVA/IdCodice (alphanumeric, max 28, not validated by SDI), leaving CodiceFiscale empty.
+  if (inv.customer.countryCode !== 'IT' && !inv.customer.vatNumber) errors.push('Foreign customer needs an identifier in vatNumber (IdCodice)');
+  if (inv.customer.countryCode !== 'IT' && inv.customer.vatNumber && inv.customer.vatNumber.length > 28) errors.push('IdCodice exceeds 28 characters');
+  for (const m of inv.lineManagementData ?? []) if (m.type.length > 10) errors.push('lineManagementData.type exceeds 10 characters');
   if ((inv.documentType === 'TD04' || inv.documentType === 'TD05') && !inv.relatedDocuments?.length) errors.push('credit/debit notes must reference the corrected invoice');
   return errors;
 }
@@ -168,6 +173,9 @@ export function buildInvoiceXml(inv: FlatRateInvoice): string {
           PrezzoTotale: amount2(l.totalPrice),
           AliquotaIVA: amount2(0),
           Natura: inv.vatNature,
+          AltriDatiGestionali: inv.lineManagementData?.length
+            ? inv.lineManagementData.map((m) => omitUndefined({ TipoDato: m.type, RiferimentoTesto: m.text ? sanitizeText(m.text) : undefined }))
+            : undefined,
         }),
       ),
       DatiRiepilogo: {

@@ -29,6 +29,9 @@ const NORM_D471 = 'https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.
 const ADM_INTRASTAT =
   'https://www.adm.gov.it/portale/documents/20182/99139401/IL+SISTEMA+INTRASTAT_2023.pdf/363491a4-2a11-5ea2-10f8-383a44be0f9e';
 
+const INPS_F24_SHEET =
+  'https://www.inps.it/it/it/dettaglio-approfondimento.schede-informative.49920.F24-per-professionisti-iscritti-alla-Gestione-Separata.html';
+
 const V = '2026-09-19';
 
 export const ruleSet2026: FiscalRuleSet = {
@@ -114,7 +117,7 @@ export const ruleSet2026: FiscalRuleSet = {
     installmentInterest: '1668',
   },
 
-  inpsReasons: { contribution: 'PXX', installmentsAndInterest: 'PXXR', deferral: 'DPPI' },
+  inpsReasons: { contribution: 'PXX', contributionReducedRate: 'P10', installments: 'PXXR', installmentsReducedRate: 'P10R', interest: 'DPPI' },
 
   eInvoice: {
     specVersion: '1.9.1',
@@ -167,7 +170,8 @@ export const ruleSet2026: FiscalRuleSet = {
     'inps.surchargePct': { url: NORM_L662, title: 'L. 662/1996 art. 1 par. 212', quote: 'hanno titolo ad addebitare ai committenti ... una percentuale nella misura del 4 per cento dei compensi lordi', verifiedOn: V },
     'stampDuty': { url: ADE_STAMP, title: 'AdE guide "L\'imposta di bollo sulle fatture elettroniche", June 2026', quote: "1° trimestre 31 maggio; 2° 30 settembre; 3° 30 novembre; 4° 28 febbraio. Se l'importo dovuto per il primo trimestre non supera 5.000 euro ... entro il 30 settembre", verifiedOn: V },
     'taxCodes': { url: ADE_PF1, title: 'Redditi PF 2026 instructions, booklet 1, main tax codes', quote: '1792 saldo; 1790 acconto prima rata; 1791 acconto seconda rata o unica soluzione; 1668 interessi pagamento dilazionato', verifiedOn: V },
-    'inpsReasons': { url: ADE_INPS_REASONS, title: 'INPS contribution reasons table (AdE, 02/07/2026)', quote: 'P10-PXX Gestione Professionisti; P10R-PXXR Gestione Professionisti - Rate e interessi; DPPI Gestione 10% professionisti - Rate ed interessi', verifiedOn: '2026-09-20' },
+    'inpsReasons': { url: INPS_F24_SHEET, title: 'INPS, "F24 per professionisti iscritti alla Gestione Separata" (agg. 8/7/2025)', quote: "possono essere rateizzati (aggiungendo una \"R\" alla causale contributi correnti P10 o PXX). Sia in caso di differimento che di rateizzazione, la maggiorazione per interessi deve essere esposta ... utilizzando la causale contributo \"DPPI\" ... periodo di riferimento \"da\" (esempio 012025) ... \"a\" (esempio 122025)", verifiedOn: '2026-09-21' },
+    'inpsReasons.table': { url: ADE_INPS_REASONS, title: 'INPS contribution reasons table (AdE, 02/07/2026)', quote: 'P10-PXX Gestione Professionisti; P10R-PXXR Gestione Professionisti - Rate e interessi; DPPI Gestione 10% professionisti - Rate ed interessi', verifiedOn: '2026-09-20' },
     'eInvoice': { url: ADE_SPEC, title: 'FatturaPA technical specifications v. 1.9.1 (from 15/05/2026)', quote: 'RF19 Regime forfettario; N2.1 non soggette artt. 7-7-septies; N2.2 non soggette altri casi; TC22 INPS; XXXXXXX per soggetti non stabiliti', verifiedOn: '2026-09-20' },
     'eInvoice.regimeNote': { url: ADE_EINVOICE_GUIDE, title: 'AdE e-invoice guide, December 2025, "Fattura elettronica per i forfettari"', quote: 'dovrà ... valorizzarlo con la seguente dicitura: "Operazione effettuata in regime forfettario ai sensi dell\'articolo 1, commi da 54 a 89, della Legge n. 190/2014 e successive modificazioni"', verifiedOn: V },
     'eInvoice.euAnnotation': { url: NORM_DPR633_21, title: 'DPR 633/72 art. 21 par. 6-bis', quote: "con l'annotazione «inversione contabile» ... con l'annotazione \"operazione non soggetta\"", verifiedOn: V },

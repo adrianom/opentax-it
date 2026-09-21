@@ -233,6 +233,8 @@ export class InvoicesService {
       vatNature,
       legalReference: foreign ? 'Art. 7-ter DPR 633/72' : 'Art. 1, commi 54-89, L. 190/2014',
       notes: inv.notes,
+      // AdE compilation guide v1.10 (code N2.1): art. 21 par. 6-bis lett. a) operations carry "INVCONT" in AltriDatiGestionali.
+      lineManagementData: c.kind === 'EU' ? [{ type: 'INVCONT' }] : undefined,
       lines: inv.lines.map((l) => ({
         description: l.description,
         quantity: Number(l.quantity),

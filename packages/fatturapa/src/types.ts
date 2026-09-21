@@ -91,6 +91,14 @@ export interface RelatedDocument {
   date?: string;
 }
 
+/** AltriDatiGestionali entry, repeated on every line. */
+export interface LineManagementData {
+  /** TipoDato (max 10 chars), e.g. "INVCONT" for EU reverse-charge operations (AdE compilation guide v1.10, code N2.1). */
+  type: string;
+  /** RiferimentoTesto (max 60 chars). */
+  text?: string;
+}
+
 export interface FlatRateInvoice {
   format: TransmissionFormat;
   /** ProgressivoInvio: unique per transmitter, max 10 alphanumeric chars. */
@@ -114,6 +122,8 @@ export interface FlatRateInvoice {
   /** Causale entries (max 200 chars each). */
   notes: string[];
   lines: Line[];
+  /** Management data added to every line (e.g. INVCONT for art. 21 par. 6-bis lett. a operations). */
+  lineManagementData?: LineManagementData[];
   /** DatiCassaPrevidenziale (e.g. optional 4% INPS surcharge). */
   socialSecurityFund?: SocialSecurityFund;
   /** DatiBollo: set when stamp duty applies; amount is optional in the tracciato. */

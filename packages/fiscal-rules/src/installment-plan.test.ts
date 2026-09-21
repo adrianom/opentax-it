@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buildInstallmentPlan, maxInstallmentDates, maxInstallments } from './installment-plan';
+import { buildInstallmentPlan, isInterestTableOfficial, maxInstallmentDates, maxInstallments } from './installment-plan';
 
 const d = (s: string) => new Date(`${s}T00:00:00Z`);
 const iso = (x: Date) => x.toISOString().slice(0, 10);
@@ -32,6 +32,14 @@ describe('installment plan – 2026 flat-rate extension (DL 89/2026 art. 6)', ()
 
   it('first installment 19 August 2026 (+0.80%): 5 installments', () => {
     expect(maxInstallments(d('2026-08-19'))).toBe(5);
+  });
+
+  it('interest is flagged as verified only for the official table start dates (30/6, 30/7)', () => {
+    expect(isInterestTableOfficial(d('2026-06-30'))).toBe(true);
+    expect(isInterestTableOfficial(d('2026-07-30'))).toBe(true);
+    expect(isInterestTableOfficial(d('2026-07-20'))).toBe(false);
+    expect(buildInstallmentPlan({ amount: 100, firstDueDate: d('2026-06-30') }).every((r) => r.interestVerified)).toBe(true);
+    expect(buildInstallmentPlan({ amount: 100, firstDueDate: d('2026-07-20') }).every((r) => !r.interestVerified)).toBe(true);
   });
 });
 

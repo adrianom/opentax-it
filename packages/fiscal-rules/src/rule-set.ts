@@ -95,11 +95,17 @@ export const FiscalRuleSetSchema = z.object({
     installmentInterest: z.string(),
   }),
 
-  /** F24 INPS contribution reasons ("causali contributo"). */
+  /**
+   * F24 INPS contribution reasons ("causali contributo") for Gestione Separata professionals
+   * (INPS sheet "F24 per professionisti iscritti alla Gestione Separata", updated 8/7/2025):
+   * single payment PXX (24% rate: P10), installments PXXR (P10R), deferral/installment interest DPPI.
+   */
   inpsReasons: z.object({
     contribution: z.string(),
-    installmentsAndInterest: z.string(),
-    deferral: z.string(),
+    contributionReducedRate: z.string(),
+    installments: z.string(),
+    installmentsReducedRate: z.string(),
+    interest: z.string(),
   }),
 
   eInvoice: z.object({
