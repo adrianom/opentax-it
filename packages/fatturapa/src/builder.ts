@@ -194,6 +194,7 @@ export function buildInvoiceXml(inv: FlatRateInvoice): string {
             DataScadenzaPagamento: inv.payment.dueDate,
             ImportoPagamento: amount2(inv.payment.amount),
             IBAN: inv.payment.iban,
+            BIC: inv.payment.bic,
           }),
         }
       : undefined,

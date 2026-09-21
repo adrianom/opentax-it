@@ -42,6 +42,10 @@ export interface TenantProfile {
   viesRegistered: boolean;
   pecAddress: string | null;
   inpsOfficeId: string | null;
+  paymentTermsDays: number | null;
+  paymentMethod: string | null;
+  paymentIban: string | null;
+  paymentBic: string | null;
 }
 
 export interface TenantWithProfile extends Tenant {

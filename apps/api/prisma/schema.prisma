@@ -95,6 +95,11 @@ model TenantProfile {
   pecCredentialsEnc  String?
   /// SDI PEC address assigned after the first submission to sdi01@pec.fatturapa.it (spec 1.9.1 §1.5).
   sdiPecAssigned     String?
+  /// Default payment terms used when issuing (DatiPagamento): days from the invoice date, ModalitaPagamento, IBAN/BIC printed on invoices.
+  paymentTermsDays   Int?
+  paymentMethod      String?  @default("MP05")
+  paymentIban        String?
+  paymentBic         String?
   ibanEnc            String?
   createdAt          DateTime @default(now())
   updatedAt          DateTime @updatedAt

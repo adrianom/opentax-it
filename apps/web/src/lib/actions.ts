@@ -39,6 +39,10 @@ export async function createTenant(_prev: ActionState, formData: FormData): Prom
       applyInpsSurcharge: formData.get('applyInpsSurcharge') === 'on',
       viesRegistered: formData.get('viesRegistered') === 'on',
       inpsOfficeId: f('inpsOfficeId') || undefined,
+      paymentTermsDays: f('paymentTermsDays') ? Number(f('paymentTermsDays')) : undefined,
+      paymentMethod: f('paymentMethod') || undefined,
+      paymentIban: f('paymentIban').replace(/\s+/g, '').toUpperCase() || undefined,
+      paymentBic: f('paymentBic').toUpperCase() || undefined,
       pecAddress: f('pecAddress') || undefined,
     });
     const store = await cookies();
@@ -146,6 +150,10 @@ export async function updateTenantProfile(_prev: ActionState, formData: FormData
       viesRegistered: formData.get('viesRegistered') === 'on',
       pecAddress: f('pecAddress') || undefined,
       inpsOfficeId: f('inpsOfficeId'),
+      paymentTermsDays: f('paymentTermsDays') ? Number(f('paymentTermsDays')) : undefined,
+      paymentMethod: f('paymentMethod') || undefined,
+      paymentIban: f('paymentIban').replace(/\s+/g, '').toUpperCase(),
+      paymentBic: f('paymentBic').toUpperCase(),
     });
   } catch (e) {
     return { error: errorMessage(e) };

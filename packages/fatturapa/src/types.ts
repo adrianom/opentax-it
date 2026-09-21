@@ -82,6 +82,8 @@ export interface PaymentDetails {
   dueDate?: string;
   amount: number;
   iban?: string;
+  /** BIC (8-11 chars), after IBAN in the XSD sequence. */
+  bic?: string;
 }
 
 export interface RelatedDocument {

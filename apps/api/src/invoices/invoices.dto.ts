@@ -14,6 +14,7 @@ export class InvoicePaymentDto {
   /** ModalitaPagamento (spec 1.9.1): MP05 bank transfer, MP08 card, MP19 SEPA DD, ... */
   @IsOptional() @IsString() @Matches(/^MP\d{2}$/) method?: string;
   @IsOptional() @IsString() @Length(15, 34) iban?: string;
+  @IsOptional() @IsString() @Length(8, 11) bic?: string;
 }
 
 export class CreateInvoiceDto {

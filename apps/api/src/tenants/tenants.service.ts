@@ -26,7 +26,17 @@ export class TenantsService {
     }
     return this.prisma.tenant.update({
       where: { id: tenantId },
-      data: { ...(name ? { name } : {}), profile: { update: { ...profile, inpsOfficeId: profile.inpsOfficeId === '' ? null : profile.inpsOfficeId } } },
+      data: {
+        ...(name ? { name } : {}),
+        profile: {
+          update: {
+            ...profile,
+            inpsOfficeId: profile.inpsOfficeId === '' ? null : profile.inpsOfficeId,
+            paymentIban: profile.paymentIban === '' ? null : profile.paymentIban,
+            paymentBic: profile.paymentBic === '' ? null : profile.paymentBic,
+          },
+        },
+      },
       include: { profile: true },
     });
   }

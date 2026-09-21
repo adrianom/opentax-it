@@ -161,7 +161,8 @@ export class InvoicesService {
       const transmissionSeq = transmissions + 1;
 
       const refInvoice = existing.refInvoiceId ? await tx.invoice.findUnique({ where: { id: existing.refInvoiceId } }) : null;
-      const model = this.toFatturaPa({ ...existing, number }, profile, rules, transmissionSeq, refInvoice, dto?.payment);
+      const payment = dto?.payment ?? this.defaultPayment(existing, profile);
+      const model = this.toFatturaPa({ ...existing, number }, profile, rules, transmissionSeq, refInvoice, payment);
       const xml = buildInvoiceXml(model);
       const xmlFileName = invoiceFileName(profile.country, profile.fiscalCode, transmissionSeq);
       const xmlPath = await this.storage.write(`${tenantId}/invoices/${existing.year}/${xmlFileName}`, xml);
@@ -172,6 +173,13 @@ export class InvoicesService {
         include: { lines: true, customer: true },
       });
     });
+  }
+
+  /** Default DatiPagamento from the profile: due date = invoice date + payment terms days (when configured). */
+  private defaultPayment(inv: Invoice, profile: TenantProfile): CreateInvoiceDto['payment'] | undefined {
+    if (profile.paymentTermsDays === null || profile.paymentTermsDays === undefined) return undefined;
+    const due = new Date(inv.date.getTime() + profile.paymentTermsDays * 24 * 3600 * 1000);
+    return { dueDate: due.toISOString().slice(0, 10), method: profile.paymentMethod ?? 'MP05', iban: profile.paymentIban ?? undefined, bic: profile.paymentBic ?? undefined };
   }
 
   async xml(tenantId: string, id: string): Promise<{ fileName: string; content: string }> {
@@ -247,7 +255,7 @@ export class InvoicesService {
         : undefined,
       stampDuty: inv.virtualStamp ? { amount: Number(inv.stampAmount) } : undefined,
       payment: payment
-        ? { terms: 'TP02', method: payment.method ?? 'MP05', dueDate: payment.dueDate, amount: total, iban: payment.iban }
+        ? { terms: 'TP02', method: payment.method ?? profile.paymentMethod ?? 'MP05', dueDate: payment.dueDate, amount: total, iban: payment.iban ?? profile.paymentIban ?? undefined, bic: payment.bic ?? profile.paymentBic ?? undefined }
         : undefined,
       relatedDocuments: refInvoice ? [{ number: refInvoice.number, date: refInvoice.date.toISOString().slice(0, 10) }] : undefined,
     };
