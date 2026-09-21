@@ -1,0 +1,702 @@
+// Schema dati di OpenTax IT — multi-tenant fin dall'inizio.
+// Convenzioni:
+// - ogni entità di dominio ha tenantId; l'isolamento è applicato a livello di query.
+// - importi in Decimal(14,2) in EUR salvo campo valuta esplicito.
+// - le regole fiscali NON sono qui: vivono in FiscalRuleSet (per anno, versionato, approvato).
+// Riferimenti normativi: docs/normativa-2026.md.
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ───────────────────────── Tenancy e utenti ─────────────────────────
+
+model Tenant {
+  id        String   @id @default(cuid())
+  name      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  profile          TenantProfile?
+  users            User[]
+  customers        Customer[]
+  invoices         Invoice[]
+  payments         Payment[]
+  stampDutyPeriods StampDutyPeriod[]
+  taxReturns       TaxReturn[]
+  taxCredits       TaxCredit[]
+  installmentPlans InstallmentPlan[]
+  f24s             F24[]
+  deadlines        Deadline[]
+  taxNotices       TaxNotice[]
+  attachments      Attachment[]
+  auditLogs        AuditLog[]
+}
+
+enum UserRole {
+  PLATFORM_ADMIN // approva i FiscalRuleSet, gestisce le sorgenti normative
+  TENANT_ADMIN
+  TENANT_USER
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  role         UserRole @default(TENANT_USER)
+  tenantId     String?
+  tenant       Tenant?  @relation(fields: [tenantId], references: [id])
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  auditLogs         AuditLog[]
+  activatedRuleSets FiscalRuleSet[]      @relation("ActivatedBy")
+  reviewedProposals RuleChangeProposal[] @relation("ReviewedBy")
+
+  @@index([tenantId])
+}
+
+/// Dati fiscali del titolare di partita IVA (cedente/prestatore in FatturaPA).
+model TenantProfile {
+  id                 String   @id @default(cuid())
+  tenantId           String   @unique
+  tenant             Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  denominazione      String? // se ditta individuale con insegna
+  nome               String
+  cognome            String
+  codiceFiscale      String
+  partitaIva         String
+  codiceAteco        String // ATECO 2007 fino ai nuovi coefficienti (D.Lgs. 81/2025 art. 1)
+  codiceAteco2025    String?
+  indirizzo          String
+  cap                String
+  comune             String
+  provincia          String
+  nazione            String   @default("IT")
+  /// Anno di inizio attività: serve per l'aliquota 5% (L. 190/2014 art. 1 c. 65: anno di inizio + 4).
+  annoInizioAttivita Int
+  /// Il contribuente dichiara di avere i requisiti per il 5% (c. 65 lett. a-c).
+  aliquotaRidotta    Boolean  @default(false)
+  /// Rivalsa INPS 4% in fattura (L. 662/1996 art. 1 c. 212) — facoltativa.
+  applicaRivalsaInps Boolean  @default(false)
+  /// Iscritto al VIES (necessario per servizi UE B2B, Circ. 10/E/2016).
+  iscrittoVies       Boolean  @default(false)
+  /// Credenziali PEC per l'invio allo SDI: cifrate a riposo con APP_ENCRYPTION_KEY.
+  pecAddress         String?
+  pecCredentialsEnc  String?
+  /// Indirizzo PEC del SdI assegnato dopo il primo invio a sdi01@pec.fatturapa.it (Spec. 1.9.1 §1.5).
+  sdiPecAssigned     String?
+  ibanEnc            String?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+}
+
+// ───────────────────────── Anagrafiche ─────────────────────────
+
+enum CustomerKind {
+  IT_B2B
+  IT_B2C
+  IT_PA
+  UE // soggetto passivo UE: art. 7-ter, Natura N2.1, "inversione contabile"
+  EXTRA_UE // art. 7-ter, Natura N2.1, "operazione non soggetta"
+}
+
+model Customer {
+  id                 String       @id @default(cuid())
+  tenantId           String
+  tenant             Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  kind               CustomerKind
+  denominazione      String?
+  nome               String?
+  cognome            String?
+  partitaIva         String? // per UE: IdCodice con IdPaese = paese
+  codiceFiscale      String?
+  idPaese            String       @default("IT")
+  indirizzo          String
+  cap                String?
+  comune             String
+  provincia          String?
+  nazione            String       @default("IT")
+  /// CodiceDestinatario SDI: 7 caratteri; "0000000" con PEC; "XXXXXXX" per esteri (Spec. 1.9.1).
+  codiceDestinatario String       @default("0000000")
+  pecDestinatario    String?
+  valuta             String       @default("EUR")
+  note               String?
+  createdAt          DateTime     @default(now())
+  updatedAt          DateTime     @updatedAt
+
+  invoices Invoice[]
+
+  @@index([tenantId])
+}
+
+// ───────────────────────── Fatturazione ─────────────────────────
+
+/// TipoDocumento FatturaPA (Spec. 1.9.1).
+enum DocumentType {
+  TD01 // fattura
+  TD04 // nota di credito
+  TD05 // nota di debito
+  TD06 // parcella
+}
+
+enum InvoiceStatus {
+  DRAFT
+  ISSUED // XML generato, numerata
+  SENT // inviata via PEC al SdI
+  DELIVERED // ricevuta di consegna (RC)
+  NOT_DELIVERED // mancata consegna (MC): messa a disposizione
+  REJECTED // scarto (NS): va corretta e reinviata con lo stesso numero
+  CANCELLED
+}
+
+/// Natura IVA (Spec. 1.9.1): N2.1 non soggette artt. 7-7-septies; N2.2 non soggette altri casi (forfettari nazionali).
+enum VatNature {
+  N2_1
+  N2_2
+}
+
+model Invoice {
+  id            String        @id @default(cuid())
+  tenantId      String
+  tenant        Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  customerId    String
+  customer      Customer      @relation(fields: [customerId], references: [id])
+  tipo          DocumentType  @default(TD01)
+  anno          Int
+  /// Progressivo per anno; il numero completo esposto è es. "12/2026".
+  progressivo   Int
+  numero        String
+  data          DateTime      @db.Date
+  valuta        String        @default("EUR")
+  /// Cambio verso EUR alla data fattura (1 se EUR). Il reddito si calcola in EUR sugli incassi.
+  cambio        Decimal       @default(1) @db.Decimal(12, 6)
+  natura        VatNature     @default(N2_2)
+  imponibile    Decimal       @db.Decimal(14, 2)
+  /// Rivalsa INPS 4% (DatiCassaPrevidenziale TC22) — concorre ai ricavi.
+  rivalsaInps   Decimal       @default(0) @db.Decimal(14, 2)
+  /// Bollo 2 € se operazioni non soggette > 77,47 € (DM 17/06/2014; Guida AdE bollo FE).
+  bolloVirtuale Boolean       @default(false)
+  importoBollo  Decimal       @default(0) @db.Decimal(14, 2)
+  totale        Decimal       @db.Decimal(14, 2)
+  /// Causali obbligatorie (regime forfettario c. 54-89; no ritenuta c. 67; annotazione art. 21 c. 6-bis).
+  causali       String[]
+  stato         InvoiceStatus @default(DRAFT)
+  /// Per TD04/TD05: fattura rettificata (DatiFattureCollegate).
+  refInvoiceId  String?
+  refInvoice    Invoice?      @relation("Rettifica", fields: [refInvoiceId], references: [id])
+  rettifiche    Invoice[]     @relation("Rettifica")
+  xmlFileName   String?
+  xmlPath       String?
+  note          String?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  lines         InvoiceLine[]
+  payments      Payment[]
+  transmissions SdiTransmission[]
+
+  @@unique([tenantId, anno, tipo, progressivo])
+  @@index([tenantId, data])
+  @@index([customerId])
+}
+
+model InvoiceLine {
+  id             String  @id @default(cuid())
+  invoiceId      String
+  invoice        Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  numeroLinea    Int
+  descrizione    String
+  quantita       Decimal @default(1) @db.Decimal(12, 4)
+  unitaMisura    String?
+  prezzoUnitario Decimal @db.Decimal(14, 4)
+  prezzoTotale   Decimal @db.Decimal(14, 2)
+
+  @@unique([invoiceId, numeroLinea])
+}
+
+/// Incasso (anche parziale). Principio di cassa: il reddito dell'anno è la somma degli incassi dell'anno (L. 190/2014 c. 64).
+model Payment {
+  id         String   @id @default(cuid())
+  tenantId   String
+  tenant     Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  invoiceId  String
+  invoice    Invoice  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  data       DateTime @db.Date
+  importo    Decimal  @db.Decimal(14, 2) // nella valuta della fattura
+  importoEur Decimal  @db.Decimal(14, 2)
+  cambio     Decimal  @default(1) @db.Decimal(12, 6)
+  metodo     String?
+  note       String?
+  createdAt  DateTime @default(now())
+
+  @@index([tenantId, data])
+  @@index([invoiceId])
+}
+
+enum SdiChannel {
+  PEC
+}
+
+enum SdiTransmissionStatus {
+  PENDING
+  SENT
+  ACCEPTED_BY_PEC // ricevuta di accettazione del proprio gestore
+  DELIVERED_TO_SDI // ricevuta di avvenuta consegna al SdI (non è emissione)
+  SDI_DELIVERED // RC
+  SDI_NOT_DELIVERED // MC
+  SDI_REJECTED // NS
+  ERROR
+}
+
+model SdiTransmission {
+  id                String                @id @default(cuid())
+  invoiceId         String
+  invoice           Invoice               @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  canale            SdiChannel            @default(PEC)
+  fileName          String
+  sentAt            DateTime?
+  pecMessageId      String?
+  stato             SdiTransmissionStatus @default(PENDING)
+  identificativoSdi String?
+  lastError         String?
+  createdAt         DateTime              @default(now())
+  updatedAt         DateTime              @updatedAt
+
+  notifications SdiNotification[]
+
+  @@index([invoiceId])
+}
+
+/// Ricevute/notifiche SdI (Spec. 1.9.1 §1.5.7): RC, NS, MC, NE, DT, AT, EC...
+model SdiNotification {
+  id                String          @id @default(cuid())
+  transmissionId    String
+  transmission      SdiTransmission @relation(fields: [transmissionId], references: [id], onDelete: Cascade)
+  tipo              String
+  receivedAt        DateTime
+  identificativoSdi String?
+  fileName          String?
+  rawPath           String?
+  dettaglio         Json?
+
+  @@index([transmissionId])
+}
+
+/// Imposta di bollo per trimestre (Guida AdE giugno 2026: scadenze 31/5, 30/9, 30/11, 28/2; soglia 5.000 € per differimento).
+model StampDutyPeriod {
+  id                String    @id @default(cuid())
+  tenantId          String
+  tenant            Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  anno              Int
+  trimestre         Int
+  importoCalcolato  Decimal   @default(0) @db.Decimal(14, 2)
+  /// Importo confermato/modificato sull'elenco B del portale AdE.
+  importoDovuto     Decimal?  @db.Decimal(14, 2)
+  scadenza          DateTime  @db.Date
+  /// Se differito (≤ 5.000 €) la scadenza effettiva slitta; si usa comunque il codice del trimestre (2521-2524).
+  scadenzaEffettiva DateTime? @db.Date
+  f24Id             String?
+  f24               F24?      @relation(fields: [f24Id], references: [id])
+  pagatoIl          DateTime? @db.Date
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  @@unique([tenantId, anno, trimestre])
+}
+
+// ───────────────────────── Regole fiscali versionate ─────────────────────────
+
+enum RuleSetStatus {
+  DRAFT
+  PROPOSED
+  ACTIVE
+  SUPERSEDED
+}
+
+/// Insieme completo di regole per un anno d'imposta. Il motore usa solo set ACTIVE.
+model FiscalRuleSet {
+  id            String        @id @default(cuid())
+  year          Int
+  version       Int           @default(1)
+  status        RuleSetStatus @default(DRAFT)
+  /// Valori (soglie, aliquote, scadenze, codici) validati contro lo schema in packages/fiscal-rules.
+  data          Json
+  /// Per ogni valore: URL ufficiale + citazione.
+  sourceRefs    Json
+  notes         String?
+  activatedAt   DateTime?
+  activatedById String?
+  activatedBy   User?         @relation("ActivatedBy", fields: [activatedById], references: [id])
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  proposals RuleChangeProposal[]
+
+  @@unique([year, version])
+  @@index([year, status])
+}
+
+enum RuleSourceKind {
+  PDF
+  HTML
+  JSON
+  XLS
+}
+
+/// Sorgente ufficiale monitorata dal job normativo (docs/monitoraggio-normativo.md).
+model RuleSource {
+  id                 String         @id @default(cuid())
+  name               String
+  url                String         @unique
+  kind               RuleSourceKind
+  /// Nome dell'estrattore da usare (es. "redditi-pf-istruzioni", "inps-circolare-gs").
+  parser             String
+  enabled            Boolean        @default(true)
+  checkIntervalHours Int            @default(168)
+  lastHash           String?
+  lastModified       DateTime?
+  lastCheckedAt      DateTime?
+  lastSnapshotPath   String?
+  createdAt          DateTime       @default(now())
+  updatedAt          DateTime       @updatedAt
+
+  proposals RuleChangeProposal[]
+}
+
+enum ProposalStatus {
+  PENDING
+  APPROVED
+  PARTIALLY_APPROVED
+  REJECTED
+}
+
+model RuleChangeProposal {
+  id                 String         @id @default(cuid())
+  sourceId           String
+  source             RuleSource     @relation(fields: [sourceId], references: [id])
+  targetYear         Int
+  ruleSetId          String?
+  ruleSet            FiscalRuleSet? @relation(fields: [ruleSetId], references: [id])
+  detectedAt         DateTime       @default(now())
+  snapshotBeforePath String?
+  snapshotAfterPath  String?
+  diff               String?
+  /// [{ field, proposedValue, currentValue, citation, confidence }]
+  extractedValues    Json
+  status             ProposalStatus @default(PENDING)
+  reviewedById       String?
+  reviewedBy         User?          @relation("ReviewedBy", fields: [reviewedById], references: [id])
+  reviewedAt         DateTime?
+  reviewNotes        String?
+
+  @@index([status, targetYear])
+}
+
+// ───────────────────────── Dichiarazione, crediti, versamenti ─────────────────────────
+
+enum TaxReturnStatus {
+  DRAFT
+  FILED
+}
+
+/// Riepilogo per anno d'imposta (quadro LM sez. III + RR sez. II). Calcolato dal tool, presentato dall'utente sul portale AdE.
+model TaxReturn {
+  id                   String          @id @default(cuid())
+  tenantId             String
+  tenant               Tenant          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  anno                 Int
+  ricaviIncassati      Decimal         @db.Decimal(14, 2) // LM22 col. 3
+  coefficiente         Decimal         @db.Decimal(5, 2) // LM22 col. 2
+  redditoLordo         Decimal         @db.Decimal(14, 2) // LM34
+  contributiVersati    Decimal         @db.Decimal(14, 2) // LM35 col. 1
+  contributiDedotti    Decimal         @db.Decimal(14, 2) // LM35 col. 2
+  redditoNetto         Decimal         @db.Decimal(14, 2) // LM36
+  aliquota             Decimal         @db.Decimal(5, 2) // 5 o 15
+  impostaSostitutiva   Decimal         @db.Decimal(14, 2) // LM39
+  eccedenzaPrecedente  Decimal         @default(0) @db.Decimal(14, 2) // LM43
+  eccedenzaCompensata  Decimal         @default(0) @db.Decimal(14, 2) // LM44
+  accontiVersati       Decimal         @default(0) @db.Decimal(14, 2) // LM45 col. 2
+  impostaDebito        Decimal         @default(0) @db.Decimal(14, 2) // LM46
+  impostaCredito       Decimal         @default(0) @db.Decimal(14, 2) // LM47
+  inpsImponibile       Decimal         @db.Decimal(14, 2) // RR5 col. 11
+  inpsAliquota         Decimal         @db.Decimal(5, 2)
+  inpsContributoDovuto Decimal         @db.Decimal(14, 2) // RR5 col. 15
+  inpsAccontiVersati   Decimal         @default(0) @db.Decimal(14, 2) // RR5 col. 16
+  inpsDebito           Decimal         @default(0) @db.Decimal(14, 2) // RR7
+  inpsCredito          Decimal         @default(0) @db.Decimal(14, 2) // RR8
+  accontoImpostaDovuto Decimal         @default(0) @db.Decimal(14, 2) // anno successivo
+  accontoInpsDovuto    Decimal         @default(0) @db.Decimal(14, 2)
+  ruleSetVersion       Int?
+  stato                TaxReturnStatus @default(DRAFT)
+  filedAt              DateTime?       @db.Date
+  note                 String?
+  createdAt            DateTime        @default(now())
+  updatedAt            DateTime        @updatedAt
+
+  credits TaxCredit[]
+
+  @@unique([tenantId, anno])
+}
+
+enum TaxCreditKind {
+  IMPOSTA_SOSTITUTIVA // LM47 → RX31, compensabile ex art. 3 D.Lgs. 33/2025
+  INPS // RR8 col. 2, compensabile in F24 con anno di riferimento
+}
+
+/// Libro mastro compensazioni: credito generato → usi in F24 → residuo.
+model TaxCredit {
+  id              String        @id @default(cuid())
+  tenantId        String
+  tenant          Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  taxReturnId     String?
+  taxReturn       TaxReturn?    @relation(fields: [taxReturnId], references: [id])
+  kind            TaxCreditKind
+  annoRiferimento Int
+  importo         Decimal       @db.Decimal(14, 2)
+  /// Data da cui è utilizzabile (>5.000 €: 10° giorno dopo la presentazione + visto).
+  utilizzabileDal DateTime?     @db.Date
+  note            String?
+  createdAt       DateTime      @default(now())
+
+  usages TaxCreditUsage[]
+
+  @@index([tenantId, kind, annoRiferimento])
+}
+
+model TaxCreditUsage {
+  id          String    @id @default(cuid())
+  taxCreditId String
+  taxCredit   TaxCredit @relation(fields: [taxCreditId], references: [id], onDelete: Cascade)
+  f24LineId   String    @unique
+  f24Line     F24Line   @relation(fields: [f24LineId], references: [id], onDelete: Cascade)
+  importo     Decimal   @db.Decimal(14, 2)
+  createdAt   DateTime  @default(now())
+
+  @@index([taxCreditId])
+}
+
+enum InstallmentPlanKind {
+  IMPOSTA_SALDO
+  IMPOSTA_ACCONTO1
+  INPS_SALDO
+  INPS_ACCONTO1
+}
+
+/// Piano di rate per saldo/primo acconto (art. 10 D.Lgs. 33/2025). Calcolato da packages/fiscal-rules.
+model InstallmentPlan {
+  id               String              @id @default(cuid())
+  tenantId         String
+  tenant           Tenant              @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  annoVersamento   Int
+  annoImposta      Int
+  kind             InstallmentPlanKind
+  importo          Decimal             @db.Decimal(14, 2)
+  primaRata        DateTime            @db.Date
+  numeroRate       Int
+  /// Maggiorazione applicata prima di rateizzare (0,40% ordinaria, 0,80% proroga 2026).
+  maggiorazionePct Decimal             @default(0) @db.Decimal(5, 2)
+  createdAt        DateTime            @default(now())
+
+  f24s F24[]
+
+  @@index([tenantId, annoVersamento])
+}
+
+enum F24Kind {
+  SALDO
+  ACCONTO1
+  ACCONTO2
+  RATA
+  BOLLO
+  AVVISO
+  ALTRO
+}
+
+enum F24Status {
+  PLANNED // generato dal tool
+  SCHEDULED_I24 // inviato con addebito a data futura (F24 web); annullabile fino al terzultimo giorno lavorativo
+  PAID
+  CANCELLED
+}
+
+model F24 {
+  id             String           @id @default(cuid())
+  tenantId       String
+  tenant         Tenant           @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  kind           F24Kind
+  dataVersamento DateTime         @db.Date
+  stato          F24Status        @default(PLANNED)
+  planId         String?
+  plan           InstallmentPlan? @relation(fields: [planId], references: [id])
+  rataNumero     Int?
+  rateTotali     Int?
+  totaleDebito   Decimal          @default(0) @db.Decimal(14, 2)
+  totaleCredito  Decimal          @default(0) @db.Decimal(14, 2)
+  saldo          Decimal          @default(0) @db.Decimal(14, 2)
+  i24ScheduledAt DateTime?
+  /// Ultimo giorno utile per annullare l'I24 (terzultimo giorno lavorativo prima dell'addebito).
+  i24CancelBy    DateTime?        @db.Date
+  paidAt         DateTime?        @db.Date
+  taxNoticeId    String?
+  taxNotice      TaxNotice?       @relation(fields: [taxNoticeId], references: [id])
+  note           String?
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+
+  lines            F24Line[]
+  stampDutyPeriods StampDutyPeriod[]
+  deadlines        Deadline[]
+
+  @@index([tenantId, dataVersamento])
+}
+
+enum F24Section {
+  ERARIO
+  INPS
+}
+
+model F24Line {
+  id              String     @id @default(cuid())
+  f24Id           String
+  f24             F24        @relation(fields: [f24Id], references: [id], onDelete: Cascade)
+  sezione         F24Section
+  /// Erario: codice tributo (1790/1791/1792/1668/2521…); INPS: causale (PXX/PXXR/DPPI) + codice sede.
+  codice          String
+  codiceSede      String?
+  /// Erario: "Rateazione/Regione/Provincia" es. "0106"; INPS: periodo MM/AAAA-MM/AAAA.
+  rateazione      String?
+  periodoDa       String?
+  periodoA        String?
+  annoRiferimento Int
+  importoDebito   Decimal    @default(0) @db.Decimal(14, 2)
+  importoCredito  Decimal    @default(0) @db.Decimal(14, 2)
+
+  creditUsage TaxCreditUsage?
+
+  @@index([f24Id])
+}
+
+enum DeadlineKind {
+  IMPOSTA_SALDO
+  IMPOSTA_ACCONTO1
+  IMPOSTA_ACCONTO2
+  INPS_SALDO
+  INPS_ACCONTO1
+  INPS_ACCONTO2
+  RATA
+  BOLLO
+  DICHIARAZIONE
+  INTRASTAT
+  IVA_ESTERO // c. 60 L. 190/2014: IVA su acquisti esteri entro il 16 del mese successivo
+  AVVISO
+  ALTRO
+}
+
+enum DeadlineStatus {
+  OPEN
+  DONE
+  SKIPPED
+}
+
+/// Scadenzario: una riga per adempimento, generata dal FiscalRuleSet attivo per l'anno.
+model Deadline {
+  id             String         @id @default(cuid())
+  tenantId       String
+  tenant         Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  kind           DeadlineKind
+  data           DateTime       @db.Date
+  descrizione    String
+  importoStimato Decimal?       @db.Decimal(14, 2)
+  stato          DeadlineStatus @default(OPEN)
+  f24Id          String?
+  f24            F24?           @relation(fields: [f24Id], references: [id])
+  ruleSetVersion Int?
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  @@index([tenantId, data])
+}
+
+// ───────────────────────── Atti e CIVIS ─────────────────────────
+
+enum TaxNoticeKind {
+  COMUNICAZIONE_IRREGOLARITA // art. 36-bis DPR 600/73
+  AVVISO_TELEMATICO
+  CARTELLA
+  BOLLO_FE // comunicazione bollo fatture elettroniche
+  CONTROLLO_FORMALE // art. 36-ter
+  ALTRO
+}
+
+enum TaxNoticeStatus {
+  RECEIVED
+  CIVIS_REQUESTED
+  PAID
+  INSTALLMENTS
+  CLOSED
+}
+
+/// Registro atti ricevuti; la richiesta CIVIS resta manuale sul portale AdE (nessuna API).
+model TaxNotice {
+  id               String          @id @default(cuid())
+  tenantId         String
+  tenant           Tenant          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  kind             TaxNoticeKind
+  /// Identificativo a 13 cifre richiesto da CIVIS.
+  numero           String?
+  annoImposta      Int?
+  dataRicezione    DateTime        @db.Date
+  importo          Decimal?        @db.Decimal(14, 2)
+  /// Termine pagamento con sanzione ridotta: 60 gg (D.Lgs. 462/97 art. 2 c. 2), sospensione 1/8-4/9.
+  scadenza         DateTime?       @db.Date
+  stato            TaxNoticeStatus @default(RECEIVED)
+  civisRequestId   String?
+  civisRequestedAt DateTime?       @db.Date
+  esito            String?
+  note             String?
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+
+  f24s F24[]
+
+  @@index([tenantId, dataRicezione])
+}
+
+// ───────────────────────── Trasversali ─────────────────────────
+
+model Attachment {
+  id         String   @id @default(cuid())
+  tenantId   String
+  tenant     Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  entityType String
+  entityId   String
+  fileName   String
+  mimeType   String
+  path       String
+  size       Int
+  createdAt  DateTime @default(now())
+
+  @@index([tenantId, entityType, entityId])
+}
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  tenantId   String?
+  tenant     Tenant?  @relation(fields: [tenantId], references: [id])
+  userId     String?
+  user       User?    @relation(fields: [userId], references: [id])
+  action     String
+  entityType String
+  entityId   String?
+  data       Json?
+  createdAt  DateTime @default(now())
+
+  @@index([tenantId, createdAt])
+  @@index([entityType, entityId])
+}

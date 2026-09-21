@@ -1,0 +1,17 @@
+{
+  "name": "opentax-it",
+  "private": true,
+  "version": "0.0.1",
+  "description": "Gestionale open source per partite IVA in regime forfettario: fatturazione elettronica (SDI), scadenzario, rate, INPS, compensazioni.",
+  "license": "AGPL-3.0-only",
+  "packageManager": "pnpm@10.18.1",
+  "engines": { "node": ">=22" },
+  "scripts": {
+    "dev": "pnpm -r --parallel run dev",
+    "build": "pnpm -r run build",
+    "test": "pnpm -r run test",
+    "lint": "pnpm -r run lint",
+    "db:up": "docker compose up -d db",
+    "db:migrate": "pnpm --filter @opentax-it/api exec prisma migrate dev"
+  }
+}
