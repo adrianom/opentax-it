@@ -18,7 +18,7 @@ const KIND_LABELS: Record<string, string> = {
 };
 
 function describe(d: Deadline): string {
-  const { taxYear, percentage, quarter, splittable } = d.details;
+  const { taxYear, percentage, quarter } = d.details;
   switch (d.kind) {
     case 'TAX_BALANCE':
       return `Saldo imposta sostitutiva ${taxYear} (o prima rata)`;
