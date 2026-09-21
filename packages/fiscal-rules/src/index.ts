@@ -6,3 +6,4 @@ export * from './deadlines.js';
 export { ruleSet2026 } from './rule-sets/2026.js';
 export * from './inps-offices.js';
 export * from './tax-computation.js';
+export * from './f24-schedule.js';

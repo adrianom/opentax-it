@@ -1,6 +1,6 @@
 import 'server-only';
 import { cookies } from 'next/headers';
-import type { BankAccount, Customer, Deadline, ImportResult, Invoice, Payment, PaymentTerms, RuleSetSummary, TaxSummary, TaxYearData, Tenant, TenantWithProfile } from './types';
+import type { BankAccount, Customer, Deadline, F24, ImportResult, InstallmentPlan, Invoice, Payment, PaymentTerms, PlanOptions, PlanPreview, RuleSetSummary, TaxSummary, TaxYearData, Tenant, TenantWithProfile } from './types';
 
 export * from './types';
 export * from './format';
@@ -87,6 +87,13 @@ export const api = {
   taxSummary: (year: number) => tenantRequest<TaxSummary>(`/taxes/${year}/summary`),
   taxYearData: (year: number) => tenantRequest<TaxYearData>(`/taxes/${year}/data`),
   updateTaxYearData: (year: number, data: unknown) => tenantRequest<TaxYearData>(`/taxes/${year}/data`, { method: 'PUT', body: JSON.stringify(data) }),
+  f24s: (year: number) => tenantRequest<F24[]>(`/f24?year=${year}`),
+  planOptions: (taxYear: number) => tenantRequest<PlanOptions>(`/f24/plans/${taxYear}/options`),
+  plan: (taxYear: number) => tenantRequest<InstallmentPlan>(`/f24/plans/${taxYear}`),
+  previewPlan: (taxYear: number, data: unknown) => tenantRequest<PlanPreview>(`/f24/plans/${taxYear}/preview`, { method: 'POST', body: JSON.stringify(data) }),
+  createPlan: (taxYear: number, data: unknown) => tenantRequest<InstallmentPlan>(`/f24/plans/${taxYear}`, { method: 'POST', body: JSON.stringify(data) }),
+  deletePlan: (taxYear: number) => tenantRequest<void>(`/f24/plans/${taxYear}`, { method: 'DELETE' }),
+  updateF24Status: (id: string, data: unknown) => tenantRequest<F24>(`/f24/${id}/status`, { method: 'PATCH', body: JSON.stringify(data) }),
   importInvoices: (files: Array<{ name: string; xml: string }>) => tenantRequest<ImportResult[]>('/invoices/import', { method: 'POST', body: JSON.stringify({ files }) }),
   invoiceXml: async (id: string) => {
     const tenantId = await currentTenantId();

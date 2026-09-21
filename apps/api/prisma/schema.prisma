@@ -553,31 +553,32 @@ model TaxCreditUsage {
   @@index([taxCreditId])
 }
 
-enum InstallmentPlanKind {
-  TAX_BALANCE
-  TAX_FIRST_ADVANCE
-  INPS_BALANCE
-  INPS_FIRST_ADVANCE
-}
-
-/// Installment plan for balance/first advance (art. 10 D.Lgs. 33/2025). Computed by packages/fiscal-rules.
+/// Installment plan for the balance and first advance of a tax year (art. 10 D.Lgs. 33/2025):
+/// one per tax year, computed by packages/fiscal-rules (f24-schedule.ts). Amounts are the whole-euro
+/// figures of the return before the deferral surcharge; the F24 forms hold the split.
 model InstallmentPlan {
-  id           String              @id @default(cuid())
-  tenantId     String
-  tenant       Tenant              @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  paymentYear  Int
-  taxYear      Int
-  kind         InstallmentPlanKind
-  amount       Decimal             @db.Decimal(14, 2)
-  firstDueDate DateTime            @db.Date
-  installments Int
-  /// Surcharge applied before splitting (0.40% ordinary, 0.80% 2026 extension).
-  surchargePct Decimal             @default(0) @db.Decimal(5, 2)
-  createdAt    DateTime            @default(now())
+  id               String   @id @default(cuid())
+  tenantId         String
+  tenant           Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  taxYear          Int
+  paymentYear      Int
+  firstDueDate     DateTime @db.Date
+  /// 1 = single payment.
+  installments     Int
+  /// Surcharge applied before splitting (0.40% ordinary deferral, 0.80% 2026 extension).
+  surchargePct     Decimal  @default(0) @db.Decimal(5, 2)
+  taxBalance       Decimal  @default(0) @db.Decimal(14, 2)
+  taxFirstAdvance  Decimal  @default(0) @db.Decimal(14, 2)
+  taxSecondAdvance Decimal  @default(0) @db.Decimal(14, 2)
+  inpsBalance      Decimal  @default(0) @db.Decimal(14, 2)
+  inpsFirstAdvance Decimal  @default(0) @db.Decimal(14, 2)
+  inpsSecondAdvance Decimal @default(0) @db.Decimal(14, 2)
+  ruleSetVersion   Int?
+  createdAt        DateTime @default(now())
 
   f24s F24[]
 
-  @@index([tenantId, paymentYear])
+  @@unique([tenantId, taxYear])
 }
 
 enum F24Kind {
@@ -605,7 +606,7 @@ model F24 {
   paymentDate       DateTime         @db.Date
   status            F24Status        @default(PLANNED)
   planId            String?
-  plan              InstallmentPlan? @relation(fields: [planId], references: [id])
+  plan              InstallmentPlan? @relation(fields: [planId], references: [id], onDelete: Cascade)
   installmentNumber Int?
   installmentsTotal Int?
   totalDebit        Decimal          @default(0) @db.Decimal(14, 2)
@@ -641,13 +642,15 @@ model F24Line {
   /// Treasury: tax code (1790/1791/1792/1668/2521…); INPS: reason (PXX/PXXR/DPPI) + office code.
   code            String
   officeCode      String?
-  /// Treasury: "Rateazione/Regione/Provincia" e.g. "0106"; INPS: period MM/YYYY-MM/YYYY.
+  /// Treasury "rateazione/regione/prov." column: NNRR, 0101 for a single payment, null when not required.
   installmentCode String?
+  /// INPS period MM/YYYY.
   periodFrom      String?
   periodTo        String?
   referenceYear   Int
   debitAmount     Decimal    @default(0) @db.Decimal(14, 2)
   creditAmount    Decimal    @default(0) @db.Decimal(14, 2)
+  description     String?
 
   creditUsage TaxCreditUsage?
 

@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { api, currentTenantId, fetchOrNull, formatMoney } from '@/lib/api';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -37,11 +38,17 @@ export default async function TaxesPage({ searchParams }: PageProps<'/taxes'>) {
         <Card><CardHeader><CardTitle>Calcolo non disponibile</CardTitle><CardDescription>Serve un set di regole attivo per il {year} o il {year + 1} e un profilo fiscale completo.</CardDescription></CardHeader></Card>
       ) : (
         <>
+          {s.warnings.length > 0 && (
+            <Alert>
+              <AlertTitle>Regole mancanti</AlertTitle>
+              <AlertDescription><ul className="list-disc pl-4">{s.warnings.map((w) => <li key={w}>{w}</li>)}</ul></AlertDescription>
+            </Alert>
+          )}
           <div className="grid gap-4 lg:grid-cols-2">
             <Card>
               <CardHeader>
                 <CardTitle>Reddito e imposta sostitutiva</CardTitle>
-                <CardDescription>Quadro LM sez. III — regole {s.rulesYear}{s.rulesYear === s.year ? ' (in attesa del set dell’anno successivo)' : ''}.</CardDescription>
+                <CardDescription>Quadro LM sez. III — aliquote e coefficiente dalle regole {s.rulesYear}; importi in unità di euro come in dichiarazione.</CardDescription>
               </CardHeader>
               <CardContent className="divide-y">
                 <Row label={`Incassato nel ${year} (principio di cassa)`} value={formatMoney(s.collectedRevenue)} code="LM22 c.3" />
@@ -73,7 +80,7 @@ export default async function TaxesPage({ searchParams }: PageProps<'/taxes'>) {
           <Card>
             <CardHeader>
               <CardTitle>Acconti per il {year + 1}</CardTitle>
-              <CardDescription>Imposta: 100% dell&apos;imposta {year} al netto di crediti (Istr. RN62 via Circ. 10/E/2016). INPS: 80% del contributo, in due rate (L. 662/96 c. 212).</CardDescription>
+              <CardDescription>Imposta: 100% dell&apos;imposta {year} al netto di crediti (Istr. RN62 via Circ. 10/E/2016). INPS: 80% del contributo con l&apos;aliquota {s.input.nextYearInpsRatePct}% del {year + 1}, in due rate (L. 662/96 c. 212). Le deleghe si generano in <Link href={`/f24?year=${year}`} className="underline">F24 e rate</Link>.</CardDescription>
             </CardHeader>
             <CardContent className="grid gap-6 sm:grid-cols-2">
               <div className="divide-y">
@@ -109,7 +116,7 @@ export default async function TaxesPage({ searchParams }: PageProps<'/taxes'>) {
           <Card>
             <CardHeader>
               <CardTitle>Dati dell&apos;anno inseriti a mano</CardTitle>
-              <CardDescription>Finché il modulo F24 non registra i versamenti, questi importi vanno indicati qui (dai tuoi F24 pagati).</CardDescription>
+              <CardDescription>Importi dai tuoi F24 pagati per il {year} (il collegamento automatico con le deleghe registrate in &quot;F24 e rate&quot; è in programma).</CardDescription>
             </CardHeader>
             <CardContent><YearDataForm year={year} input={s.input} /></CardContent>
           </Card>

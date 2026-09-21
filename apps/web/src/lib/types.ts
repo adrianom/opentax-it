@@ -126,6 +126,8 @@ export interface AdvanceSchedule {
 export interface TaxSummary {
   year: number;
   rulesYear: number;
+  paymentRulesYear: number;
+  warnings: string[];
   collectedRevenue: number;
   thresholds: { collectedRevenue: number; accessThreshold: number; exitThreshold: number; exceedsAccessThreshold: boolean; exceedsExitThreshold: boolean };
   input: {
@@ -137,6 +139,7 @@ export interface TaxSummary {
     inpsAdvancesPaid: number;
     taxCredits: number;
     inpsRatePct: number;
+    nextYearInpsRatePct: number;
   };
   result: {
     coefficientPct: number;
@@ -187,4 +190,86 @@ export interface PaymentTerms {
   days: number;
   method: string;
   isDefault: boolean;
+}
+
+export type PlanStart = 'ORDINARY' | 'EXTENDED' | 'DEFERRED' | 'DEFERRED_EXTENDED';
+
+export interface PlanOptions {
+  taxYear: number;
+  paymentYear: number;
+  rulesYear: number;
+  warnings: string[];
+  starts: Array<{ start: PlanStart; date: string; surchargePct: number; maxInstallments: number; source?: string }>;
+  secondAdvanceDate: string;
+}
+
+export type F24Kind = 'BALANCE' | 'FIRST_ADVANCE' | 'SECOND_ADVANCE' | 'INSTALLMENT' | 'STAMP_DUTY' | 'TAX_NOTICE' | 'OTHER';
+export type F24Status = 'PLANNED' | 'SCHEDULED_I24' | 'PAID' | 'CANCELLED';
+
+export interface F24Line {
+  id?: string;
+  section: 'TREASURY' | 'INPS';
+  code: string;
+  officeCode?: string | null;
+  installmentCode?: string | null;
+  periodFrom?: string | null;
+  periodTo?: string | null;
+  referenceYear: number;
+  debitAmount: string | number;
+  creditAmount?: string | number;
+  description?: string | null;
+}
+
+export interface F24Draft {
+  kind: F24Kind;
+  paymentDate: string;
+  nominalPaymentDate?: string;
+  installmentNumber?: number | null;
+  installmentsTotal?: number | null;
+  totalDebit: string | number;
+  i24CancelBy?: string | null;
+  lines: F24Line[];
+}
+
+export interface F24 extends F24Draft {
+  id: string;
+  status: F24Status;
+  paidOn?: string | null;
+  i24ScheduledAt?: string | null;
+  planId?: string | null;
+  plan?: { taxYear: number; installments: number } | null;
+}
+
+export interface PlanPreview {
+  taxYear: number;
+  paymentYear: number;
+  rulesYear: number;
+  start: PlanStart;
+  firstDueDate: string;
+  surchargePct: number;
+  installments: number;
+  maxInstallments: number;
+  amounts: { taxBalance: number; taxFirstAdvance: number; taxSecondAdvance: number; inpsBalance: number; inpsFirstAdvance: number; inpsSecondAdvance: number };
+  credits: { tax: number; inps: number };
+  inpsOfficeCode: string;
+  forms: F24Draft[];
+  warnings: string[];
+}
+
+export interface InstallmentPlan {
+  id: string;
+  taxYear: number;
+  paymentYear: number;
+  firstDueDate: string;
+  installments: number;
+  surchargePct: string;
+  taxBalance: string;
+  taxFirstAdvance: string;
+  taxSecondAdvance: string;
+  inpsBalance: string;
+  inpsFirstAdvance: string;
+  inpsSecondAdvance: string;
+  ruleSetVersion?: number | null;
+  createdAt: string;
+  f24s: F24[];
 }

@@ -260,3 +260,41 @@ export async function deletePaymentTerms(formData: FormData) {
   await api.deletePaymentTerms(String(formData.get('id')));
   revalidatePath('/payment-terms');
 }
+
+export async function createPlan(formData: FormData) {
+  const taxYear = Number(formData.get('taxYear'));
+  try {
+    await api.createPlan(taxYear, { start: String(formData.get('start')), installments: Number(formData.get('installments')) });
+  } catch (e) {
+    redirect(`/f24?year=${taxYear}&error=${encodeURIComponent(errorMessage(e))}`);
+  }
+  revalidatePath('/f24');
+  revalidatePath('/dashboard');
+  redirect(`/f24?year=${taxYear}`);
+}
+
+export async function deletePlan(formData: FormData) {
+  const taxYear = Number(formData.get('taxYear'));
+  try {
+    await api.deletePlan(taxYear);
+  } catch (e) {
+    redirect(`/f24?year=${taxYear}&error=${encodeURIComponent(errorMessage(e))}`);
+  }
+  revalidatePath('/f24');
+  revalidatePath('/dashboard');
+  redirect(`/f24?year=${taxYear}`);
+}
+
+export async function setF24Status(formData: FormData) {
+  const id = String(formData.get('id'));
+  const taxYear = Number(formData.get('taxYear'));
+  const status = String(formData.get('status'));
+  const paidOn = String(formData.get('paidOn') ?? '');
+  try {
+    await api.updateF24Status(id, { status, paidOn: paidOn || undefined });
+  } catch (e) {
+    redirect(`/f24?year=${taxYear}&error=${encodeURIComponent(errorMessage(e))}`);
+  }
+  revalidatePath('/f24');
+  revalidatePath('/dashboard');
+}
