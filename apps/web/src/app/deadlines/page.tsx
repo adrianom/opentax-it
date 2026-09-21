@@ -1,7 +1,7 @@
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { fetchDeadlines, fetchRuleSets, type Deadline } from '@/lib/api';
+import { api, fetchOrNull, type Deadline } from '@/lib/api';
 
 const KIND_LABELS: Record<string, string> = {
   TAX_BALANCE: 'Saldo imposta sostitutiva',
@@ -49,7 +49,7 @@ function formatDate(iso: string) {
 export default async function DeadlinesPage({ searchParams }: PageProps<'/deadlines'>) {
   const params = await searchParams;
   const year = Number(params.year ?? new Date().getFullYear());
-  const [deadlines, ruleSets] = await Promise.all([fetchDeadlines(year, { intrastat: true }), fetchRuleSets(year)]);
+  const [deadlines, ruleSets] = await Promise.all([fetchOrNull(() => api.deadlines(year, true)), fetchOrNull(() => api.ruleSets(year))]);
   const active = ruleSets?.find((r) => r.status === 'ACTIVE');
 
   return (

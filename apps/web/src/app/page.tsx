@@ -9,8 +9,10 @@ export default function HomePage() {
         Gestionale open source per partite IVA in regime forfettario: fatture elettroniche, scadenze, rate, INPS,
         compensazioni. Strumento di supporto, non consulenza fiscale.
       </p>
-      <div>
-        <Button render={<Link href="/deadlines" />}>Scadenzario</Button>
+      <div className="flex gap-2">
+        <Button render={<Link href="/invoices" />}>Fatture</Button>
+        <Button variant="outline" render={<Link href="/customers" />}>Clienti</Button>
+        <Button variant="outline" render={<Link href="/deadlines" />}>Scadenzario</Button>
       </div>
     </main>
   );

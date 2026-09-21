@@ -1,0 +1,88 @@
+import Link from 'next/link';
+import { notFound } from 'next/navigation';
+import { api, customerLabel, fetchOrNull, formatDate, formatMoney } from '@/lib/api';
+import { deleteInvoice } from '@/lib/actions';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Separator } from '@/components/ui/separator';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { STATUS_LABELS, TYPE_LABELS } from '../page';
+import { IssueForm } from './issue-form';
+
+export default async function InvoicePage({ params }: PageProps<'/invoices/[id]'>) {
+  const { id } = await params;
+  const inv = await fetchOrNull(() => api.invoice(id));
+  if (!inv) notFound();
+  const isDraft = inv.status === 'DRAFT';
+  return (
+    <main className="mx-auto w-full max-w-4xl space-y-6 p-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-semibold">{TYPE_LABELS[inv.type]} {inv.number || '(bozza)'}</h1>
+          <p className="text-sm text-muted-foreground">{formatDate(inv.date)} · {customerLabel(inv.customer)}</p>
+        </div>
+        <Badge variant={isDraft ? 'outline' : 'secondary'}>{STATUS_LABELS[inv.status]}</Badge>
+      </div>
+
+      <Card>
+        <CardHeader><CardTitle>Righe</CardTitle></CardHeader>
+        <CardContent>
+          <Table>
+            <TableHeader>
+              <TableRow><TableHead>#</TableHead><TableHead>Descrizione</TableHead><TableHead className="text-right">Q.tà</TableHead><TableHead className="text-right">Prezzo</TableHead><TableHead className="text-right">Totale</TableHead></TableRow>
+            </TableHeader>
+            <TableBody>
+              {inv.lines?.map((l) => (
+                <TableRow key={l.lineNumber}>
+                  <TableCell>{l.lineNumber}</TableCell>
+                  <TableCell>{l.description}</TableCell>
+                  <TableCell className="text-right font-mono">{Number(l.quantity)} {l.unit ?? ''}</TableCell>
+                  <TableCell className="text-right font-mono">{formatMoney(l.unitPrice, inv.currency)}</TableCell>
+                  <TableCell className="text-right font-mono">{formatMoney(l.totalPrice, inv.currency)}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+          <Separator className="my-4" />
+          <dl className="ml-auto grid w-full max-w-sm grid-cols-2 gap-1 text-sm">
+            <dt className="text-muted-foreground">Imponibile</dt><dd className="text-right font-mono">{formatMoney(inv.taxableAmount, inv.currency)}</dd>
+            {Number(inv.inpsSurcharge) > 0 && <><dt className="text-muted-foreground">Rivalsa INPS 4%</dt><dd className="text-right font-mono">{formatMoney(inv.inpsSurcharge, inv.currency)}</dd></>}
+            <dt className="text-muted-foreground">IVA</dt><dd className="text-right font-mono">— ({inv.vatNature.replace('_', '.')})</dd>
+            {inv.virtualStamp && <><dt className="text-muted-foreground">Bollo virtuale</dt><dd className="text-right font-mono">{formatMoney(inv.stampAmount, inv.currency)}</dd></>}
+            <dt className="font-medium">Totale documento</dt><dd className="text-right font-mono font-medium">{formatMoney(inv.total, inv.currency)}</dd>
+          </dl>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader><CardTitle>Diciture in fattura</CardTitle></CardHeader>
+        <CardContent><ul className="list-disc space-y-1 pl-5 text-sm">{inv.notes.map((n) => <li key={n}>{n}</li>)}</ul></CardContent>
+      </Card>
+
+      {isDraft ? (
+        <Card>
+          <CardHeader>
+            <CardTitle>Emetti</CardTitle>
+            <CardDescription>Assegna il numero progressivo, genera l&apos;XML FatturaPA e lo salva. Dopo l&apos;emissione il documento non è più modificabile.</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <IssueForm id={inv.id} />
+            <form action={deleteInvoice}><input type="hidden" name="id" value={inv.id} /><Button variant="ghost" size="sm" type="submit">Elimina bozza</Button></form>
+          </CardContent>
+        </Card>
+      ) : (
+        <Card>
+          <CardHeader>
+            <CardTitle>File XML</CardTitle>
+            <CardDescription>{inv.xmlFileName}</CardDescription>
+          </CardHeader>
+          <CardContent className="flex gap-2">
+            <Button render={<a href={`/invoices/${inv.id}/xml`} />}>Scarica XML</Button>
+            <Button variant="outline" render={<Link href="/invoices" />}>Torna all&apos;elenco</Button>
+          </CardContent>
+        </Card>
+      )}
+    </main>
+  );
+}

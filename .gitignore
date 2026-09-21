@@ -26,4 +26,4 @@ apps/api/prisma/*.db
 conversazione.md
 notes/
 *.tsbuildinfo
-/storage/
+apps/api/storage/

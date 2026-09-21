@@ -1,0 +1,102 @@
+'use client';
+
+import { useRouter } from 'next/navigation';
+import { useState, useTransition } from 'react';
+import { createInvoice } from '@/lib/actions';
+import { customerLabel } from '@/lib/format';
+import type { Customer } from '@/lib/types';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Field } from '@/components/field';
+import { NativeSelect } from '@/components/native-select';
+import { ErrorAlert } from '@/components/error-alert';
+
+interface LineDraft { description: string; quantity: string; unit: string; unitPrice: string }
+
+const emptyLine = (): LineDraft => ({ description: '', quantity: '1', unit: '', unitPrice: '' });
+
+export function InvoiceForm({ customers, issuedInvoices }: { customers: Customer[]; issuedInvoices: Array<{ id: string; number: string }> }) {
+  const router = useRouter();
+  const [pending, start] = useTransition();
+  const [error, setError] = useState<string>();
+  const [customerId, setCustomerId] = useState(customers[0]?.id ?? '');
+  const [type, setType] = useState<'TD01' | 'TD04'>('TD01');
+  const [refInvoiceId, setRefInvoiceId] = useState(issuedInvoices[0]?.id ?? '');
+  const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
+  const [surcharge, setSurcharge] = useState<'default' | 'yes' | 'no'>('default');
+  const [lines, setLines] = useState<LineDraft[]>([emptyLine()]);
+
+  const setLine = (i: number, patch: Partial<LineDraft>) => setLines((ls) => ls.map((l, j) => (j === i ? { ...l, ...patch } : l)));
+  const total = lines.reduce((s, l) => s + (Number(l.quantity) || 0) * (Number(l.unitPrice) || 0), 0);
+
+  const submit = () => {
+    setError(undefined);
+    start(async () => {
+      const res = await createInvoice({
+        customerId,
+        type,
+        refInvoiceId: type === 'TD04' ? refInvoiceId : undefined,
+        date,
+        applyInpsSurcharge: surcharge === 'default' ? undefined : surcharge === 'yes',
+        lines: lines.map((l) => ({ description: l.description, quantity: Number(l.quantity) || 1, unit: l.unit || undefined, unitPrice: Number(l.unitPrice) })),
+      });
+      if (res.error) setError(res.error);
+      else router.push(`/invoices/${res.id}`);
+    });
+  };
+
+  return (
+    <div className="space-y-6">
+      <ErrorAlert message={error} />
+      <div className="grid gap-4 sm:grid-cols-2">
+        <Field label="Cliente" htmlFor="customer">
+          <NativeSelect id="customer" value={customerId} onChange={(e) => setCustomerId(e.target.value)}>
+            {customers.map((c) => <option key={c.id} value={c.id}>{customerLabel(c)}</option>)}
+          </NativeSelect>
+        </Field>
+        <Field label="Tipo documento" htmlFor="type">
+          <NativeSelect id="type" value={type} onChange={(e) => setType(e.target.value as 'TD01' | 'TD04')}>
+            <option value="TD01">Fattura (TD01)</option>
+            <option value="TD04">Nota di credito (TD04)</option>
+          </NativeSelect>
+        </Field>
+        {type === 'TD04' && (
+          <Field label="Fattura da rettificare" htmlFor="ref">
+            <NativeSelect id="ref" value={refInvoiceId} onChange={(e) => setRefInvoiceId(e.target.value)}>
+              {issuedInvoices.map((i) => <option key={i.id} value={i.id}>{i.number}</option>)}
+            </NativeSelect>
+          </Field>
+        )}
+        <Field label="Data" htmlFor="date" hint="Entro 12 giorni dall'operazione (art. 21 c. 4 DPR 633/72)"><Input id="date" type="date" value={date} onChange={(e) => setDate(e.target.value)} /></Field>
+        <Field label="Rivalsa INPS 4%" htmlFor="surcharge">
+          <NativeSelect id="surcharge" value={surcharge} onChange={(e) => setSurcharge(e.target.value as 'default' | 'yes' | 'no')}>
+            <option value="default">Come da profilo</option>
+            <option value="yes">Applica</option>
+            <option value="no">Non applicare</option>
+          </NativeSelect>
+        </Field>
+      </div>
+
+      <div className="space-y-2">
+        <div className="grid grid-cols-12 gap-2 text-xs font-medium text-muted-foreground">
+          <div className="col-span-6">Descrizione</div><div className="col-span-2">Quantità</div><div className="col-span-1">U.M.</div><div className="col-span-2">Prezzo unitario</div>
+        </div>
+        {lines.map((l, i) => (
+          <div key={i} className="grid grid-cols-12 items-center gap-2">
+            <Input className="col-span-6" value={l.description} onChange={(e) => setLine(i, { description: e.target.value })} placeholder="Descrizione" />
+            <Input className="col-span-2" type="number" step="0.01" value={l.quantity} onChange={(e) => setLine(i, { quantity: e.target.value })} />
+            <Input className="col-span-1" value={l.unit} onChange={(e) => setLine(i, { unit: e.target.value })} placeholder="ore" />
+            <Input className="col-span-2" type="number" step="0.01" value={l.unitPrice} onChange={(e) => setLine(i, { unitPrice: e.target.value })} placeholder="0,00" />
+            <Button className="col-span-1" variant="ghost" size="sm" type="button" onClick={() => setLines((ls) => ls.filter((_, j) => j !== i))} disabled={lines.length === 1}>×</Button>
+          </div>
+        ))}
+        <Button variant="outline" size="sm" type="button" onClick={() => setLines((ls) => [...ls, emptyLine()])}>Aggiungi riga</Button>
+      </div>
+
+      <div className="flex items-center justify-between">
+        <p className="text-sm text-muted-foreground">Imponibile righe: <span className="font-mono">{total.toFixed(2)}</span> — bollo e rivalsa vengono aggiunti dal server.</p>
+        <Button onClick={submit} disabled={pending || !customerId || lines.some((l) => !l.description || !l.unitPrice)}>{pending ? 'Salvataggio…' : 'Salva bozza'}</Button>
+      </div>
+    </div>
+  );
+}
