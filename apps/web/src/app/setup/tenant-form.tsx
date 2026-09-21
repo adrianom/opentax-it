@@ -77,18 +77,6 @@ export function TenantForm({ offices, current }: Props) {
           {offices.map((o) => <option key={o.id} value={o.id}>{o.code} · {o.name}</option>)}
         </NativeSelect>
       </Field>
-      <div className="sm:col-span-2 mt-2 text-sm font-medium">Condizioni di pagamento predefinite (blocco DatiPagamento delle fatture)</div>
-      <Field label="Scadenza: giorni dalla data fattura" htmlFor="paymentTermsDays" hint="Es. 10 per “bonifico 10 gg data fattura”; vuoto = nessuna scadenza in fattura"><Input id="paymentTermsDays" name="paymentTermsDays" type="number" min={0} defaultValue={p?.paymentTermsDays ?? ''} /></Field>
-      <Field label="Modalità (ModalitaPagamento)" htmlFor="paymentMethod" hint="MP05 bonifico, MP08 carta, MP19 SEPA DD">
-        <NativeSelect id="paymentMethod" name="paymentMethod" defaultValue={p?.paymentMethod ?? 'MP05'}>
-          <option value="MP05">MP05 · Bonifico</option>
-          <option value="MP08">MP08 · Carta di pagamento</option>
-          <option value="MP19">MP19 · SEPA Direct Debit</option>
-          <option value="MP01">MP01 · Contanti</option>
-        </NativeSelect>
-      </Field>
-      <Field label="IBAN" htmlFor="paymentIban"><Input id="paymentIban" name="paymentIban" defaultValue={p?.paymentIban ?? ''} /></Field>
-      <Field label="BIC (opzionale)" htmlFor="paymentBic"><Input id="paymentBic" name="paymentBic" defaultValue={p?.paymentBic ?? ''} /></Field>
       <div className="flex flex-col gap-2 sm:col-span-2">
         <label className="flex items-center gap-2 text-sm"><Checkbox name="reducedRate" defaultChecked={p?.reducedRate} /> Aliquota ridotta 5% (requisiti art. 1 c. 65 L. 190/2014)</label>
         <label className="flex items-center gap-2 text-sm"><Checkbox name="applyInpsSurcharge" defaultChecked={p?.applyInpsSurcharge} /> Applica rivalsa INPS 4% in fattura</label>

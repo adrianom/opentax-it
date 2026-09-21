@@ -23,6 +23,8 @@ model Tenant {
   updatedAt DateTime @updatedAt
 
   profile          TenantProfile?
+  bankAccounts     BankAccount[]
+  paymentTerms     PaymentTerms[]
   users            User[]
   customers        Customer[]
   invoices         Invoice[]
@@ -95,14 +97,48 @@ model TenantProfile {
   pecCredentialsEnc  String?
   /// SDI PEC address assigned after the first submission to sdi01@pec.fatturapa.it (spec 1.9.1 §1.5).
   sdiPecAssigned     String?
-  /// Default payment terms used when issuing (DatiPagamento): days from the invoice date, ModalitaPagamento, IBAN/BIC printed on invoices.
-  paymentTermsDays   Int?
-  paymentMethod      String?  @default("MP05")
-  paymentIban        String?
-  paymentBic         String?
   ibanEnc            String?
   createdAt          DateTime @default(now())
   updatedAt          DateTime @updatedAt
+}
+
+/// Bank accounts of the VAT holder (IBAN/BIC printed in DatiPagamento). More than one is allowed; one is the default, chosen per invoice.
+model BankAccount {
+  id        String   @id @default(cuid())
+  tenantId  String
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  name      String
+  bankName  String?
+  iban      String
+  bic       String?
+  isDefault Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  invoices Invoice[]
+
+  @@unique([tenantId, name])
+  @@index([tenantId])
+}
+
+/// Named payment terms ("profili di scadenza") selectable on each invoice; rendered as DatiPagamento.
+model PaymentTerms {
+  id            String       @id @default(cuid())
+  tenantId      String
+  tenant        Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  name          String
+  /// Due date = invoice date + days (DataScadenzaPagamento).
+  days          Int
+  /// ModalitaPagamento (spec 1.9.1), e.g. MP05 bank transfer.
+  method        String       @default("MP05")
+  isDefault     Boolean      @default(false)
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+
+  invoices Invoice[]
+
+  @@unique([tenantId, name])
+  @@index([tenantId])
 }
 
 // ───────────────────────── Master data ─────────────────────────
@@ -200,6 +236,11 @@ model Invoice {
   refInvoiceId  String?
   refInvoice    Invoice?      @relation("Correction", fields: [refInvoiceId], references: [id])
   corrections   Invoice[]     @relation("Correction")
+  /// Payment terms and bank account chosen for this document (DatiPagamento at issue time).
+  paymentTermsId String?
+  paymentTerms   PaymentTerms? @relation(fields: [paymentTermsId], references: [id])
+  bankAccountId  String?
+  bankAccount    BankAccount?  @relation(fields: [bankAccountId], references: [id])
   xmlFileName   String?
   xmlPath       String?
   internalNotes String?

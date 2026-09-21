@@ -18,10 +18,6 @@ export class CreateTenantDto {
   @IsOptional() @IsBoolean() applyInpsSurcharge?: boolean;
   @IsOptional() @IsBoolean() viesRegistered?: boolean;
   @IsOptional() @IsString() @Matches(/^\d{4}-[a-z0-9-]+$/) inpsOfficeId?: string;
-  @IsOptional() @IsInt() @Min(0) paymentTermsDays?: number;
-  @IsOptional() @IsString() @Matches(/^MP\d{2}$/) paymentMethod?: string;
-  @IsOptional() @IsString() @Matches(/^([A-Z]{2}\d{2}[A-Z0-9]{11,30})?$/) paymentIban?: string;
-  @IsOptional() @IsString() @Matches(/^([A-Z0-9]{8}|[A-Z0-9]{11})?$/) paymentBic?: string;
   @IsOptional() @IsString() pecAddress?: string;
 }
 
@@ -43,8 +39,19 @@ export class UpdateTenantProfileDto {
   @IsOptional() @IsBoolean() viesRegistered?: boolean;
   @IsOptional() @IsString() pecAddress?: string;
   @IsOptional() @IsString() @Matches(/^\d{4}-[a-z0-9-]+$/) inpsOfficeId?: string;
-  @IsOptional() @IsInt() @Min(0) paymentTermsDays?: number;
-  @IsOptional() @IsString() @Matches(/^MP\d{2}$/) paymentMethod?: string;
-  @IsOptional() @IsString() @Matches(/^([A-Z]{2}\d{2}[A-Z0-9]{11,30})?$/) paymentIban?: string;
-  @IsOptional() @IsString() @Matches(/^([A-Z0-9]{8}|[A-Z0-9]{11})?$/) paymentBic?: string;
+}
+
+export class BankAccountDto {
+  @IsString() @Length(1, 60) name!: string;
+  @IsOptional() @IsString() @Length(1, 80) bankName?: string;
+  @IsString() @Matches(/^[A-Z]{2}\d{2}[A-Z0-9]{11,30}$/) iban!: string;
+  @IsOptional() @IsString() @Matches(/^([A-Z0-9]{8}|[A-Z0-9]{11})?$/) bic?: string;
+  @IsOptional() @IsBoolean() isDefault?: boolean;
+}
+
+export class PaymentTermsDto {
+  @IsString() @Length(1, 60) name!: string;
+  @IsInt() @Min(0) days!: number;
+  @IsOptional() @IsString() @Matches(/^MP\d{2}$/) method?: string;
+  @IsOptional() @IsBoolean() isDefault?: boolean;
 }

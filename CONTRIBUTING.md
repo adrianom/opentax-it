@@ -1,6 +1,8 @@
 # Contribuire
 
-Grazie per l'interesse. Alcune regole che rendono il progetto affidabile:
+Grazie per l'interesse. Contribuendo accetti che il software è distribuito senza garanzia e senza alcuna assunzione di responsabilità da parte di autori e contributori ([DISCLAIMER.md](DISCLAIMER.md), AGPL-3.0 sez. 15-16): il progetto non fornisce consulenza fiscale.
+
+Alcune regole che rendono il progetto affidabile:
 
 ## Regole fiscali
 - **Solo fonti ufficiali**: Agenzia delle Entrate, INPS, Gazzetta Ufficiale/Normattiva, ADM, fatturapa.gov.it. Blog e portali fiscali possono orientare, ma non sono una fonte accettabile in una PR.

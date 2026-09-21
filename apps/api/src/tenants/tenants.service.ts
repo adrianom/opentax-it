@@ -1,7 +1,7 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { INPS_OFFICES, isValidInpsOfficeIdForGestioneSeparata } from '@opentax-it/fiscal-rules';
 import { PrismaService } from '../prisma/prisma.service.js';
-import type { CreateTenantDto, UpdateTenantProfileDto } from './tenants.dto.js';
+import type { BankAccountDto, CreateTenantDto, PaymentTermsDto, UpdateTenantProfileDto } from './tenants.dto.js';
 
 @Injectable()
 export class TenantsService {
@@ -32,13 +32,61 @@ export class TenantsService {
           update: {
             ...profile,
             inpsOfficeId: profile.inpsOfficeId === '' ? null : profile.inpsOfficeId,
-            paymentIban: profile.paymentIban === '' ? null : profile.paymentIban,
-            paymentBic: profile.paymentBic === '' ? null : profile.paymentBic,
           },
         },
       },
       include: { profile: true },
     });
+  }
+
+  listBankAccounts(tenantId: string) {
+    return this.prisma.bankAccount.findMany({ where: { tenantId }, orderBy: [{ isDefault: 'desc' }, { name: 'asc' }] });
+  }
+
+  async saveBankAccount(tenantId: string, dto: BankAccountDto, id?: string) {
+    const { name, bankName, iban, bic, isDefault } = dto;
+    const data = { name, bankName: bankName || null, iban, bic: bic || null, isDefault: isDefault ?? false };
+    return this.prisma.$transaction(async (tx) => {
+      if (data.isDefault) await tx.bankAccount.updateMany({ where: { tenantId, isDefault: true }, data: { isDefault: false } });
+      if (id) {
+        const existing = await tx.bankAccount.findFirst({ where: { id, tenantId } });
+        if (!existing) throw new NotFoundException(`Bank account ${id} not found`);
+        return tx.bankAccount.update({ where: { id }, data });
+      }
+      return tx.bankAccount.create({ data: { tenantId, ...data } });
+    });
+  }
+
+  async deleteBankAccount(tenantId: string, id: string) {
+    const existing = await this.prisma.bankAccount.findFirst({ where: { id, tenantId } });
+    if (!existing) throw new NotFoundException(`Bank account ${id} not found`);
+    const used = await this.prisma.invoice.count({ where: { bankAccountId: id } });
+    if (used) throw new BadRequestException('Bank account is used by invoices and cannot be deleted');
+    await this.prisma.bankAccount.delete({ where: { id } });
+  }
+
+  listPaymentTerms(tenantId: string) {
+    return this.prisma.paymentTerms.findMany({ where: { tenantId }, orderBy: [{ isDefault: 'desc' }, { name: 'asc' }] });
+  }
+
+  async savePaymentTerms(tenantId: string, dto: PaymentTermsDto, id?: string) {
+    const { name, days, method, isDefault } = dto;
+    const data = { name, days, method: method ?? 'MP05', isDefault: isDefault ?? false };
+    return this.prisma.$transaction(async (tx) => {
+      if (data.isDefault) await tx.paymentTerms.updateMany({ where: { tenantId, isDefault: true }, data: { isDefault: false } });
+      if (id) {
+        const existing = await tx.paymentTerms.findFirst({ where: { id, tenantId } });
+        if (!existing) throw new NotFoundException(`Payment terms ${id} not found`);
+        return tx.paymentTerms.update({ where: { id }, data });
+      }
+      return tx.paymentTerms.create({ data: { tenantId, ...data } });
+    });
+  }
+
+  async deletePaymentTerms(tenantId: string, id: string) {
+    const existing = await this.prisma.paymentTerms.findFirst({ where: { id, tenantId } });
+    if (!existing) throw new NotFoundException(`Payment terms ${id} not found`);
+    await this.prisma.paymentTerms.delete({ where: { id } });
   }
 
   /** INPS offices accepting Gestione Separata contributions, for form selects (one entry per published row). */

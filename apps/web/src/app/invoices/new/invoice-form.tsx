@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation';
 import { useState, useTransition } from 'react';
 import { createInvoice } from '@/lib/actions';
 import { customerLabel } from '@/lib/format';
-import type { Customer } from '@/lib/types';
+import type { BankAccount, Customer, PaymentTerms } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Field } from '@/components/field';
@@ -15,7 +15,7 @@ interface LineDraft { description: string; quantity: string; unit: string; unitP
 
 const emptyLine = (): LineDraft => ({ description: '', quantity: '1', unit: '', unitPrice: '' });
 
-export function InvoiceForm({ customers, issuedInvoices }: { customers: Customer[]; issuedInvoices: Array<{ id: string; number: string }> }) {
+export function InvoiceForm({ customers, issuedInvoices, terms, banks }: { customers: Customer[]; issuedInvoices: Array<{ id: string; number: string }>; terms: PaymentTerms[]; banks: BankAccount[] }) {
   const router = useRouter();
   const [pending, start] = useTransition();
   const [error, setError] = useState<string>();
@@ -24,6 +24,8 @@ export function InvoiceForm({ customers, issuedInvoices }: { customers: Customer
   const [refInvoiceId, setRefInvoiceId] = useState(issuedInvoices[0]?.id ?? '');
   const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
   const [surcharge, setSurcharge] = useState<'default' | 'yes' | 'no'>('default');
+  const [paymentTermsId, setPaymentTermsId] = useState(terms.find((t) => t.isDefault)?.id ?? terms[0]?.id ?? '');
+  const [bankAccountId, setBankAccountId] = useState(banks.find((b) => b.isDefault)?.id ?? banks[0]?.id ?? '');
   const [lines, setLines] = useState<LineDraft[]>([emptyLine()]);
 
   const setLine = (i: number, patch: Partial<LineDraft>) => setLines((ls) => ls.map((l, j) => (j === i ? { ...l, ...patch } : l)));
@@ -38,6 +40,8 @@ export function InvoiceForm({ customers, issuedInvoices }: { customers: Customer
         refInvoiceId: type === 'TD04' ? refInvoiceId : undefined,
         date,
         applyInpsSurcharge: surcharge === 'default' ? undefined : surcharge === 'yes',
+        paymentTermsId: paymentTermsId || undefined,
+        bankAccountId: bankAccountId || undefined,
         lines: lines.map((l) => ({ description: l.description, quantity: Number(l.quantity) || 1, unit: l.unit || undefined, unitPrice: Number(l.unitPrice) })),
       });
       if (res.error) setError(res.error);
@@ -68,6 +72,18 @@ export function InvoiceForm({ customers, issuedInvoices }: { customers: Customer
           </Field>
         )}
         <Field label="Data" htmlFor="date" hint="Entro 12 giorni dall'operazione (art. 21 c. 4 DPR 633/72)"><Input id="date" type="date" value={date} onChange={(e) => setDate(e.target.value)} /></Field>
+        <Field label="Profilo di scadenza" htmlFor="terms" hint={terms.length === 0 ? 'Nessun profilo: creane uno nelle impostazioni' : undefined}>
+          <NativeSelect id="terms" value={paymentTermsId} onChange={(e) => setPaymentTermsId(e.target.value)}>
+            <option value="">— nessuna scadenza in fattura —</option>
+            {terms.map((t) => <option key={t.id} value={t.id}>{t.name} ({t.days} gg)</option>)}
+          </NativeSelect>
+        </Field>
+        <Field label="Banca" htmlFor="bank" hint={banks.length === 0 ? 'Nessuna banca: aggiungila nelle impostazioni' : undefined}>
+          <NativeSelect id="bank" value={bankAccountId} onChange={(e) => setBankAccountId(e.target.value)}>
+            <option value="">— nessun IBAN in fattura —</option>
+            {banks.map((b) => <option key={b.id} value={b.id}>{b.name}{b.bankName ? ` · ${b.bankName}` : ''}</option>)}
+          </NativeSelect>
+        </Field>
         <Field label="Rivalsa INPS 4%" htmlFor="surcharge">
           <NativeSelect id="surcharge" value={surcharge} onChange={(e) => setSurcharge(e.target.value as 'default' | 'yes' | 'no')}>
             <option value="default">Come da profilo</option>

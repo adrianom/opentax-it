@@ -20,6 +20,9 @@ export async function AppShell({ children }: { children: ReactNode }) {
           <div className="ml-auto"><Clock /></div>
         </header>
         <div className="flex-1">{children}</div>
+        <footer className="border-t px-6 py-3 text-xs text-muted-foreground">
+          OpenTax IT è uno strumento di supporto, non consulenza fiscale: verifica sempre i valori con un professionista abilitato. Nessuna responsabilità per errori, sanzioni od omissioni (AGPL-3.0 sez. 15-16).
+        </footer>
       </SidebarInset>
     </SidebarProvider>
   );

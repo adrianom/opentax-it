@@ -42,10 +42,6 @@ export interface TenantProfile {
   viesRegistered: boolean;
   pecAddress: string | null;
   inpsOfficeId: string | null;
-  paymentTermsDays: number | null;
-  paymentMethod: string | null;
-  paymentIban: string | null;
-  paymentBic: string | null;
 }
 
 export interface TenantWithProfile extends Tenant {
@@ -101,6 +97,8 @@ export interface Invoice {
   notes: string[];
   status: InvoiceStatus;
   refInvoiceId: string | null;
+  paymentTermsId: string | null;
+  bankAccountId: string | null;
   xmlFileName: string | null;
   customer: Pick<Customer, 'id' | 'businessName' | 'firstName' | 'lastName' | 'kind'>;
   lines?: InvoiceLine[];
@@ -172,4 +170,21 @@ export interface ImportResult {
   invoiceId?: string;
   customer?: string;
   message?: string;
+}
+
+export interface BankAccount {
+  id: string;
+  name: string;
+  bankName: string | null;
+  iban: string;
+  bic: string | null;
+  isDefault: boolean;
+}
+
+export interface PaymentTerms {
+  id: string;
+  name: string;
+  days: number;
+  method: string;
+  isDefault: boolean;
 }

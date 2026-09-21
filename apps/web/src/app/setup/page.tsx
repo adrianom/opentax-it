@@ -7,15 +7,18 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { NativeSelect } from '@/components/native-select';
 import { TenantForm } from './tenant-form';
+import { BankAccounts, PaymentTermsList } from './payment-settings';
 
 export default async function SetupPage() {
   const year = new Date().getFullYear();
-  const [tenants, offices, me, ruleSets, ruleStatus] = await Promise.all([
+  const [tenants, offices, me, ruleSets, ruleStatus, banks, terms] = await Promise.all([
     fetchOrNull(() => api.tenants()),
     fetchOrNull(() => api.inpsOffices()),
     fetchOrNull(() => api.me()),
     fetchOrNull(() => api.ruleSets(year)),
     fetchOrNull(() => api.ruleSetStatus(year)),
+    fetchOrNull(() => api.bankAccounts()),
+    fetchOrNull(() => api.paymentTerms()),
   ]);
   const current = await currentTenantId();
   const list = tenants ?? [];
@@ -54,6 +57,25 @@ export default async function SetupPage() {
           <CardContent><TenantForm offices={offices ?? []} current={{ name: me.name, profile: me.profile }} /></CardContent>
         </Card>
       ) : null}
+
+      {me && (
+        <>
+          <Card>
+            <CardHeader>
+              <CardTitle>Banche</CardTitle>
+              <CardDescription>Conti su cui ricevere i pagamenti; la banca si sceglie su ogni fattura (predefinita proposta) e finisce in DatiPagamento (IBAN/BIC).</CardDescription>
+            </CardHeader>
+            <CardContent><BankAccounts accounts={banks ?? []} /></CardContent>
+          </Card>
+          <Card>
+            <CardHeader>
+              <CardTitle>Profili di scadenza</CardTitle>
+              <CardDescription>Condizioni di pagamento selezionabili sulla fattura: la scadenza è data fattura + giorni (DataScadenzaPagamento).</CardDescription>
+            </CardHeader>
+            <CardContent><PaymentTermsList terms={terms ?? []} /></CardContent>
+          </Card>
+        </>
+      )}
 
       <Card>
         <CardHeader>

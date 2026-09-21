@@ -66,6 +66,14 @@ export class InvoicesService {
       const ref = await this.prisma.invoice.findFirst({ where: { id: dto.refInvoiceId, tenantId } });
       if (!ref) throw new BadRequestException(`Referenced invoice ${dto.refInvoiceId} not found`);
     }
+    if (dto.paymentTermsId) {
+      const terms = await this.prisma.paymentTerms.findFirst({ where: { id: dto.paymentTermsId, tenantId } });
+      if (!terms) throw new BadRequestException(`Payment terms ${dto.paymentTermsId} not found`);
+    }
+    if (dto.bankAccountId) {
+      const bank = await this.prisma.bankAccount.findFirst({ where: { id: dto.bankAccountId, tenantId } });
+      if (!bank) throw new BadRequestException(`Bank account ${dto.bankAccountId} not found`);
+    }
 
     const lines = dto.lines.map((l, i) => {
       const quantity = l.quantity ?? 1;
@@ -108,6 +116,8 @@ export class InvoicesService {
         total,
         notes,
         refInvoiceId: dto.refInvoiceId ?? null,
+        paymentTermsId: dto.paymentTermsId ?? null,
+        bankAccountId: dto.bankAccountId ?? null,
         internalNotes: dto.internalNotes ?? null,
       },
       lines,
@@ -161,7 +171,7 @@ export class InvoicesService {
       const transmissionSeq = transmissions + 1;
 
       const refInvoice = existing.refInvoiceId ? await tx.invoice.findUnique({ where: { id: existing.refInvoiceId } }) : null;
-      const payment = dto?.payment ?? this.defaultPayment(existing, profile);
+      const payment = dto?.payment ?? (await this.paymentFromTerms(tenantId, existing));
       const model = this.toFatturaPa({ ...existing, number }, profile, rules, transmissionSeq, refInvoice, payment);
       const xml = buildInvoiceXml(model);
       const xmlFileName = invoiceFileName(profile.country, profile.fiscalCode, transmissionSeq);
@@ -175,11 +185,20 @@ export class InvoicesService {
     });
   }
 
-  /** Default DatiPagamento from the profile: due date = invoice date + payment terms days (when configured). */
-  private defaultPayment(inv: Invoice, profile: TenantProfile): CreateInvoiceDto['payment'] | undefined {
-    if (profile.paymentTermsDays === null || profile.paymentTermsDays === undefined) return undefined;
-    const due = new Date(inv.date.getTime() + profile.paymentTermsDays * 24 * 3600 * 1000);
-    return { dueDate: due.toISOString().slice(0, 10), method: profile.paymentMethod ?? 'MP05', iban: profile.paymentIban ?? undefined, bic: profile.paymentBic ?? undefined };
+  /**
+   * DatiPagamento from the invoice's payment terms (or the tenant default terms): due date =
+   * invoice date + days; bank = the invoice's bank account, else the tenant default bank.
+   */
+  private async paymentFromTerms(tenantId: string, inv: Invoice): Promise<CreateInvoiceDto['payment'] | undefined> {
+    const terms = inv.paymentTermsId
+      ? await this.prisma.paymentTerms.findFirst({ where: { id: inv.paymentTermsId, tenantId } })
+      : await this.prisma.paymentTerms.findFirst({ where: { tenantId, isDefault: true } });
+    const bank = inv.bankAccountId
+      ? await this.prisma.bankAccount.findFirst({ where: { id: inv.bankAccountId, tenantId } })
+      : await this.prisma.bankAccount.findFirst({ where: { tenantId, isDefault: true } });
+    if (!terms && !bank) return undefined;
+    const due = terms ? new Date(inv.date.getTime() + terms.days * 24 * 3600 * 1000).toISOString().slice(0, 10) : undefined;
+    return { dueDate: due, method: terms?.method ?? 'MP05', iban: bank?.iban, bic: bank?.bic ?? undefined };
   }
 
   async xml(tenantId: string, id: string): Promise<{ fileName: string; content: string }> {
@@ -255,7 +274,7 @@ export class InvoicesService {
         : undefined,
       stampDuty: inv.virtualStamp ? { amount: Number(inv.stampAmount) } : undefined,
       payment: payment
-        ? { terms: 'TP02', method: payment.method ?? profile.paymentMethod ?? 'MP05', dueDate: payment.dueDate, amount: total, iban: payment.iban ?? profile.paymentIban ?? undefined, bic: payment.bic ?? profile.paymentBic ?? undefined }
+        ? { terms: 'TP02', method: payment.method ?? 'MP05', dueDate: payment.dueDate, amount: total, iban: payment.iban, bic: payment.bic }
         : undefined,
       relatedDocuments: refInvoice ? [{ number: refInvoice.number, date: refInvoice.date.toISOString().slice(0, 10) }] : undefined,
     };

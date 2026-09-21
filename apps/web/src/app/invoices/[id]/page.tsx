@@ -17,9 +17,10 @@ export default async function InvoicePage({ params }: PageProps<'/invoices/[id]'
   if (!inv) notFound();
   const isDraft = inv.status === 'DRAFT';
   const payments = isDraft ? [] : ((await fetchOrNull(() => api.payments(id))) ?? []);
-  const me = isDraft ? await fetchOrNull(() => api.me()) : null;
-  const terms = me?.profile.paymentTermsDays;
-  const defaultDueDate = terms !== null && terms !== undefined ? new Date(new Date(inv.date).getTime() + terms * 86_400_000).toISOString().slice(0, 10) : undefined;
+  const [terms, banks] = isDraft ? await Promise.all([fetchOrNull(() => api.paymentTerms()), fetchOrNull(() => api.bankAccounts())]) : [null, null];
+  const chosenTerms = terms?.find((t) => t.id === inv.paymentTermsId) ?? terms?.find((t) => t.isDefault);
+  const chosenBank = banks?.find((b) => b.id === inv.bankAccountId) ?? banks?.find((b) => b.isDefault);
+  const defaultDueDate = chosenTerms ? new Date(new Date(inv.date).getTime() + chosenTerms.days * 86_400_000).toISOString().slice(0, 10) : undefined;
   return (
     <main className="mx-auto w-full max-w-4xl space-y-6 p-6">
       <div className="flex items-center justify-between">
@@ -72,7 +73,8 @@ export default async function InvoicePage({ params }: PageProps<'/invoices/[id]'
             <CardDescription>Assegna il numero progressivo, genera l&apos;XML FatturaPA e lo salva. Dopo l&apos;emissione il documento non è più modificabile.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <IssueForm id={inv.id} defaultDueDate={defaultDueDate} defaultIban={me?.profile.paymentIban ?? undefined} />
+            <p className="text-sm text-muted-foreground">Scadenza: {chosenTerms ? `${chosenTerms.name} (${chosenTerms.days} gg)` : 'nessuna'} · Banca: {chosenBank ? chosenBank.name : 'nessuna'}. Puoi modificare i valori qui sotto prima di emettere.</p>
+            <IssueForm id={inv.id} defaultDueDate={defaultDueDate} defaultIban={chosenBank?.iban} />
             <form action={deleteInvoice}><input type="hidden" name="id" value={inv.id} /><Button variant="ghost" size="sm" type="submit">Elimina bozza</Button></form>
           </CardContent>
         </Card>

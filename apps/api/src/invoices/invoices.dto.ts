@@ -29,6 +29,10 @@ export class CreateInvoiceDto {
   @IsOptional() @ValidateNested() @Type(() => InvoicePaymentDto) payment?: InvoicePaymentDto;
   /** For TD04/TD05: id of the corrected invoice. */
   @IsOptional() @IsString() refInvoiceId?: string;
+  /** Payment terms preset; when omitted the tenant default (if any) is used at issue time. */
+  @IsOptional() @IsString() paymentTermsId?: string;
+  /** Bank account for DatiPagamento; defaults to the tenant default bank. */
+  @IsOptional() @IsString() bankAccountId?: string;
   @IsOptional() @IsString() internalNotes?: string;
 }
 

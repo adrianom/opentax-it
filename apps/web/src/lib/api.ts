@@ -1,6 +1,6 @@
 import 'server-only';
 import { cookies } from 'next/headers';
-import type { Customer, Deadline, ImportResult, Invoice, Payment, RuleSetSummary, TaxSummary, TaxYearData, Tenant, TenantWithProfile } from './types';
+import type { BankAccount, Customer, Deadline, ImportResult, Invoice, Payment, PaymentTerms, RuleSetSummary, TaxSummary, TaxYearData, Tenant, TenantWithProfile } from './types';
 
 export * from './types';
 export * from './format';
@@ -54,6 +54,12 @@ export const api = {
   tenants: () => request<Tenant[]>('/tenants'),
   me: () => tenantRequest<TenantWithProfile>('/tenants/me'),
   updateMe: (data: unknown) => tenantRequest<TenantWithProfile>('/tenants/me', { method: 'PUT', body: JSON.stringify(data) }),
+  bankAccounts: () => tenantRequest<BankAccount[]>('/tenants/me/bank-accounts'),
+  saveBankAccount: (data: unknown, id?: string) => tenantRequest<BankAccount>(id ? `/tenants/me/bank-accounts/${id}` : '/tenants/me/bank-accounts', { method: id ? 'PUT' : 'POST', body: JSON.stringify(data) }),
+  deleteBankAccount: (id: string) => tenantRequest<void>(`/tenants/me/bank-accounts/${id}`, { method: 'DELETE' }),
+  paymentTerms: () => tenantRequest<PaymentTerms[]>('/tenants/me/payment-terms'),
+  savePaymentTerms: (data: unknown, id?: string) => tenantRequest<PaymentTerms>(id ? `/tenants/me/payment-terms/${id}` : '/tenants/me/payment-terms', { method: id ? 'PUT' : 'POST', body: JSON.stringify(data) }),
+  deletePaymentTerms: (id: string) => tenantRequest<void>(`/tenants/me/payment-terms/${id}`, { method: 'DELETE' }),
   activateRuleSet: (id: string) => request<RuleSetSummary>(`/fiscal-rules/${id}/activate`, { method: 'POST' }),
   seedRuleSets: () => request<{ inserted: Array<{ year: number; version: number }> }>('/fiscal-rules/seed', { method: 'POST' }),
   inpsOffices: () => request<Array<{ id: string; code: string; name: string }>>('/tenants/inps-offices'),

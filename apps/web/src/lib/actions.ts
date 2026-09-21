@@ -39,10 +39,6 @@ export async function createTenant(_prev: ActionState, formData: FormData): Prom
       applyInpsSurcharge: formData.get('applyInpsSurcharge') === 'on',
       viesRegistered: formData.get('viesRegistered') === 'on',
       inpsOfficeId: f('inpsOfficeId') || undefined,
-      paymentTermsDays: f('paymentTermsDays') ? Number(f('paymentTermsDays')) : undefined,
-      paymentMethod: f('paymentMethod') || undefined,
-      paymentIban: f('paymentIban').replace(/\s+/g, '').toUpperCase() || undefined,
-      paymentBic: f('paymentBic').toUpperCase() || undefined,
       pecAddress: f('pecAddress') || undefined,
     });
     const store = await cookies();
@@ -94,6 +90,8 @@ export interface InvoiceInput {
   customerId: string;
   type: 'TD01' | 'TD04';
   refInvoiceId?: string;
+  paymentTermsId?: string;
+  bankAccountId?: string;
   date: string;
   applyInpsSurcharge?: boolean;
   lines: Array<{ description: string; quantity: number; unit?: string; unitPrice: number }>;
@@ -101,7 +99,7 @@ export interface InvoiceInput {
 
 export async function createInvoice(input: InvoiceInput): Promise<{ id?: string; error?: string }> {
   try {
-    const inv = await api.createInvoice({ ...input, refInvoiceId: input.refInvoiceId || undefined });
+    const inv = await api.createInvoice({ ...input, refInvoiceId: input.refInvoiceId || undefined, paymentTermsId: input.paymentTermsId || undefined, bankAccountId: input.bankAccountId || undefined });
     revalidatePath('/invoices');
     return { id: inv.id };
   } catch (e) {
@@ -150,10 +148,6 @@ export async function updateTenantProfile(_prev: ActionState, formData: FormData
       viesRegistered: formData.get('viesRegistered') === 'on',
       pecAddress: f('pecAddress') || undefined,
       inpsOfficeId: f('inpsOfficeId'),
-      paymentTermsDays: f('paymentTermsDays') ? Number(f('paymentTermsDays')) : undefined,
-      paymentMethod: f('paymentMethod') || undefined,
-      paymentIban: f('paymentIban').replace(/\s+/g, '').toUpperCase(),
-      paymentBic: f('paymentBic').toUpperCase(),
     });
   } catch (e) {
     return { error: errorMessage(e) };
@@ -230,4 +224,39 @@ export async function importInvoiceFiles(files: Array<{ name: string; xml: strin
   } catch (e) {
     return { error: errorMessage(e) };
   }
+}
+
+export async function saveBankAccount(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  const f = (k: string) => String(formData.get(k) ?? '').trim();
+  try {
+    await api.saveBankAccount(
+      { name: f('name'), bankName: f('bankName') || undefined, iban: f('iban').replace(/\s+/g, '').toUpperCase(), bic: f('bic').toUpperCase() || undefined, isDefault: formData.get('isDefault') === 'on' },
+      f('id') || undefined,
+    );
+  } catch (e) {
+    return { error: errorMessage(e) };
+  }
+  revalidatePath('/setup');
+  return undefined;
+}
+
+export async function deleteBankAccount(formData: FormData) {
+  await api.deleteBankAccount(String(formData.get('id')));
+  revalidatePath('/setup');
+}
+
+export async function savePaymentTerms(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  const f = (k: string) => String(formData.get(k) ?? '').trim();
+  try {
+    await api.savePaymentTerms({ name: f('name'), days: Number(f('days')), method: f('method') || 'MP05', isDefault: formData.get('isDefault') === 'on' }, f('id') || undefined);
+  } catch (e) {
+    return { error: errorMessage(e) };
+  }
+  revalidatePath('/setup');
+  return undefined;
+}
+
+export async function deletePaymentTerms(formData: FormData) {
+  await api.deletePaymentTerms(String(formData.get('id')));
+  revalidatePath('/setup');
 }
