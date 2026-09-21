@@ -24,13 +24,13 @@ export default async function InvoicesPage({ searchParams }: PageProps<'/invoice
   const year = Number(params.year ?? new Date().getFullYear());
   const invoices = (await fetchOrNull(() => api.invoices(year))) ?? [];
   const collected = invoices.filter((i) => i.status !== 'DRAFT' && i.status !== 'CANCELLED' && i.type !== 'TD04');
-  const total = collected.reduce((s, i) => s + Number(i.taxableAmount) + Number(i.inpsSurcharge), 0);
+  const total = collected.reduce((s, i) => s + Number(i.total), 0);
   return (
     <main className="mx-auto w-full max-w-5xl space-y-6 p-6">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-semibold">Fatture {year}</h1>
-          <p className="text-sm text-muted-foreground">Emesso (imponibile + rivalsa, escluse note di credito): {formatMoney(total)}</p>
+          <p className="text-sm text-muted-foreground">Emesso (totali documento, escluse note di credito): {formatMoney(total)}</p>
         </div>
         <div className="flex gap-2">
           <Button variant="outline" render={<Link href={`/invoices?year=${year - 1}`} />}>{year - 1}</Button>

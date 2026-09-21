@@ -48,7 +48,8 @@ export default async function DashboardPage() {
   ]);
   const all: Invoice[] = invoices ?? [];
   const issued = all.filter((i) => i.status !== 'DRAFT' && i.status !== 'CANCELLED');
-  const revenue = issued.reduce((s, i) => s + (i.type === 'TD04' ? -1 : 1) * (Number(i.taxableAmount) + Number(i.inpsSurcharge)), 0);
+  // Document totals: the recharged stamp duty is part of the fee (AdE ruling 428/2022).
+  const revenue = issued.reduce((s, i) => s + (i.type === 'TD04' ? -1 : 1) * Number(i.total), 0);
   const drafts = all.filter((i) => i.status === 'DRAFT').length;
   const toSend = issued.filter((i) => i.status === 'ISSUED').length;
   const stamps = issued.filter((i) => i.virtualStamp).length;
@@ -70,7 +71,7 @@ export default async function DashboardPage() {
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <StatTile label="Incassato nell'anno" value={formatMoney(collected)} hint={`Emesso: ${formatMoney(revenue)} (imponibile + rivalsa, al netto delle note di credito)`} />
+        <StatTile label="Incassato nell'anno" value={formatMoney(collected)} hint={`Emesso: ${formatMoney(revenue)} (totali documento, al netto delle note di credito)`} />
         <StatTile label="Documenti emessi" value={String(issued.length)} hint={`${drafts} bozze`} />
         <StatTile label="Da inviare allo SDI" value={String(toSend)} hint="Emesse ma non ancora trasmesse" />
         <StatTile label="Bolli virtuali" value={formatMoney(stamps * 2)} hint={`${stamps} fatture con bollo da 2 €`} />

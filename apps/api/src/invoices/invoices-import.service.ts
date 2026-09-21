@@ -162,10 +162,15 @@ export function parseSequence(number: string): number | undefined {
 }
 
 function deriveAmounts(p: ParsedInvoice) {
-  const taxableAmount = round2(p.lines.reduce((s, l) => s + l.totalPrice, 0));
-  const inpsSurcharge = round2(p.socialSecurityFund?.amount ?? 0);
   const virtualStamp = p.stampDuty?.virtual === true;
   const stampAmount = virtualStamp ? round2(p.stampDuty?.amount ?? 2) : 0;
+  // Some software exposes the recharged stamp duty as an invoice line (N2.2) besides DatiBollo.
+  // Such a line is kept as imported but excluded from taxableAmount, so that taxable + stamp = total
+  // as in documents issued here. The recharged stamp is revenue either way (AdE ruling 428/2022);
+  // revenue is measured on collections.
+  const isStampLine = (l: ParsedInvoice['lines'][number]) => virtualStamp && /bollo/i.test(l.description) && round2(l.totalPrice) === stampAmount;
+  const taxableAmount = round2(p.lines.filter((l) => !isStampLine(l)).reduce((s, l) => s + l.totalPrice, 0));
+  const inpsSurcharge = round2(p.socialSecurityFund?.amount ?? 0);
   const total = p.documentTotal !== undefined ? round2(p.documentTotal) : round2(taxableAmount + inpsSurcharge + stampAmount);
   const natures = new Set([...p.summaryNatures, ...p.lines.map((l) => l.nature).filter(Boolean)]);
   const vatNature: VatNature = natures.has('N2.1') ? 'N2_1' : 'N2_2';
