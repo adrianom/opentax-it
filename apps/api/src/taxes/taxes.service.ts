@@ -1,20 +1,23 @@
-import { Injectable } from '@nestjs/common';
-import { computeTaxes, inpsAdvance, substituteTaxAdvance, thresholdStatus } from '@opentax-it/fiscal-rules';
+import { Injectable, NotFoundException } from '@nestjs/common';
+import { computeTaxes, inpsAdvance, roundEuro, substituteTaxAdvance, thresholdStatus } from '@opentax-it/fiscal-rules';
 import { FiscalRulesService } from '../fiscal-rules/fiscal-rules.service.js';
 import { PaymentsService } from '../payments/payments.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { TenantsService } from '../tenants/tenants.service.js';
 import type { UpdateTaxYearDataDto } from './taxes.dto.js';
 
-const round2 = (n: number) => Math.round((n + Number.EPSILON) * 100) / 100;
-
 /**
  * Yearly tax summary for a tenant: collected revenue (cash basis) → income → substitute
  * tax and INPS, balance due and advances for the following year. Rules and sources in
  * packages/fiscal-rules/src/tax-computation.ts.
  *
- * Year N is computed with the rule set of year N+1 (the return filed and paid in N+1),
- * falling back to the rule set of year N when N+1 is not active yet (e.g. the current year).
+ * Two rule sets are involved for income year N:
+ * - the rules of N for the computation itself (rates, profitability coefficient, INPS rate
+ *   and ceiling are yearly values of the income year: e.g. the Redditi PF 2026 instructions,
+ *   booklet 2, RR section II, use the 2025 ceiling of EUR 120,607 for 2025 income);
+ * - the rules of N+1 for what happens in the payment year: advances for N+1 (INPS circular
+ *   8/2026 §4.2: computed with the rate of the year they refer to), deadlines and codes.
+ * When one of the two sets is not active the other is used and a warning is returned.
  */
 @Injectable()
 export class TaxesService {
@@ -35,22 +38,39 @@ export class TaxesService {
     return this.prisma.taxYearData.upsert({ where: { tenantId_year: { tenantId, year } }, update: data, create: { tenantId, year, ...data } });
   }
 
-  private async rulesForTaxYear(year: number) {
+  private async activeOrNull(year: number) {
     try {
-      return { rules: await this.rules.getActive(year + 1), rulesYear: year + 1 };
+      return await this.rules.getActive(year);
     } catch {
-      return { rules: await this.rules.getActive(year), rulesYear: year };
+      return null;
     }
+  }
+
+  /** Rule sets for income year N (computation) and payment year N+1 (advances, deadlines). */
+  async rulesForTaxYear(year: number) {
+    const [income, payment] = await Promise.all([this.activeOrNull(year), this.activeOrNull(year + 1)]);
+    const warnings: string[] = [];
+    if (!income && !payment) throw new NotFoundException(`No active rule set for ${year} or ${year + 1}`);
+    if (!income) warnings.push(`No active rule set for ${year}: rates, coefficient and INPS ceiling taken from ${year + 1}`);
+    if (!payment) warnings.push(`No active rule set for ${year + 1}: advances, deadlines and codes taken from ${year}`);
+    return {
+      incomeRules: (income ?? payment)!,
+      incomeRulesYear: income ? year : year + 1,
+      paymentRules: (payment ?? income)!,
+      paymentRulesYear: payment ? year + 1 : year,
+      warnings,
+    };
   }
 
   async summary(tenantId: string, year: number) {
     const { profile } = await this.tenants.getWithProfile(tenantId);
-    const [data, collectedRevenue, { rules, rulesYear }] = await Promise.all([
+    const [data, collectedRevenue, { incomeRules: rules, incomeRulesYear, paymentRules, paymentRulesYear, warnings }] = await Promise.all([
       this.yearData(tenantId, year),
       this.payments.collectedRevenue(tenantId, year),
       this.rulesForTaxYear(year),
     ]);
     const inpsRatePct = data.inpsReducedRate ? rules.inps.reducedRatePct : rules.inps.fullRatePct;
+    const nextYearInpsRatePct = data.inpsReducedRate ? paymentRules.inps.reducedRatePct : paymentRules.inps.fullRatePct;
     const result = computeTaxes(rules, {
       year,
       collectedRevenue,
@@ -61,11 +81,14 @@ export class TaxesService {
       inpsRatePct,
       taxCredits: Number(data.taxCredits),
     });
-    const taxBalance = round2(result.taxNetOfCredits - Number(data.taxAdvancesPaid)); // LM46 (>0) / LM47 (<0)
-    const inpsBalance = round2(result.inpsContribution - Number(data.inpsAdvancesPaid)); // RR7 / RR8
+    // Return rows are whole euro (Redditi PF instructions, "Modalità di arrotondamento").
+    const taxBalance = roundEuro(result.taxNetOfCredits - roundEuro(Number(data.taxAdvancesPaid))); // LM46 (>0) / LM47 (<0)
+    const inpsBalance = roundEuro(result.inpsContribution - roundEuro(Number(data.inpsAdvancesPaid))); // RR7 / RR8
     return {
       year,
-      rulesYear,
+      rulesYear: incomeRulesYear,
+      paymentRulesYear,
+      warnings,
       collectedRevenue,
       thresholds: thresholdStatus(rules, collectedRevenue),
       input: {
@@ -77,13 +100,14 @@ export class TaxesService {
         inpsAdvancesPaid: Number(data.inpsAdvancesPaid),
         taxCredits: Number(data.taxCredits),
         inpsRatePct,
+        nextYearInpsRatePct,
       },
       result,
       taxBalance,
       inpsBalance,
       nextYearAdvances: {
-        tax: substituteTaxAdvance(rules, result.taxNetOfCredits),
-        inps: inpsAdvance(rules, result.inpsTaxableIncome, inpsRatePct),
+        tax: substituteTaxAdvance(paymentRules, result.taxNetOfCredits),
+        inps: inpsAdvance(paymentRules, result.inpsTaxableIncome, nextYearInpsRatePct),
       },
     };
   }

@@ -5,5 +5,5 @@ import { TenantsModule } from '../tenants/tenants.module.js';
 import { TaxesController } from './taxes.controller.js';
 import { TaxesService } from './taxes.service.js';
 
-@Module({ imports: [FiscalRulesModule, PaymentsModule, TenantsModule], controllers: [TaxesController], providers: [TaxesService] })
+@Module({ imports: [FiscalRulesModule, PaymentsModule, TenantsModule], controllers: [TaxesController], providers: [TaxesService], exports: [TaxesService] })
 export class TaxesModule {}
