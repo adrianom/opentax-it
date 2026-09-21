@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { api, currentTenantId, fetchOrNull, formatDate } from '@/lib/api';
 import { activateRuleSet, seedRuleSets, selectTenant } from '@/lib/actions';
 import { Badge } from '@/components/ui/badge';
@@ -20,7 +21,10 @@ export default async function SetupPage() {
   const list = tenants ?? [];
   return (
     <main className="mx-auto w-full max-w-4xl space-y-6 p-6">
-      <h1 className="text-2xl font-semibold">Impostazioni</h1>
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-semibold">Impostazioni</h1>
+        <Button render={<Link href="/setup/new" />}>Nuova partita IVA</Button>
+      </div>
 
       <Card>
         <CardHeader>
@@ -36,7 +40,7 @@ export default async function SetupPage() {
               <Button type="submit">Usa</Button>
             </form>
           ) : (
-            <p className="text-sm text-muted-foreground">Nessuna partita IVA: creala qui sotto.</p>
+            <p className="text-sm text-muted-foreground">Nessuna partita IVA: creala con il pulsante &quot;Nuova partita IVA&quot;.</p>
           )}
         </CardContent>
       </Card>
@@ -50,13 +54,6 @@ export default async function SetupPage() {
           <CardContent><TenantForm offices={offices ?? []} current={{ name: me.name, profile: me.profile }} /></CardContent>
         </Card>
       ) : null}
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Nuova partita IVA</CardTitle>
-        </CardHeader>
-        <CardContent><TenantForm offices={offices ?? []} /></CardContent>
-      </Card>
 
       <Card>
         <CardHeader>
