@@ -5,6 +5,8 @@ import { AppService } from './app.service.js';
 import { CustomersModule } from './customers/customers.module.js';
 import { FiscalRulesModule } from './fiscal-rules/fiscal-rules.module.js';
 import { InvoicesModule } from './invoices/invoices.module.js';
+import { PaymentsModule } from './payments/payments.module.js';
+import { TaxesModule } from './taxes/taxes.module.js';
 import { PrismaModule } from './prisma/prisma.module.js';
 import { StorageModule } from './storage/storage.module.js';
 import { TenantsModule } from './tenants/tenants.module.js';
@@ -18,6 +20,8 @@ import { TenantsModule } from './tenants/tenants.module.js';
     TenantsModule,
     CustomersModule,
     InvoicesModule,
+    PaymentsModule,
+    TaxesModule,
   ],
   controllers: [AppController],
   providers: [AppService],

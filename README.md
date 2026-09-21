@@ -15,7 +15,7 @@ Gestionale **open source** (`opentax-it`) per partite IVA italiane in **regime f
 
 ## Stato
 
-Fase iniziale. Ogni feature è ancorata a una fonte ufficiale: vedi [docs/compliance.md](docs/compliance.md). Funziona: set di regole 2026 (`packages/fiscal-rules`, con fonti), attivazione da parte dell'admin via API, scadenzario (`/deadlines`), anagrafica clienti, fatture e note di credito con emissione e XML FatturaPA validato (`/invoices`). Manca: autenticazione (la partita IVA attiva è scelta in `/setup` e salvata in un cookie), invio PEC allo SDI, incassi, F24. Le fonti normative verificate (aggiornate al 2026) sono in [docs/normativa-2026.md](docs/normativa-2026.md); il design del monitoraggio normativo in [docs/monitoraggio-normativo.md](docs/monitoraggio-normativo.md).
+Fase iniziale. Ogni feature è ancorata a una fonte ufficiale: vedi [docs/compliance.md](docs/compliance.md). Funziona: set di regole 2026 (`packages/fiscal-rules`, con fonti), attivazione da parte dell'admin via API, scadenzario (`/deadlines`), anagrafica clienti, fatture e note di credito con emissione e XML FatturaPA validato (`/invoices`), incassi per cassa, stima imposta sostitutiva/INPS e acconti (`/taxes`). Manca: autenticazione (la partita IVA attiva è scelta in `/setup` e salvata in un cookie), invio PEC allo SDI, F24/rate. Le fonti normative verificate (aggiornate al 2026) sono in [docs/normativa-2026.md](docs/normativa-2026.md); il design del monitoraggio normativo in [docs/monitoraggio-normativo.md](docs/monitoraggio-normativo.md).
 
 ## Struttura
 

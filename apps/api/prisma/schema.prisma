@@ -29,6 +29,7 @@ model Tenant {
   payments         Payment[]
   stampDutyPeriods StampDutyPeriod[]
   taxReturns       TaxReturn[]
+  taxYearData      TaxYearData[]
   taxCredits       TaxCredit[]
   installmentPlans InstallmentPlan[]
   f24s             F24[]
@@ -402,6 +403,28 @@ model RuleChangeProposal {
 }
 
 // ───────────────────────── Tax return, credits, payments ─────────────────────────
+
+/// Yearly amounts entered by the user until the F24 module records them automatically.
+model TaxYearData {
+  id                    String   @id @default(cuid())
+  tenantId              String
+  tenant                Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  year                  Int
+  /// Social security contributions paid in the year (deductible, LM35 col. 1).
+  contributionsPaid     Decimal  @default(0) @db.Decimal(14, 2)
+  /// Substitute tax advances paid for the year (LM45 col. 2).
+  taxAdvancesPaid       Decimal  @default(0) @db.Decimal(14, 2)
+  /// INPS advances paid for the year (RR5 col. 16).
+  inpsAdvancesPaid      Decimal  @default(0) @db.Decimal(14, 2)
+  /// Tax credits and withholdings to subtract (LM40 + LM41).
+  taxCredits            Decimal  @default(0) @db.Decimal(14, 2)
+  /// The taxpayer is covered by another mandatory scheme or is a pensioner (24% INPS rate).
+  inpsReducedRate       Boolean  @default(false)
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  @@unique([tenantId, year])
+}
 
 enum TaxReturnStatus {
   DRAFT

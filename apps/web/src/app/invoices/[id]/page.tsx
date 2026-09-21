@@ -9,12 +9,14 @@ import { Separator } from '@/components/ui/separator';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { STATUS_LABELS, TYPE_LABELS } from '../page';
 import { IssueForm } from './issue-form';
+import { Payments } from './payments';
 
 export default async function InvoicePage({ params }: PageProps<'/invoices/[id]'>) {
   const { id } = await params;
   const inv = await fetchOrNull(() => api.invoice(id));
   if (!inv) notFound();
   const isDraft = inv.status === 'DRAFT';
+  const payments = isDraft ? [] : ((await fetchOrNull(() => api.payments(id))) ?? []);
   return (
     <main className="mx-auto w-full max-w-4xl space-y-6 p-6">
       <div className="flex items-center justify-between">
@@ -72,6 +74,14 @@ export default async function InvoicePage({ params }: PageProps<'/invoices/[id]'
           </CardContent>
         </Card>
       ) : (
+        <>
+        <Card>
+          <CardHeader>
+            <CardTitle>Incassi</CardTitle>
+            <CardDescription>Principio di cassa: il compenso concorre al reddito dell&apos;anno in cui viene incassato (L. 190/2014 art. 1 c. 64).</CardDescription>
+          </CardHeader>
+          <CardContent><Payments invoiceId={inv.id} currency={inv.currency} total={Number(inv.total)} payments={payments} /></CardContent>
+        </Card>
         <Card>
           <CardHeader>
             <CardTitle>File XML</CardTitle>
@@ -82,6 +92,7 @@ export default async function InvoicePage({ params }: PageProps<'/invoices/[id]'
             <Button variant="outline" render={<Link href="/invoices" />}>Torna all&apos;elenco</Button>
           </CardContent>
         </Card>
+        </>
       )}
     </main>
   );

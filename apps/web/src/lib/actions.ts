@@ -164,3 +164,48 @@ export async function seedRuleSets() {
   await api.seedRuleSets();
   revalidatePath('/setup');
 }
+
+export async function addPayment(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  const invoiceId = String(formData.get('invoiceId'));
+  const f = (k: string) => String(formData.get(k) ?? '').trim();
+  try {
+    await api.createPayment(invoiceId, {
+      date: f('date'),
+      amount: Number(f('amount').replace(',', '.')),
+      method: f('method') || undefined,
+      notes: f('notes') || undefined,
+    });
+  } catch (e) {
+    return { error: errorMessage(e) };
+  }
+  revalidatePath(`/invoices/${invoiceId}`);
+  revalidatePath('/dashboard');
+  revalidatePath('/taxes');
+  return undefined;
+}
+
+export async function deletePayment(formData: FormData) {
+  await api.deletePayment(String(formData.get('id')));
+  revalidatePath(`/invoices/${String(formData.get('invoiceId'))}`);
+  revalidatePath('/dashboard');
+  revalidatePath('/taxes');
+}
+
+export async function saveTaxYearData(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  const year = Number(formData.get('year'));
+  const num = (k: string) => Number(String(formData.get(k) ?? '0').replace(',', '.')) || 0;
+  try {
+    await api.updateTaxYearData(year, {
+      contributionsPaid: num('contributionsPaid'),
+      taxAdvancesPaid: num('taxAdvancesPaid'),
+      inpsAdvancesPaid: num('inpsAdvancesPaid'),
+      taxCredits: num('taxCredits'),
+      inpsReducedRate: formData.get('inpsReducedRate') === 'on',
+    });
+  } catch (e) {
+    return { error: errorMessage(e) };
+  }
+  revalidatePath('/taxes');
+  revalidatePath('/dashboard');
+  return undefined;
+}

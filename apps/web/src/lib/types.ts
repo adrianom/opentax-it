@@ -102,3 +102,61 @@ export interface Invoice {
   lines?: InvoiceLine[];
 }
 
+
+export interface Payment {
+  id: string;
+  invoiceId: string;
+  date: string;
+  amount: string;
+  amountEur: string;
+  exchangeRate: string;
+  method: string | null;
+  notes: string | null;
+}
+
+export interface AdvanceSchedule {
+  total: number;
+  first: number;
+  second: number;
+  mode: 'NOT_DUE' | 'SINGLE' | 'TWO_INSTALMENTS';
+}
+
+export interface TaxSummary {
+  year: number;
+  rulesYear: number;
+  collectedRevenue: number;
+  thresholds: { collectedRevenue: number; accessThreshold: number; exitThreshold: number; exceedsAccessThreshold: boolean; exceedsExitThreshold: boolean };
+  input: {
+    atecoCode: string;
+    activityStartYear: number;
+    reducedRateEligible: boolean;
+    contributionsPaid: number;
+    taxAdvancesPaid: number;
+    inpsAdvancesPaid: number;
+    taxCredits: number;
+    inpsRatePct: number;
+  };
+  result: {
+    coefficientPct: number;
+    grossIncome: number;
+    contributionsDeducted: number;
+    netIncome: number;
+    taxRatePct: number;
+    substituteTax: number;
+    taxNetOfCredits: number;
+    inpsTaxableIncome: number;
+    inpsContribution: number;
+  };
+  taxBalance: number;
+  inpsBalance: number;
+  nextYearAdvances: { tax: AdvanceSchedule; inps: AdvanceSchedule };
+}
+
+export interface TaxYearData {
+  year: number;
+  contributionsPaid: string;
+  taxAdvancesPaid: string;
+  inpsAdvancesPaid: string;
+  taxCredits: string;
+  inpsReducedRate: boolean;
+}

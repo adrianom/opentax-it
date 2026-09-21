@@ -1,6 +1,6 @@
 import 'server-only';
 import { cookies } from 'next/headers';
-import type { Customer, Deadline, Invoice, RuleSetSummary, Tenant, TenantWithProfile } from './types';
+import type { Customer, Deadline, Invoice, Payment, RuleSetSummary, TaxSummary, TaxYearData, Tenant, TenantWithProfile } from './types';
 
 export * from './types';
 export * from './format';
@@ -75,6 +75,12 @@ export const api = {
   createInvoice: (data: unknown) => tenantRequest<Invoice>('/invoices', { method: 'POST', body: JSON.stringify(data) }),
   deleteInvoice: (id: string) => tenantRequest<void>(`/invoices/${id}`, { method: 'DELETE' }),
   issueInvoice: (id: string, data: unknown) => tenantRequest<Invoice>(`/invoices/${id}/issue`, { method: 'POST', body: JSON.stringify(data) }),
+  payments: (invoiceId: string) => tenantRequest<Payment[]>(`/invoices/${invoiceId}/payments`),
+  createPayment: (invoiceId: string, data: unknown) => tenantRequest<Payment>(`/invoices/${invoiceId}/payments`, { method: 'POST', body: JSON.stringify(data) }),
+  deletePayment: (id: string) => tenantRequest<void>(`/payments/${id}`, { method: 'DELETE' }),
+  taxSummary: (year: number) => tenantRequest<TaxSummary>(`/taxes/${year}/summary`),
+  taxYearData: (year: number) => tenantRequest<TaxYearData>(`/taxes/${year}/data`),
+  updateTaxYearData: (year: number, data: unknown) => tenantRequest<TaxYearData>(`/taxes/${year}/data`, { method: 'PUT', body: JSON.stringify(data) }),
   invoiceXml: async (id: string) => {
     const tenantId = await currentTenantId();
     const res = await fetch(`${API_URL}/invoices/${id}/xml`, { headers: tenantId ? { 'x-tenant-id': tenantId } : {}, cache: 'no-store' });

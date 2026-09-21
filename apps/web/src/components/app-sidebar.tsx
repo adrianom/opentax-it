@@ -1,6 +1,6 @@
 'use client';
 
-import { CalendarDays, FileText, LayoutDashboard, Settings, Users } from 'lucide-react';
+import { CalendarDays, Calculator, FileText, LayoutDashboard, Settings, Users } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
@@ -21,6 +21,7 @@ const NAV = [
   { href: '/invoices', label: 'Fatture', icon: FileText },
   { href: '/customers', label: 'Clienti', icon: Users },
   { href: '/deadlines', label: 'Scadenzario', icon: CalendarDays },
+  { href: '/taxes', label: 'Imposte', icon: Calculator },
 ];
 
 export function AppSidebar({ tenantName }: { tenantName: string | null }) {

@@ -1,0 +1,52 @@
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { PrismaService } from '../prisma/prisma.service.js';
+import type { CreatePaymentDto } from './payments.dto.js';
+
+/**
+ * Collections on invoices. Cash basis (L. 190/2014 art. 1 par. 64; Istr. LM section III):
+ * revenue belongs to the year in which it is collected, whatever the invoice date.
+ */
+const round2 = (n: number) => Math.round((n + Number.EPSILON) * 100) / 100;
+
+@Injectable()
+export class PaymentsService {
+  constructor(private readonly prisma: PrismaService) {}
+
+  listByInvoice(tenantId: string, invoiceId: string) {
+    return this.prisma.payment.findMany({ where: { tenantId, invoiceId }, orderBy: { date: 'asc' } });
+  }
+
+  listByYear(tenantId: string, year: number) {
+    return this.prisma.payment.findMany({
+      where: { tenantId, date: { gte: new Date(Date.UTC(year, 0, 1)), lt: new Date(Date.UTC(year + 1, 0, 1)) } },
+      include: { invoice: { select: { id: true, number: true, type: true, currency: true, customer: { select: { businessName: true, firstName: true, lastName: true } } } } },
+      orderBy: { date: 'desc' },
+    });
+  }
+
+  async create(tenantId: string, invoiceId: string, dto: CreatePaymentDto) {
+    const invoice = await this.prisma.invoice.findFirst({ where: { id: invoiceId, tenantId } });
+    if (!invoice) throw new NotFoundException(`Invoice ${invoiceId} not found`);
+    if (invoice.status === 'DRAFT' || invoice.status === 'CANCELLED') throw new BadRequestException('Collections can be recorded only on issued invoices');
+    const exchangeRate = Number(invoice.exchangeRate);
+    const amountEur = dto.amountEur ?? round2(dto.amount * exchangeRate);
+    return this.prisma.payment.create({
+      data: { tenantId, invoiceId, date: new Date(`${dto.date}T00:00:00Z`), amount: dto.amount, amountEur, exchangeRate, method: dto.method, notes: dto.notes },
+    });
+  }
+
+  async remove(tenantId: string, id: string) {
+    const p = await this.prisma.payment.findFirst({ where: { id, tenantId } });
+    if (!p) throw new NotFoundException(`Payment ${id} not found`);
+    await this.prisma.payment.delete({ where: { id } });
+  }
+
+  /** Revenue collected in a year (EUR), cash basis. Credit-note refunds are recorded as negative payments. */
+  async collectedRevenue(tenantId: string, year: number): Promise<number> {
+    const agg = await this.prisma.payment.aggregate({
+      where: { tenantId, date: { gte: new Date(Date.UTC(year, 0, 1)), lt: new Date(Date.UTC(year + 1, 0, 1)) } },
+      _sum: { amountEur: true },
+    });
+    return Number(agg._sum.amountEur ?? 0);
+  }
+}

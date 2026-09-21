@@ -35,6 +35,11 @@ Ogni funzionalità del software è ancorata a una fonte ufficiale. Quando si agg
 | Rivalsa INPS in fattura: TipoCassa TC22 | `socialSecurityFund` | Spec. 1.9.1 tabella TipoCassa | 2026-09-20 |
 | Note di credito TD04 con DatiFattureCollegate | `builder.ts` | Spec. 1.9.1 (TipoDocumento; controllo unicità con TD04) | 2026-09-21 |
 | Nome file IT<CF>_<progressivo>.xml | `invoiceFileName` | Spec. 1.9.1 §1.2.2 | 2026-09-21 |
+| Incassi per fattura (anche parziali, rimborsi negativi); ricavi dell'anno = somma incassi (principio di cassa) | `apps/api/src/payments` | L. 190/2014 art. 1 c. 64 ("ricavi o compensi percepiti"); Istr. Redditi PF 2026 Fasc. 3, LM sez. III "Determinazione del reddito" | 2026-09-21 |
+| Reddito = incassato × coefficiente; contributi dedotti nel limite della capienza; imposta 15%/5% (anno inizio + 4) | `packages/fiscal-rules/src/tax-computation.ts` → `computeTaxes`, `reducedRateApplies` | L. 190/2014 c. 64, 65; Istr. Fasc. 3 righi LM22, LM34, LM35, LM36, LM39 | 2026-09-21 |
+| Base INPS = reddito lordo entro il massimale; contributo = base × aliquota | `computeTaxes` (`inpsTaxableIncome`, `inpsContribution`) | Istr. Redditi PF 2026 Fasc. 2, RR sez. II (RR5 col. 11, 14, 15); Circ. INPS 8/2026 | 2026-09-21 |
+| Acconto imposta sostitutiva: 100% dell'imposta netta, non dovuto < 51,65, unica soluzione < 257,52, altrimenti 40/60 | `substituteTaxAdvance` | Circ. AdE 10/E/2016 §4 ("si applicano tutte le disposizioni ... in acconto ... dell'IRPEF"); art. 72 D.Lgs. 33/2025; Istr. Fasc. 1 RN62 | 2026-09-21 |
+| Acconto INPS 40% + 40% del contributo sul reddito dell'anno, con aliquota dell'anno successivo | `inpsAdvance` | L. 662/1996 art. 1 c. 212; Circ. INPS 8/2026 §4.2 | 2026-09-21 |
 | Numerazione progressiva per anno e tipo documento; note di credito serie "NC-" | `apps/api/src/invoices/invoices.service.ts` → `issue` | DPR 633/72 art. 21 c. 2 lett. b) (numero progressivo univoco); Spec. 1.9.1 (unicità nome file e numero, TD04) | 2026-09-21 |
 | Calcolo bollo/rivalsa/totale e diciture sulla singola fattura dal set regole dell'anno | `invoices.service.ts` → `prepare` | L. 190/2014 c. 58, 67; L. 662/96 c. 212; DM 17/06/2014; Guida AdE FE dic. 2025 | 2026-09-21 |
 | Invio SDI via PEC (sdi01@pec.fatturapa.it, poi indirizzo assegnato) | (design, `TenantProfile.sdiPecAssigned`) | Spec. 1.9.1 §1.5 "servizio PEC" | 2026-09-19 |
