@@ -4,6 +4,7 @@ import { ZodError } from 'zod';
 import {
   buildDeadlines,
   parseFiscalRuleSet,
+  ruleSet2025,
   ruleSet2026,
   type Deadline,
   type DeadlineOptions,
@@ -12,10 +13,19 @@ import {
 import { PrismaService } from '../prisma/prisma.service.js';
 
 /** Rule sets shipped with the code; they are seeded as DRAFT and must be activated by an admin. */
-const BUNDLED_RULE_SETS: FiscalRuleSet[] = [ruleSet2026];
+const BUNDLED_RULE_SETS: FiscalRuleSet[] = [ruleSet2025, ruleSet2026];
+
+/** Recursively sorts object keys, so that the hash does not depend on key order (jsonb reorders keys). */
+function canonical(value: unknown): unknown {
+  if (Array.isArray(value)) return value.map(canonical);
+  if (value && typeof value === 'object') {
+    return Object.fromEntries(Object.keys(value as Record<string, unknown>).sort().map((k) => [k, canonical((value as Record<string, unknown>)[k])]));
+  }
+  return value;
+}
 
 function contentHash(...parts: unknown[]): string {
-  return createHash('sha256').update(JSON.stringify(parts)).digest('hex');
+  return createHash('sha256').update(JSON.stringify(canonical(parts))).digest('hex');
 }
 
 @Injectable()

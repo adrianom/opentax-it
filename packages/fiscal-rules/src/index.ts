@@ -3,6 +3,7 @@ export * from './rule-set.js';
 export * from './installment-plan.js';
 export * from './calendar.js';
 export * from './deadlines.js';
+export { ruleSet2025 } from './rule-sets/2025.js';
 export { ruleSet2026 } from './rule-sets/2026.js';
 export * from './inps-offices.js';
 export * from './tax-computation.js';

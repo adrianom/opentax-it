@@ -10,13 +10,14 @@ import { TenantForm } from './tenant-form';
 
 export default async function SetupPage() {
   const year = new Date().getFullYear();
-  const [tenants, offices, me, ruleSets, ruleStatus] = await Promise.all([
+  const ruleYears = [year - 1, year, year + 1];
+  const [tenants, offices, me, ...ruleRows] = await Promise.all([
     fetchOrNull(() => api.tenants()),
     fetchOrNull(() => api.inpsOffices()),
     fetchOrNull(() => api.me()),
-    fetchOrNull(() => api.ruleSets(year)),
-    fetchOrNull(() => api.ruleSetStatus(year)),
+    ...ruleYears.map((y) => Promise.all([fetchOrNull(() => api.ruleSets(y)), fetchOrNull(() => api.ruleSetStatus(y))])),
   ]);
+  const rulesByYear = ruleYears.map((y, i) => ({ year: y, ruleSets: ruleRows[i]?.[0] ?? [], ruleStatus: ruleRows[i]?.[1] ?? null }));
   const current = await currentTenantId();
   const list = tenants ?? [];
   return (
@@ -55,40 +56,45 @@ export default async function SetupPage() {
         </Card>
       ) : null}
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Regole fiscali {year}</CardTitle>
-          <CardDescription>
-            Ogni set è versionato e cita le fonti ufficiali. Il software usa solo il set attivo; l&apos;attivazione è sempre manuale.
-            {ruleStatus && !ruleStatus.ok && <span className="block font-medium text-destructive">{ruleStatus.reason}</span>}
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <Table>
-            <TableHeader><TableRow><TableHead>Versione</TableHead><TableHead>Stato</TableHead><TableHead>Attivato il</TableHead><TableHead>Note</TableHead><TableHead></TableHead></TableRow></TableHeader>
-            <TableBody>
-              {(ruleSets ?? []).map((r) => (
-                <TableRow key={r.id}>
-                  <TableCell className="font-mono">v{r.version}</TableCell>
-                  <TableCell><Badge variant={r.status === 'ACTIVE' ? 'default' : 'outline'}>{r.status}</Badge></TableCell>
-                  <TableCell>{r.activatedAt ? formatDate(r.activatedAt) : '—'}</TableCell>
-                  <TableCell className="text-sm text-muted-foreground">{r.notes}</TableCell>
-                  <TableCell className="text-right">
-                    {r.status !== 'ACTIVE' && r.status !== 'SUPERSEDED' && (
-                      <form action={activateRuleSet}><input type="hidden" name="id" value={r.id} /><Button size="sm" type="submit">Attiva</Button></form>
-                    )}
-                  </TableCell>
-                </TableRow>
-              ))}
-              {(ruleSets ?? []).length === 0 && <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground">Nessun set caricato.</TableCell></TableRow>}
-            </TableBody>
-          </Table>
-          <form action={seedRuleSets}>
-            <Button variant="outline" type="submit">Carica set forniti con l&apos;applicazione</Button>
-            <p className="mt-1 text-xs text-muted-foreground">Crea una nuova versione in bozza solo se il contenuto è cambiato; non attiva nulla.</p>
-          </form>
-        </CardContent>
-      </Card>
+      {rulesByYear.map(({ year: y, ruleSets, ruleStatus }) => (
+        <Card key={y}>
+          <CardHeader>
+            <CardTitle>Regole fiscali {y}</CardTitle>
+            <CardDescription>
+              {y === year - 1 && `Anno d'imposta ${y}: aliquote, coefficiente e massimale INPS per il calcolo delle imposte ${y} (dichiarazione e versamenti nel ${year}). `}
+              {y === year && `Anno di versamento ${y}: scadenze, acconti, codici e regole per le fatture emesse nel ${y}. `}
+              {y === year + 1 && `Serve per il calcolo dell'anno d'imposta ${year} appena la normativa ${y} sarà pubblicata e verificata. `}
+              Ogni set è versionato e cita le fonti ufficiali; il software usa solo il set attivo e l&apos;attivazione è sempre manuale.
+              {ruleStatus && !ruleStatus.ok && ruleSets.length > 0 && <span className="block font-medium text-destructive">{ruleStatus.reason}</span>}
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Table>
+              <TableHeader><TableRow><TableHead>Versione</TableHead><TableHead>Stato</TableHead><TableHead>Attivato il</TableHead><TableHead>Note</TableHead><TableHead></TableHead></TableRow></TableHeader>
+              <TableBody>
+                {ruleSets.map((r) => (
+                  <TableRow key={r.id}>
+                    <TableCell className="font-mono">v{r.version}</TableCell>
+                    <TableCell><Badge variant={r.status === 'ACTIVE' ? 'default' : 'outline'}>{r.status}</Badge></TableCell>
+                    <TableCell>{r.activatedAt ? formatDate(r.activatedAt) : '—'}</TableCell>
+                    <TableCell className="text-sm text-muted-foreground">{r.notes}</TableCell>
+                    <TableCell className="text-right">
+                      {r.status !== 'ACTIVE' && r.status !== 'SUPERSEDED' && (
+                        <form action={activateRuleSet}><input type="hidden" name="id" value={r.id} /><Button size="sm" type="submit">Attiva</Button></form>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                ))}
+                {ruleSets.length === 0 && <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground">Nessun set caricato.</TableCell></TableRow>}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+      ))}
+      <form action={seedRuleSets}>
+        <Button variant="outline" type="submit">Carica set forniti con l&apos;applicazione</Button>
+        <p className="mt-1 text-xs text-muted-foreground">Crea una nuova versione in bozza solo se il contenuto è cambiato; non attiva nulla.</p>
+      </form>
     </main>
   );
 }

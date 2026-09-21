@@ -117,6 +117,12 @@ Fonte: Circolare INPS n. 8 del 3/2/2026; L. 335/95 art. 2 c. 26; L. 662/96 art. 
 
 ---
 
+## 3-bis. Valori 2025 (set di regole 2025, verificati il 21/09/2026)
+- **INPS Circolare n. 27 del 30/01/2025**: professionisti senza altra tutela 26,07% (25% IVS + 1,07% aggiuntiva); pensionati/altra copertura 24%; massimale 120.607,00 €; minimale 18.555,00 €; "l'acconto per l'anno di imposta 2025 deve essere calcolato applicando le aliquote in vigore per l'anno 2025".
+- **DL 84/2025 art. 13** (Normattiva): soggetti ISA e forfettari → versamenti del 30/6/2025 entro il **21 luglio 2025** senza maggiorazione, oppure entro il 30° giorno successivo (20 agosto 2025) con +0,40%.
+- **Rateazione 2025**: art. 20 D.Lgs. 241/97 come modificato da D.Lgs. 1/2024 art. 8 (rate al 16, fine 16 dicembre, dal saldo 2023); slittamento 1-20 agosto: DL 223/2006 art. 37 c. 11-bis. Contenuto identico alle norme 2026 (D.Lgs. 33/2025 artt. 10-11).
+- Dichiarazione: 31/10/2025 (DPR 322/98 art. 2). Bollo: 31/5, 30/9, 30/11/2025, 28/2/2026 (DM 17/06/2014 art. 6 c. 2). Specifiche FE 1.9 dal 1/4/2025.
+
 ## 4. Fattura elettronica e SDI
 
 ### 4.1 Obbligo
