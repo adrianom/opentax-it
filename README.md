@@ -15,7 +15,7 @@ Gestionale **open source** (`opentax-it`) per partite IVA italiane in **regime f
 
 ## Stato
 
-Fase iniziale. Funziona: set di regole 2026 (`packages/fiscal-rules`, con fonti), attivazione da parte dell'admin via API, scadenzario generato e mostrato nel web (`/deadlines`). Le fonti normative verificate (aggiornate al 2026) sono in [docs/normativa-2026.md](docs/normativa-2026.md); il design del monitoraggio normativo in [docs/monitoraggio-normativo.md](docs/monitoraggio-normativo.md).
+Fase iniziale. Ogni feature è ancorata a una fonte ufficiale: vedi [docs/compliance.md](docs/compliance.md). Funziona: set di regole 2026 (`packages/fiscal-rules`, con fonti), attivazione da parte dell'admin via API, scadenzario generato e mostrato nel web (`/deadlines`). Le fonti normative verificate (aggiornate al 2026) sono in [docs/normativa-2026.md](docs/normativa-2026.md); il design del monitoraggio normativo in [docs/monitoraggio-normativo.md](docs/monitoraggio-normativo.md).
 
 ## Struttura
 
@@ -23,6 +23,7 @@ Fase iniziale. Funziona: set di regole 2026 (`packages/fiscal-rules`, con fonti)
 apps/api       NestJS + Prisma (PostgreSQL)
 apps/web       React + Vite
 packages/fiscal-rules   regole fiscali pure (TypeScript), testate, con riferimento normativo
+packages/fatturapa      generatore XML FatturaPA validato contro l'XSD ufficiale
 docs/          normativa, design
 ```
 

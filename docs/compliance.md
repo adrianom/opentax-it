@@ -1,0 +1,38 @@
+# Matrice di conformità — feature → riferimento istituzionale
+
+Ogni funzionalità del software è ancorata a una fonte ufficiale. Quando si aggiunge o modifica una feature, va aggiornata questa tabella e il commento in testa al modulo che la implementa. Dettagli e citazioni in [normativa-2026.md](normativa-2026.md).
+
+| Feature | Modulo | Riferimento istituzionale | Verificato |
+|---|---|---|---|
+| Set di regole per anno, attivazione manuale da admin | `packages/fiscal-rules/src/rule-set.ts`, `apps/api/src/fiscal-rules` | Principio: valori da norma primaria + istruzioni AdE/INPS dell'anno; nessuna auto-applicazione. Fonti per singolo valore in `rule-sets/2026.ts` → `sourceRefs` | 2026-09-19/20 |
+| Soglie 85.000 / 100.000 €, aliquote 15% / 5%, deducibilità contributi, principio di cassa | `rule-sets/2026.ts` → `flatRate` | L. 190/2014 art. 1 c. 54, 64, 65, 71 (Normattiva, testo vigente); Istr. Redditi PF 2026 Fasc. 3 quadro LM | 2026-09-19 |
+| Coefficienti di redditività per ATECO | `rule-set.ts` → `profitabilityCoefficient` | L. 190/2014 all. 4 (ATECO 2007); D.Lgs. 81/2025 art. 1 (transitorio ATECO 2025); tabella Istr. Fasc. 3 | 2026-09-19 |
+| Soglia redditi dipendente 35.000 € (2025-2026) | `flatRate.employmentIncomeThreshold` | L. 199/2025 art. 1 c. 27 (via Istr. Fasc. 3) | 2026-09-19 |
+| Acconti: 100%, soglie 51,65 / 257,52 €, 40% + 60% | `advancePayment` | D.Lgs. 33/2025 art. 72 (GU S.O. 8/2025); Istr. Redditi PF 2026 Fasc. 1 rigo RN62; L. 190/2014 c. 64 ultimo periodo | 2026-09-20 |
+| Scadenze 30/6, 30/11; differimento 30/7 +0,40% | `deadlines` | DPR 435/2001 art. 17; Istr. Fasc. 1 | 2026-09-19 |
+| Proroga 2026: 20/7 senza maggiorazione, 19/8 +0,80% | `deadlines.balanceAndFirstAdvanceExtended` | DL 89/2026 art. 6 (GU n. 117 del 22/05/2026) | 2026-09-19 |
+| Rate mensili al 16, fine 16/12, interessi 4% (0,18 + 0,33) | `installment-plan.ts` | D.Lgs. 33/2025 art. 10; Istr. Fasc. 1 §Rateazione (prospetto ufficiale riprodotto nei test) | 2026-09-20 |
+| Slittamento 1-20 agosto → 20 agosto | `installment-plan.ts`, `deadlines.augustDeferral` | D.Lgs. 33/2025 art. 11 | 2026-09-20 |
+| Slittamento sabato/festivi a giorno lavorativo | `calendar.ts` | DL 70/2011 art. 7 c. 1 lett. h) e c. 2 lett. l); applicazione nelle Istr. Fasc. 1 (31/10/2026 → 2/11/2026) | 2026-09-21 |
+| Termine presentazione Redditi PF | `deadlines.taxReturnFiling` | Istr. Fasc. 1 (15/4 – 2/11/2026) | 2026-09-19 |
+| INPS GS: 26,07% / 24%, massimale 122.295, minimale 18.808 | `inps` | Circolare INPS n. 8 del 3/2/2026 §2, §6 | 2026-09-19 |
+| INPS acconti 40% + 40%, rivalsa 4% | `inps.advancePct`, `inps.surchargePct` | L. 662/1996 art. 1 c. 212 (Normattiva) | 2026-09-19 |
+| Codici tributo 1790/1791/1792/1668 | `taxCodes` | Istr. Fasc. 1 "Principali codici tributo" | 2026-09-19 |
+| Causali INPS PXX / PXXR / DPPI | `inpsReasons` | Tabella causali contributo AdE (02/07/2026) | 2026-09-20 |
+| Bollo 2 € > 77,47 €, scadenze trimestrali, soglia 5.000 €, codici 2521-2524 | `stampDuty` | DM 17/06/2014 art. 6; Guida AdE bollo FE giugno 2026 | 2026-09-19 |
+| Obbligo fattura elettronica forfettari | (design) | DL 36/2022 art. 18 c. 2-3 | 2026-09-19 |
+| Termine emissione 12 gg; estero entro il 15 del mese successivo | `eInvoice.issueDays` | DPR 633/72 art. 21 c. 4 | 2026-09-19 |
+| XML FatturaPA: struttura, ordine elementi, tipi, pattern testo | `packages/fatturapa/src/builder.ts` + XSD in `schemas/` | Specifiche tecniche AdE v1.9.1 (Allegato A); XSD Schema_VFPR12_v1.2.3 (validazione xmllint nei test) | 2026-09-21 |
+| RF19, N2.2 nazionale, N2.1 estero, diciture c. 54-89 e c. 67, bollo nel totale | `eInvoice`, `builder.ts` | Guida AdE FE dicembre 2025 "Fattura elettronica per i forfettari"; Spec. 1.9.1 | 2026-09-19 |
+| Annotazioni "inversione contabile" / "operazione non soggetta" | `eInvoice.euAnnotation` | DPR 633/72 art. 21 c. 6-bis | 2026-09-19 |
+| CodiceDestinatario XXXXXXX per esteri (errore 00313) | `builder.ts` → `validateInvoice` | Spec. 1.9.1 §2.1.1 | 2026-09-20 |
+| Rivalsa INPS in fattura: TipoCassa TC22 | `socialSecurityFund` | Spec. 1.9.1 tabella TipoCassa | 2026-09-20 |
+| Note di credito TD04 con DatiFattureCollegate | `builder.ts` | Spec. 1.9.1 (TipoDocumento; controllo unicità con TD04) | 2026-09-21 |
+| Nome file IT<CF>_<progressivo>.xml | `invoiceFileName` | Spec. 1.9.1 §1.2.2 | 2026-09-21 |
+| Invio SDI via PEC (sdi01@pec.fatturapa.it, poi indirizzo assegnato) | (design, `TenantProfile.sdiPecAssigned`) | Spec. 1.9.1 §1.5 "servizio PEC" | 2026-09-19 |
+| Intrastat servizi resi trimestrale/mensile, 25 del mese | `intrastat`, `deadlines` | Circ. AdE 10/E/2016 §4.1.2; ADM Det. 493869/2021 e guida Intrastat | 2026-09-20 |
+| Avvisi bonari: 60 gg, sanzione 1/3, 20 rate trimestrali | `taxNotices` | D.Lgs. 462/1997 art. 2 c. 2 e 3-bis (Normattiva) | 2026-09-20 |
+| Sanzione omesso versamento 25% (½ entro 90 gg, 1/15 al giorno entro 15) | `penalties` | D.Lgs. 471/1997 art. 13 | 2026-09-20 |
+| I24: F24 con addebito a data futura, annullamento entro terzultimo giorno lavorativo | (design, `F24.i24CancelBy`, `calendar.businessDaysBefore`) | D.Lgs. 1/2024 art. 17; Provv. AdE 313945 del 26/07/2024 | 2026-09-19 |
+| CIVIS: registro atti (numero 13 cifre) | (design, `TaxNotice`) | Guida operativa AdE "Servizio CIVIS" | 2026-09-19 |
+| CPB non applicabile ai forfettari | (design) | D.Lgs. 81/2025 art. 7 | 2026-09-20 |
