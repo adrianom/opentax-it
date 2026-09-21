@@ -3,7 +3,7 @@
   "version": "0.0.1",
   "private": true,
   "license": "AGPL-3.0-only",
-  "description": "Regole fiscali pure (senza I/O) per il regime forfettario: rate, acconti, INPS, bollo. Ogni regola cita la fonte normativa.",
+  "description": "Pure fiscal rules (no I/O) for the Italian flat-rate regime: installments, advance payments, INPS, stamp duty. Every rule cites its legal source.",
   "type": "module",
   "main": "./src/index.ts",
   "types": "./src/index.ts",
@@ -15,5 +15,8 @@
     "oxlint": "^1.58.0",
     "typescript": "^5.7.3",
     "vitest": "^4.1.2"
+  },
+  "dependencies": {
+    "zod": "^4.6.5"
   }
 }

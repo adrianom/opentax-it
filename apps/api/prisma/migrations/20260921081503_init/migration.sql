@@ -2,7 +2,7 @@
 CREATE TYPE "UserRole" AS ENUM ('PLATFORM_ADMIN', 'TENANT_ADMIN', 'TENANT_USER');
 
 -- CreateEnum
-CREATE TYPE "CustomerKind" AS ENUM ('IT_B2B', 'IT_B2C', 'IT_PA', 'UE', 'EXTRA_UE');
+CREATE TYPE "CustomerKind" AS ENUM ('IT_B2B', 'IT_B2C', 'IT_PA', 'EU', 'NON_EU');
 
 -- CreateEnum
 CREATE TYPE "DocumentType" AS ENUM ('TD01', 'TD04', 'TD05', 'TD06');
@@ -32,28 +32,28 @@ CREATE TYPE "ProposalStatus" AS ENUM ('PENDING', 'APPROVED', 'PARTIALLY_APPROVED
 CREATE TYPE "TaxReturnStatus" AS ENUM ('DRAFT', 'FILED');
 
 -- CreateEnum
-CREATE TYPE "TaxCreditKind" AS ENUM ('IMPOSTA_SOSTITUTIVA', 'INPS');
+CREATE TYPE "TaxCreditKind" AS ENUM ('SUBSTITUTE_TAX', 'INPS');
 
 -- CreateEnum
-CREATE TYPE "InstallmentPlanKind" AS ENUM ('IMPOSTA_SALDO', 'IMPOSTA_ACCONTO1', 'INPS_SALDO', 'INPS_ACCONTO1');
+CREATE TYPE "InstallmentPlanKind" AS ENUM ('TAX_BALANCE', 'TAX_FIRST_ADVANCE', 'INPS_BALANCE', 'INPS_FIRST_ADVANCE');
 
 -- CreateEnum
-CREATE TYPE "F24Kind" AS ENUM ('SALDO', 'ACCONTO1', 'ACCONTO2', 'RATA', 'BOLLO', 'AVVISO', 'ALTRO');
+CREATE TYPE "F24Kind" AS ENUM ('BALANCE', 'FIRST_ADVANCE', 'SECOND_ADVANCE', 'INSTALLMENT', 'STAMP_DUTY', 'TAX_NOTICE', 'OTHER');
 
 -- CreateEnum
 CREATE TYPE "F24Status" AS ENUM ('PLANNED', 'SCHEDULED_I24', 'PAID', 'CANCELLED');
 
 -- CreateEnum
-CREATE TYPE "F24Section" AS ENUM ('ERARIO', 'INPS');
+CREATE TYPE "F24Section" AS ENUM ('TREASURY', 'INPS');
 
 -- CreateEnum
-CREATE TYPE "DeadlineKind" AS ENUM ('IMPOSTA_SALDO', 'IMPOSTA_ACCONTO1', 'IMPOSTA_ACCONTO2', 'INPS_SALDO', 'INPS_ACCONTO1', 'INPS_ACCONTO2', 'RATA', 'BOLLO', 'DICHIARAZIONE', 'INTRASTAT', 'IVA_ESTERO', 'AVVISO', 'ALTRO');
+CREATE TYPE "DeadlineKind" AS ENUM ('TAX_BALANCE', 'TAX_FIRST_ADVANCE', 'TAX_SECOND_ADVANCE', 'INPS_BALANCE', 'INPS_FIRST_ADVANCE', 'INPS_SECOND_ADVANCE', 'INSTALLMENT', 'STAMP_DUTY', 'TAX_RETURN', 'INTRASTAT', 'FOREIGN_VAT', 'TAX_NOTICE', 'OTHER');
 
 -- CreateEnum
 CREATE TYPE "DeadlineStatus" AS ENUM ('OPEN', 'DONE', 'SKIPPED');
 
 -- CreateEnum
-CREATE TYPE "TaxNoticeKind" AS ENUM ('COMUNICAZIONE_IRREGOLARITA', 'AVVISO_TELEMATICO', 'CARTELLA', 'BOLLO_FE', 'CONTROLLO_FORMALE', 'ALTRO');
+CREATE TYPE "TaxNoticeKind" AS ENUM ('IRREGULARITY_NOTICE', 'ELECTRONIC_NOTICE', 'PAYMENT_ORDER', 'EINVOICE_STAMP_DUTY', 'FORMAL_CHECK', 'OTHER');
 
 -- CreateEnum
 CREATE TYPE "TaxNoticeStatus" AS ENUM ('RECEIVED', 'CIVIS_REQUESTED', 'PAID', 'INSTALLMENTS', 'CLOSED');
@@ -85,22 +85,22 @@ CREATE TABLE "User" (
 CREATE TABLE "TenantProfile" (
     "id" TEXT NOT NULL,
     "tenantId" TEXT NOT NULL,
-    "denominazione" TEXT,
-    "nome" TEXT NOT NULL,
-    "cognome" TEXT NOT NULL,
-    "codiceFiscale" TEXT NOT NULL,
-    "partitaIva" TEXT NOT NULL,
-    "codiceAteco" TEXT NOT NULL,
-    "codiceAteco2025" TEXT,
-    "indirizzo" TEXT NOT NULL,
-    "cap" TEXT NOT NULL,
-    "comune" TEXT NOT NULL,
-    "provincia" TEXT NOT NULL,
-    "nazione" TEXT NOT NULL DEFAULT 'IT',
-    "annoInizioAttivita" INTEGER NOT NULL,
-    "aliquotaRidotta" BOOLEAN NOT NULL DEFAULT false,
-    "applicaRivalsaInps" BOOLEAN NOT NULL DEFAULT false,
-    "iscrittoVies" BOOLEAN NOT NULL DEFAULT false,
+    "businessName" TEXT,
+    "firstName" TEXT NOT NULL,
+    "lastName" TEXT NOT NULL,
+    "fiscalCode" TEXT NOT NULL,
+    "vatNumber" TEXT NOT NULL,
+    "atecoCode" TEXT NOT NULL,
+    "atecoCode2025" TEXT,
+    "address" TEXT NOT NULL,
+    "postalCode" TEXT NOT NULL,
+    "city" TEXT NOT NULL,
+    "province" TEXT NOT NULL,
+    "country" TEXT NOT NULL DEFAULT 'IT',
+    "activityStartYear" INTEGER NOT NULL,
+    "reducedRate" BOOLEAN NOT NULL DEFAULT false,
+    "applyInpsSurcharge" BOOLEAN NOT NULL DEFAULT false,
+    "viesRegistered" BOOLEAN NOT NULL DEFAULT false,
     "pecAddress" TEXT,
     "pecCredentialsEnc" TEXT,
     "sdiPecAssigned" TEXT,
@@ -116,21 +116,21 @@ CREATE TABLE "Customer" (
     "id" TEXT NOT NULL,
     "tenantId" TEXT NOT NULL,
     "kind" "CustomerKind" NOT NULL,
-    "denominazione" TEXT,
-    "nome" TEXT,
-    "cognome" TEXT,
-    "partitaIva" TEXT,
-    "codiceFiscale" TEXT,
-    "idPaese" TEXT NOT NULL DEFAULT 'IT',
-    "indirizzo" TEXT NOT NULL,
-    "cap" TEXT,
-    "comune" TEXT NOT NULL,
-    "provincia" TEXT,
-    "nazione" TEXT NOT NULL DEFAULT 'IT',
-    "codiceDestinatario" TEXT NOT NULL DEFAULT '0000000',
-    "pecDestinatario" TEXT,
-    "valuta" TEXT NOT NULL DEFAULT 'EUR',
-    "note" TEXT,
+    "businessName" TEXT,
+    "firstName" TEXT,
+    "lastName" TEXT,
+    "vatNumber" TEXT,
+    "fiscalCode" TEXT,
+    "countryCode" TEXT NOT NULL DEFAULT 'IT',
+    "address" TEXT NOT NULL,
+    "postalCode" TEXT,
+    "city" TEXT NOT NULL,
+    "province" TEXT,
+    "country" TEXT NOT NULL DEFAULT 'IT',
+    "recipientCode" TEXT NOT NULL DEFAULT '0000000',
+    "recipientPec" TEXT,
+    "currency" TEXT NOT NULL DEFAULT 'EUR',
+    "notes" TEXT,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
@@ -142,25 +142,25 @@ CREATE TABLE "Invoice" (
     "id" TEXT NOT NULL,
     "tenantId" TEXT NOT NULL,
     "customerId" TEXT NOT NULL,
-    "tipo" "DocumentType" NOT NULL DEFAULT 'TD01',
-    "anno" INTEGER NOT NULL,
-    "progressivo" INTEGER NOT NULL,
-    "numero" TEXT NOT NULL,
-    "data" DATE NOT NULL,
-    "valuta" TEXT NOT NULL DEFAULT 'EUR',
-    "cambio" DECIMAL(12,6) NOT NULL DEFAULT 1,
-    "natura" "VatNature" NOT NULL DEFAULT 'N2_2',
-    "imponibile" DECIMAL(14,2) NOT NULL,
-    "rivalsaInps" DECIMAL(14,2) NOT NULL DEFAULT 0,
-    "bolloVirtuale" BOOLEAN NOT NULL DEFAULT false,
-    "importoBollo" DECIMAL(14,2) NOT NULL DEFAULT 0,
-    "totale" DECIMAL(14,2) NOT NULL,
-    "causali" TEXT[],
-    "stato" "InvoiceStatus" NOT NULL DEFAULT 'DRAFT',
+    "type" "DocumentType" NOT NULL DEFAULT 'TD01',
+    "year" INTEGER NOT NULL,
+    "sequence" INTEGER NOT NULL,
+    "number" TEXT NOT NULL,
+    "date" DATE NOT NULL,
+    "currency" TEXT NOT NULL DEFAULT 'EUR',
+    "exchangeRate" DECIMAL(12,6) NOT NULL DEFAULT 1,
+    "vatNature" "VatNature" NOT NULL DEFAULT 'N2_2',
+    "taxableAmount" DECIMAL(14,2) NOT NULL,
+    "inpsSurcharge" DECIMAL(14,2) NOT NULL DEFAULT 0,
+    "virtualStamp" BOOLEAN NOT NULL DEFAULT false,
+    "stampAmount" DECIMAL(14,2) NOT NULL DEFAULT 0,
+    "total" DECIMAL(14,2) NOT NULL,
+    "notes" TEXT[],
+    "status" "InvoiceStatus" NOT NULL DEFAULT 'DRAFT',
     "refInvoiceId" TEXT,
     "xmlFileName" TEXT,
     "xmlPath" TEXT,
-    "note" TEXT,
+    "internalNotes" TEXT,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
@@ -171,12 +171,12 @@ CREATE TABLE "Invoice" (
 CREATE TABLE "InvoiceLine" (
     "id" TEXT NOT NULL,
     "invoiceId" TEXT NOT NULL,
-    "numeroLinea" INTEGER NOT NULL,
-    "descrizione" TEXT NOT NULL,
-    "quantita" DECIMAL(12,4) NOT NULL DEFAULT 1,
-    "unitaMisura" TEXT,
-    "prezzoUnitario" DECIMAL(14,4) NOT NULL,
-    "prezzoTotale" DECIMAL(14,2) NOT NULL,
+    "lineNumber" INTEGER NOT NULL,
+    "description" TEXT NOT NULL,
+    "quantity" DECIMAL(12,4) NOT NULL DEFAULT 1,
+    "unit" TEXT,
+    "unitPrice" DECIMAL(14,4) NOT NULL,
+    "totalPrice" DECIMAL(14,2) NOT NULL,
 
     CONSTRAINT "InvoiceLine_pkey" PRIMARY KEY ("id")
 );
@@ -186,12 +186,12 @@ CREATE TABLE "Payment" (
     "id" TEXT NOT NULL,
     "tenantId" TEXT NOT NULL,
     "invoiceId" TEXT NOT NULL,
-    "data" DATE NOT NULL,
-    "importo" DECIMAL(14,2) NOT NULL,
-    "importoEur" DECIMAL(14,2) NOT NULL,
-    "cambio" DECIMAL(12,6) NOT NULL DEFAULT 1,
-    "metodo" TEXT,
-    "note" TEXT,
+    "date" DATE NOT NULL,
+    "amount" DECIMAL(14,2) NOT NULL,
+    "amountEur" DECIMAL(14,2) NOT NULL,
+    "exchangeRate" DECIMAL(12,6) NOT NULL DEFAULT 1,
+    "method" TEXT,
+    "notes" TEXT,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "Payment_pkey" PRIMARY KEY ("id")
@@ -201,12 +201,12 @@ CREATE TABLE "Payment" (
 CREATE TABLE "SdiTransmission" (
     "id" TEXT NOT NULL,
     "invoiceId" TEXT NOT NULL,
-    "canale" "SdiChannel" NOT NULL DEFAULT 'PEC',
+    "channel" "SdiChannel" NOT NULL DEFAULT 'PEC',
     "fileName" TEXT NOT NULL,
     "sentAt" TIMESTAMP(3),
     "pecMessageId" TEXT,
-    "stato" "SdiTransmissionStatus" NOT NULL DEFAULT 'PENDING',
-    "identificativoSdi" TEXT,
+    "status" "SdiTransmissionStatus" NOT NULL DEFAULT 'PENDING',
+    "sdiId" TEXT,
     "lastError" TEXT,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
@@ -218,12 +218,12 @@ CREATE TABLE "SdiTransmission" (
 CREATE TABLE "SdiNotification" (
     "id" TEXT NOT NULL,
     "transmissionId" TEXT NOT NULL,
-    "tipo" TEXT NOT NULL,
+    "type" TEXT NOT NULL,
     "receivedAt" TIMESTAMP(3) NOT NULL,
-    "identificativoSdi" TEXT,
+    "sdiId" TEXT,
     "fileName" TEXT,
     "rawPath" TEXT,
-    "dettaglio" JSONB,
+    "details" JSONB,
 
     CONSTRAINT "SdiNotification_pkey" PRIMARY KEY ("id")
 );
@@ -232,14 +232,14 @@ CREATE TABLE "SdiNotification" (
 CREATE TABLE "StampDutyPeriod" (
     "id" TEXT NOT NULL,
     "tenantId" TEXT NOT NULL,
-    "anno" INTEGER NOT NULL,
-    "trimestre" INTEGER NOT NULL,
-    "importoCalcolato" DECIMAL(14,2) NOT NULL DEFAULT 0,
-    "importoDovuto" DECIMAL(14,2),
-    "scadenza" DATE NOT NULL,
-    "scadenzaEffettiva" DATE,
+    "year" INTEGER NOT NULL,
+    "quarter" INTEGER NOT NULL,
+    "computedAmount" DECIMAL(14,2) NOT NULL DEFAULT 0,
+    "dueAmount" DECIMAL(14,2),
+    "dueDate" DATE NOT NULL,
+    "effectiveDueDate" DATE,
     "f24Id" TEXT,
-    "pagatoIl" DATE,
+    "paidOn" DATE,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
@@ -305,32 +305,32 @@ CREATE TABLE "RuleChangeProposal" (
 CREATE TABLE "TaxReturn" (
     "id" TEXT NOT NULL,
     "tenantId" TEXT NOT NULL,
-    "anno" INTEGER NOT NULL,
-    "ricaviIncassati" DECIMAL(14,2) NOT NULL,
-    "coefficiente" DECIMAL(5,2) NOT NULL,
-    "redditoLordo" DECIMAL(14,2) NOT NULL,
-    "contributiVersati" DECIMAL(14,2) NOT NULL,
-    "contributiDedotti" DECIMAL(14,2) NOT NULL,
-    "redditoNetto" DECIMAL(14,2) NOT NULL,
-    "aliquota" DECIMAL(5,2) NOT NULL,
-    "impostaSostitutiva" DECIMAL(14,2) NOT NULL,
-    "eccedenzaPrecedente" DECIMAL(14,2) NOT NULL DEFAULT 0,
-    "eccedenzaCompensata" DECIMAL(14,2) NOT NULL DEFAULT 0,
-    "accontiVersati" DECIMAL(14,2) NOT NULL DEFAULT 0,
-    "impostaDebito" DECIMAL(14,2) NOT NULL DEFAULT 0,
-    "impostaCredito" DECIMAL(14,2) NOT NULL DEFAULT 0,
-    "inpsImponibile" DECIMAL(14,2) NOT NULL,
-    "inpsAliquota" DECIMAL(5,2) NOT NULL,
-    "inpsContributoDovuto" DECIMAL(14,2) NOT NULL,
-    "inpsAccontiVersati" DECIMAL(14,2) NOT NULL DEFAULT 0,
-    "inpsDebito" DECIMAL(14,2) NOT NULL DEFAULT 0,
-    "inpsCredito" DECIMAL(14,2) NOT NULL DEFAULT 0,
-    "accontoImpostaDovuto" DECIMAL(14,2) NOT NULL DEFAULT 0,
-    "accontoInpsDovuto" DECIMAL(14,2) NOT NULL DEFAULT 0,
+    "year" INTEGER NOT NULL,
+    "collectedRevenue" DECIMAL(14,2) NOT NULL,
+    "coefficient" DECIMAL(5,2) NOT NULL,
+    "grossIncome" DECIMAL(14,2) NOT NULL,
+    "contributionsPaid" DECIMAL(14,2) NOT NULL,
+    "contributionsDeducted" DECIMAL(14,2) NOT NULL,
+    "netIncome" DECIMAL(14,2) NOT NULL,
+    "taxRate" DECIMAL(5,2) NOT NULL,
+    "substituteTax" DECIMAL(14,2) NOT NULL,
+    "previousCredit" DECIMAL(14,2) NOT NULL DEFAULT 0,
+    "previousCreditUsed" DECIMAL(14,2) NOT NULL DEFAULT 0,
+    "advancesPaid" DECIMAL(14,2) NOT NULL DEFAULT 0,
+    "taxDue" DECIMAL(14,2) NOT NULL DEFAULT 0,
+    "taxCredit" DECIMAL(14,2) NOT NULL DEFAULT 0,
+    "inpsTaxableIncome" DECIMAL(14,2) NOT NULL,
+    "inpsRate" DECIMAL(5,2) NOT NULL,
+    "inpsContributionDue" DECIMAL(14,2) NOT NULL,
+    "inpsAdvancesPaid" DECIMAL(14,2) NOT NULL DEFAULT 0,
+    "inpsDue" DECIMAL(14,2) NOT NULL DEFAULT 0,
+    "inpsCredit" DECIMAL(14,2) NOT NULL DEFAULT 0,
+    "nextYearTaxAdvance" DECIMAL(14,2) NOT NULL DEFAULT 0,
+    "nextYearInpsAdvance" DECIMAL(14,2) NOT NULL DEFAULT 0,
     "ruleSetVersion" INTEGER,
-    "stato" "TaxReturnStatus" NOT NULL DEFAULT 'DRAFT',
-    "filedAt" DATE,
-    "note" TEXT,
+    "status" "TaxReturnStatus" NOT NULL DEFAULT 'DRAFT',
+    "filedOn" DATE,
+    "notes" TEXT,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
@@ -343,10 +343,10 @@ CREATE TABLE "TaxCredit" (
     "tenantId" TEXT NOT NULL,
     "taxReturnId" TEXT,
     "kind" "TaxCreditKind" NOT NULL,
-    "annoRiferimento" INTEGER NOT NULL,
-    "importo" DECIMAL(14,2) NOT NULL,
-    "utilizzabileDal" DATE,
-    "note" TEXT,
+    "referenceYear" INTEGER NOT NULL,
+    "amount" DECIMAL(14,2) NOT NULL,
+    "usableFrom" DATE,
+    "notes" TEXT,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "TaxCredit_pkey" PRIMARY KEY ("id")
@@ -357,7 +357,7 @@ CREATE TABLE "TaxCreditUsage" (
     "id" TEXT NOT NULL,
     "taxCreditId" TEXT NOT NULL,
     "f24LineId" TEXT NOT NULL,
-    "importo" DECIMAL(14,2) NOT NULL,
+    "amount" DECIMAL(14,2) NOT NULL,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "TaxCreditUsage_pkey" PRIMARY KEY ("id")
@@ -367,13 +367,13 @@ CREATE TABLE "TaxCreditUsage" (
 CREATE TABLE "InstallmentPlan" (
     "id" TEXT NOT NULL,
     "tenantId" TEXT NOT NULL,
-    "annoVersamento" INTEGER NOT NULL,
-    "annoImposta" INTEGER NOT NULL,
+    "paymentYear" INTEGER NOT NULL,
+    "taxYear" INTEGER NOT NULL,
     "kind" "InstallmentPlanKind" NOT NULL,
-    "importo" DECIMAL(14,2) NOT NULL,
-    "primaRata" DATE NOT NULL,
-    "numeroRate" INTEGER NOT NULL,
-    "maggiorazionePct" DECIMAL(5,2) NOT NULL DEFAULT 0,
+    "amount" DECIMAL(14,2) NOT NULL,
+    "firstDueDate" DATE NOT NULL,
+    "installments" INTEGER NOT NULL,
+    "surchargePct" DECIMAL(5,2) NOT NULL DEFAULT 0,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "InstallmentPlan_pkey" PRIMARY KEY ("id")
@@ -384,19 +384,19 @@ CREATE TABLE "F24" (
     "id" TEXT NOT NULL,
     "tenantId" TEXT NOT NULL,
     "kind" "F24Kind" NOT NULL,
-    "dataVersamento" DATE NOT NULL,
-    "stato" "F24Status" NOT NULL DEFAULT 'PLANNED',
+    "paymentDate" DATE NOT NULL,
+    "status" "F24Status" NOT NULL DEFAULT 'PLANNED',
     "planId" TEXT,
-    "rataNumero" INTEGER,
-    "rateTotali" INTEGER,
-    "totaleDebito" DECIMAL(14,2) NOT NULL DEFAULT 0,
-    "totaleCredito" DECIMAL(14,2) NOT NULL DEFAULT 0,
-    "saldo" DECIMAL(14,2) NOT NULL DEFAULT 0,
+    "installmentNumber" INTEGER,
+    "installmentsTotal" INTEGER,
+    "totalDebit" DECIMAL(14,2) NOT NULL DEFAULT 0,
+    "totalCredit" DECIMAL(14,2) NOT NULL DEFAULT 0,
+    "balance" DECIMAL(14,2) NOT NULL DEFAULT 0,
     "i24ScheduledAt" TIMESTAMP(3),
     "i24CancelBy" DATE,
-    "paidAt" DATE,
+    "paidOn" DATE,
     "taxNoticeId" TEXT,
-    "note" TEXT,
+    "notes" TEXT,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
@@ -407,15 +407,15 @@ CREATE TABLE "F24" (
 CREATE TABLE "F24Line" (
     "id" TEXT NOT NULL,
     "f24Id" TEXT NOT NULL,
-    "sezione" "F24Section" NOT NULL,
-    "codice" TEXT NOT NULL,
-    "codiceSede" TEXT,
-    "rateazione" TEXT,
-    "periodoDa" TEXT,
-    "periodoA" TEXT,
-    "annoRiferimento" INTEGER NOT NULL,
-    "importoDebito" DECIMAL(14,2) NOT NULL DEFAULT 0,
-    "importoCredito" DECIMAL(14,2) NOT NULL DEFAULT 0,
+    "section" "F24Section" NOT NULL,
+    "code" TEXT NOT NULL,
+    "officeCode" TEXT,
+    "installmentCode" TEXT,
+    "periodFrom" TEXT,
+    "periodTo" TEXT,
+    "referenceYear" INTEGER NOT NULL,
+    "debitAmount" DECIMAL(14,2) NOT NULL DEFAULT 0,
+    "creditAmount" DECIMAL(14,2) NOT NULL DEFAULT 0,
 
     CONSTRAINT "F24Line_pkey" PRIMARY KEY ("id")
 );
@@ -425,10 +425,10 @@ CREATE TABLE "Deadline" (
     "id" TEXT NOT NULL,
     "tenantId" TEXT NOT NULL,
     "kind" "DeadlineKind" NOT NULL,
-    "data" DATE NOT NULL,
-    "descrizione" TEXT NOT NULL,
-    "importoStimato" DECIMAL(14,2),
-    "stato" "DeadlineStatus" NOT NULL DEFAULT 'OPEN',
+    "date" DATE NOT NULL,
+    "description" TEXT NOT NULL,
+    "estimatedAmount" DECIMAL(14,2),
+    "status" "DeadlineStatus" NOT NULL DEFAULT 'OPEN',
     "f24Id" TEXT,
     "ruleSetVersion" INTEGER,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -442,16 +442,16 @@ CREATE TABLE "TaxNotice" (
     "id" TEXT NOT NULL,
     "tenantId" TEXT NOT NULL,
     "kind" "TaxNoticeKind" NOT NULL,
-    "numero" TEXT,
-    "annoImposta" INTEGER,
-    "dataRicezione" DATE NOT NULL,
-    "importo" DECIMAL(14,2),
-    "scadenza" DATE,
-    "stato" "TaxNoticeStatus" NOT NULL DEFAULT 'RECEIVED',
+    "number" TEXT,
+    "taxYear" INTEGER,
+    "receivedOn" DATE NOT NULL,
+    "amount" DECIMAL(14,2),
+    "dueDate" DATE,
+    "status" "TaxNoticeStatus" NOT NULL DEFAULT 'RECEIVED',
     "civisRequestId" TEXT,
-    "civisRequestedAt" DATE,
-    "esito" TEXT,
-    "note" TEXT,
+    "civisRequestedOn" DATE,
+    "outcome" TEXT,
+    "notes" TEXT,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
@@ -500,19 +500,19 @@ CREATE UNIQUE INDEX "TenantProfile_tenantId_key" ON "TenantProfile"("tenantId");
 CREATE INDEX "Customer_tenantId_idx" ON "Customer"("tenantId");
 
 -- CreateIndex
-CREATE INDEX "Invoice_tenantId_data_idx" ON "Invoice"("tenantId", "data");
+CREATE INDEX "Invoice_tenantId_date_idx" ON "Invoice"("tenantId", "date");
 
 -- CreateIndex
 CREATE INDEX "Invoice_customerId_idx" ON "Invoice"("customerId");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "Invoice_tenantId_anno_tipo_progressivo_key" ON "Invoice"("tenantId", "anno", "tipo", "progressivo");
+CREATE UNIQUE INDEX "Invoice_tenantId_year_type_sequence_key" ON "Invoice"("tenantId", "year", "type", "sequence");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "InvoiceLine_invoiceId_numeroLinea_key" ON "InvoiceLine"("invoiceId", "numeroLinea");
+CREATE UNIQUE INDEX "InvoiceLine_invoiceId_lineNumber_key" ON "InvoiceLine"("invoiceId", "lineNumber");
 
 -- CreateIndex
-CREATE INDEX "Payment_tenantId_data_idx" ON "Payment"("tenantId", "data");
+CREATE INDEX "Payment_tenantId_date_idx" ON "Payment"("tenantId", "date");
 
 -- CreateIndex
 CREATE INDEX "Payment_invoiceId_idx" ON "Payment"("invoiceId");
@@ -524,7 +524,7 @@ CREATE INDEX "SdiTransmission_invoiceId_idx" ON "SdiTransmission"("invoiceId");
 CREATE INDEX "SdiNotification_transmissionId_idx" ON "SdiNotification"("transmissionId");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "StampDutyPeriod_tenantId_anno_trimestre_key" ON "StampDutyPeriod"("tenantId", "anno", "trimestre");
+CREATE UNIQUE INDEX "StampDutyPeriod_tenantId_year_quarter_key" ON "StampDutyPeriod"("tenantId", "year", "quarter");
 
 -- CreateIndex
 CREATE INDEX "FiscalRuleSet_year_status_idx" ON "FiscalRuleSet"("year", "status");
@@ -539,10 +539,10 @@ CREATE UNIQUE INDEX "RuleSource_url_key" ON "RuleSource"("url");
 CREATE INDEX "RuleChangeProposal_status_targetYear_idx" ON "RuleChangeProposal"("status", "targetYear");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "TaxReturn_tenantId_anno_key" ON "TaxReturn"("tenantId", "anno");
+CREATE UNIQUE INDEX "TaxReturn_tenantId_year_key" ON "TaxReturn"("tenantId", "year");
 
 -- CreateIndex
-CREATE INDEX "TaxCredit_tenantId_kind_annoRiferimento_idx" ON "TaxCredit"("tenantId", "kind", "annoRiferimento");
+CREATE INDEX "TaxCredit_tenantId_kind_referenceYear_idx" ON "TaxCredit"("tenantId", "kind", "referenceYear");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "TaxCreditUsage_f24LineId_key" ON "TaxCreditUsage"("f24LineId");
@@ -551,19 +551,19 @@ CREATE UNIQUE INDEX "TaxCreditUsage_f24LineId_key" ON "TaxCreditUsage"("f24LineI
 CREATE INDEX "TaxCreditUsage_taxCreditId_idx" ON "TaxCreditUsage"("taxCreditId");
 
 -- CreateIndex
-CREATE INDEX "InstallmentPlan_tenantId_annoVersamento_idx" ON "InstallmentPlan"("tenantId", "annoVersamento");
+CREATE INDEX "InstallmentPlan_tenantId_paymentYear_idx" ON "InstallmentPlan"("tenantId", "paymentYear");
 
 -- CreateIndex
-CREATE INDEX "F24_tenantId_dataVersamento_idx" ON "F24"("tenantId", "dataVersamento");
+CREATE INDEX "F24_tenantId_paymentDate_idx" ON "F24"("tenantId", "paymentDate");
 
 -- CreateIndex
 CREATE INDEX "F24Line_f24Id_idx" ON "F24Line"("f24Id");
 
 -- CreateIndex
-CREATE INDEX "Deadline_tenantId_data_idx" ON "Deadline"("tenantId", "data");
+CREATE INDEX "Deadline_tenantId_date_idx" ON "Deadline"("tenantId", "date");
 
 -- CreateIndex
-CREATE INDEX "TaxNotice_tenantId_dataRicezione_idx" ON "TaxNotice"("tenantId", "dataRicezione");
+CREATE INDEX "TaxNotice_tenantId_receivedOn_idx" ON "TaxNotice"("tenantId", "receivedOn");
 
 -- CreateIndex
 CREATE INDEX "Attachment_tenantId_entityType_entityId_idx" ON "Attachment"("tenantId", "entityType", "entityId");

@@ -7,7 +7,7 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
   constructor() {
     const connectionString = process.env.DATABASE_URL;
     if (!connectionString) {
-      throw new Error('DATABASE_URL non configurata (vedi .env.example)');
+      throw new Error('DATABASE_URL is not set (see .env.example)');
     }
     super({ adapter: new PrismaPg({ connectionString }) });
   }

@@ -1,7 +1,7 @@
 import { config } from 'dotenv';
 import { defineConfig } from 'prisma/config';
 
-// Il file .env vive nella root del monorepo; in fallback quello locale.
+// The .env file lives at the monorepo root; the local one is a fallback.
 config({ path: ['.env', '../../.env'] });
 
 export default defineConfig({

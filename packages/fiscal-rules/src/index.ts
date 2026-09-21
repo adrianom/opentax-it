@@ -1,2 +1,6 @@
-// Regole fiscali pure (senza I/O). Ogni modulo cita la fonte normativa in testa al file.
-export * from './rateazione';
+// Pure fiscal rules (no I/O). Every module cites its legal source in the file header.
+export * from './rule-set.js';
+export * from './installment-plan.js';
+export * from './calendar.js';
+export * from './deadlines.js';
+export { ruleSet2026 } from './rule-sets/2026.js';
