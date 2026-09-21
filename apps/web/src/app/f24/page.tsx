@@ -8,7 +8,7 @@ import { HelpTip } from '@/components/help-tip';
 import { NativeSelect } from '@/components/native-select';
 import { NoTenant } from '@/components/no-tenant';
 import { createPlan, deletePlan } from '@/lib/actions';
-import { api, currentTenantId, fetchOrNull, formatDate, formatMoney, type PlanOptions, type PlanStart } from '@/lib/api';
+import { api, ApiError, currentTenantId, fetchOrNull, formatDate, formatMoney, type PlanOptions, type PlanPreview, type PlanStart } from '@/lib/api';
 import { F24Card } from './f24-card';
 
 const START_LABELS: Record<PlanStart, string> = {
@@ -44,7 +44,16 @@ export default async function F24Page({ searchParams }: PageProps<'/f24'>) {
   const start = (typeof params.start === 'string' ? params.start : options?.starts[0]?.start) as PlanStart | undefined;
   const startOpt = options?.starts.find((o) => o.start === start);
   const installments = Math.min(Number(params.installments ?? startOpt?.maxInstallments ?? 1) || 1, startOpt?.maxInstallments ?? 1);
-  const preview = !plan && options && start ? await fetchOrNull(() => api.previewPlan(taxYear, { start, installments })) : null;
+  let preview: PlanPreview | null = null;
+  let previewError: string | undefined;
+  if (!plan && options && start) {
+    try {
+      preview = await api.previewPlan(taxYear, { start, installments });
+    } catch (e) {
+      if (!(e instanceof ApiError)) throw e;
+      previewError = e.message;
+    }
+  }
 
   const forms = plan?.f24s ?? [];
   const next = forms.find((f) => f.status !== 'PAID' && f.status !== 'CANCELLED' && f.paymentDate.slice(0, 10) >= today) ?? forms.find((f) => f.status !== 'PAID' && f.status !== 'CANCELLED');
@@ -62,7 +71,7 @@ export default async function F24Page({ searchParams }: PageProps<'/f24'>) {
         </div>
       </div>
 
-      <ErrorAlert message={error} />
+      <ErrorAlert message={error ?? previewError} />
       {(plan ? [] : (preview?.warnings ?? options?.warnings ?? [])).length > 0 && (
         <Alert>
           <AlertTitle>Attenzione</AlertTitle>
@@ -150,7 +159,12 @@ export default async function F24Page({ searchParams }: PageProps<'/f24'>) {
                     Crediti non inclusi nelle deleghe: imposta {formatMoney(preview.credits.tax)} (LM47), INPS {formatMoney(preview.credits.inps)} (RR8). La compensazione in F24 sarà gestita dal modulo compensazioni.
                   </p>
                 )}
-                <p className="text-sm text-muted-foreground">Sede INPS {preview.inpsOfficeCode} dal profilo. {preview.forms.length} deleghe: totale {formatMoney(preview.forms.reduce((s, f) => s + Number(f.totalDebit), 0))}.</p>
+                <p className="text-sm text-muted-foreground">
+                  Sede INPS {preview.inpsOfficeCode} dal profilo.{' '}
+                  {preview.forms.length === 0
+                    ? `Nulla da versare: nessun saldo o acconto a debito per il ${taxYear} (servono incassi registrati nel ${taxYear}).`
+                    : `${preview.forms.length} deleghe: totale ${formatMoney(preview.forms.reduce((s, f) => s + Number(f.totalDebit), 0))}.`}
+                </p>
                 <form action={createPlan}>
                   <input type="hidden" name="taxYear" value={taxYear} />
                   <input type="hidden" name="start" value={preview.start} />
