@@ -93,11 +93,11 @@ export class FiscalRulesService {
     if (!tenantId) return buildDeadlines(rules, opts);
     const [stampDutyByQuarter, profile, euInvoices] = await Promise.all([
       this.stampDutyByQuarter(tenantId, year),
-      this.prisma.tenantProfile.findUnique({ where: { tenantId }, select: { viesRegistered: true } }),
+      this.prisma.tenantProfile.findUnique({ where: { tenantId }, select: { viesRegistered: true, isaSubject: true } }),
       this.prisma.invoice.count({ where: { tenantId, year, status: { notIn: ['DRAFT', 'CANCELLED'] }, customer: { kind: 'EU' } } }),
     ]);
     const quarterlyIntrastat = opts.quarterlyIntrastat ?? (profile?.viesRegistered === true || euInvoices > 0);
-    return buildDeadlines(rules, { ...opts, quarterlyIntrastat, stampDutyByQuarter });
+    return buildDeadlines(rules, { ...opts, quarterlyIntrastat, stampDutyByQuarter, isaSubject: profile?.isaSubject ?? false });
   }
 
   /**

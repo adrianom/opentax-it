@@ -80,6 +80,12 @@ export function TenantForm({ offices, current }: Props) {
       <div className="flex flex-col gap-2 sm:col-span-2">
         <label className="flex items-center gap-2 text-sm"><Checkbox name="reducedRate" defaultChecked={p?.reducedRate} /> Aliquota ridotta 5% (requisiti art. 1 c. 65 L. 190/2014)</label>
         <label className="flex items-center gap-2 text-sm"><Checkbox name="applyInpsSurcharge" defaultChecked={p?.applyInpsSurcharge} /> Applica rivalsa INPS 4% in fattura</label>
+        <label className="flex items-center gap-2 text-sm">
+          <Checkbox name="isaSubject" defaultChecked={p?.isaSubject} /> Attività con ISA approvato (acconti 50% + 50%)
+          <HelpTip>
+            <p>Chi esercita un&apos;attività per cui è approvato un indice sintetico di affidabilità (ISA), con compensi entro il limite dell&apos;indice, versa gli acconti in due rate del 50% invece di 40% + 60%: DL 124/2019 art. 58, esteso ai forfettari e all&apos;imposta sostitutiva dalla Risoluzione AdE 93/E/2019. Verifica con chi ti assiste se al tuo codice ATECO corrisponde un ISA (elenco sul sito AdE, sezione ISA).</p>
+          </HelpTip>
+        </label>
         <label className="flex items-center gap-2 text-sm"><Checkbox name="viesRegistered" defaultChecked={p?.viesRegistered} /> Iscritto al VIES</label>
       </div>
       <div className="sm:col-span-2">

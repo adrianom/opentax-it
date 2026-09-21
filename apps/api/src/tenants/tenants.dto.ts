@@ -16,6 +16,7 @@ export class CreateTenantDto {
   @IsInt() @Min(1990) activityStartYear!: number;
   @IsOptional() @IsBoolean() reducedRate?: boolean;
   @IsOptional() @IsBoolean() applyInpsSurcharge?: boolean;
+  @IsOptional() @IsBoolean() isaSubject?: boolean;
   @IsOptional() @IsBoolean() viesRegistered?: boolean;
   @IsOptional() @IsString() @Matches(/^\d{4}-[a-z0-9-]+$/) inpsOfficeId?: string;
   @IsOptional() @IsString() pecAddress?: string;
@@ -36,6 +37,7 @@ export class UpdateTenantProfileDto {
   @IsOptional() @IsInt() @Min(1990) activityStartYear?: number;
   @IsOptional() @IsBoolean() reducedRate?: boolean;
   @IsOptional() @IsBoolean() applyInpsSurcharge?: boolean;
+  @IsOptional() @IsBoolean() isaSubject?: boolean;
   @IsOptional() @IsBoolean() viesRegistered?: boolean;
   @IsOptional() @IsString() pecAddress?: string;
   @IsOptional() @IsString() @Matches(/^\d{4}-[a-z0-9-]+$/) inpsOfficeId?: string;

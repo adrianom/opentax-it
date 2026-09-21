@@ -56,8 +56,14 @@ describe('buildPaymentSchedule – real 2026 forms (5 installments from 20 July,
     expect(f.lines[0].installmentCode).toBe('0405');
   });
 
-  it('first installment carries no interest rows', () => {
-    expect(forms[0].lines.map((l) => l.code)).toEqual(['1792', '1790', 'PXXR', 'PXXR']);
+  it('first installment matches the real first form (paid early on 29/6): no interest rows, total 4,141.44', () => {
+    expect(forms[0].lines.map((l) => [l.code, l.installmentCode ?? '', l.referenceYear, l.debitAmount])).toEqual([
+      ['1792', '0105', 2025, 1305.4],
+      ['1790', '0105', 2026, 652.7],
+      ['PXXR', '', 2025, 1275.9],
+      ['PXXR', '', 2026, 907.44],
+    ]);
+    expect(forms[0].totalDebit).toBe(4141.44); // 1,958.10 (Erario) + 2,183.34 (INPS)
   });
 
   it('second advance: 1791 and PXX without installment code, reference year 2026', () => {

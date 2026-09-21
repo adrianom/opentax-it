@@ -38,6 +38,7 @@ export interface TenantProfile {
   province: string;
   activityStartYear: number;
   reducedRate: boolean;
+  isaSubject: boolean;
   applyInpsSurcharge: boolean;
   viesRegistered: boolean;
   pecAddress: string | null;
@@ -134,6 +135,7 @@ export interface TaxSummary {
     atecoCode: string;
     activityStartYear: number;
     reducedRateEligible: boolean;
+    isaSubject: boolean;
     contributionsPaid: number;
     taxAdvancesPaid: number;
     inpsAdvancesPaid: number;

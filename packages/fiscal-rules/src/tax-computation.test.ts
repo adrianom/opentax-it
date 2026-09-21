@@ -14,7 +14,7 @@ describe('computeTaxes (LM section III, RR section II)', () => {
     expect(r.taxRatePct).toBe(5);
     expect(r.substituteTax).toBe(1_475); // LM39
     expect(r.inpsTaxableIncome).toBe(33_500); // RR5 col. 11: gross income
-    expect(r.inpsContribution).toBe(8_733); // 33,500 × 26.07% = 8,733.45 → whole euro (return rows)
+    expect(r.inpsContribution).toBe(8_733.45); // 33,500 × 26.07%, in cents
   });
 
   it('contributions exceeding the income are deducted only up to the income (LM35 col. 2 ≤ LM34)', () => {
@@ -41,21 +41,31 @@ describe('reducedRateApplies (par. 65: start year + 4)', () => {
   });
 });
 
-describe('substituteTaxAdvance (Istr. RN62 via Circ. 10/E/2016 §4)', () => {
+describe('substituteTaxAdvance (Istr. RN62 via Circ. 10/E/2016 §4; DPR 435/2001 art. 17 par. 3)', () => {
   it('not due below 51.65', () => {
     expect(substituteTaxAdvance(ruleSet2026, 51).mode).toBe('NOT_DUE');
   });
-  it('single instalment in November below 257.52', () => {
-    expect(substituteTaxAdvance(ruleSet2026, 200)).toEqual({ total: 200, first: 0, second: 200, mode: 'SINGLE' });
+  it('single instalment in November when the first would not exceed 103 (i.e. below 257.52 at 40%)', () => {
+    expect(substituteTaxAdvance(ruleSet2026, 257)).toEqual({ total: 257, first: 0, second: 257, mode: 'SINGLE' });
+    expect(substituteTaxAdvance(ruleSet2026, 258).mode).toBe('TWO_INSTALMENTS');
   });
-  it('40% + 60% from 257.52', () => {
+  it('40% + 60% in the general case', () => {
     expect(substituteTaxAdvance(ruleSet2026, 1_475)).toEqual({ total: 1_475, first: 590, second: 885, mode: 'TWO_INSTALMENTS' });
+  });
+  it('50% + 50% for ISA subjects (DL 124/2019 art. 58; res. 93/E/2019): real 2026 form, tax 6,527 → 3,263.50', () => {
+    expect(substituteTaxAdvance(ruleSet2026, 6_527, true)).toEqual({ total: 6_527, first: 3_263.5, second: 3_263.5, mode: 'TWO_INSTALMENTS' });
+    expect(substituteTaxAdvance(ruleSet2026, 206, true).mode).toBe('SINGLE');
+    expect(substituteTaxAdvance(ruleSet2026, 207, true).mode).toBe('TWO_INSTALMENTS');
   });
 });
 
 describe('inpsAdvance (L. 662/96 par. 212)', () => {
   it('80% of the contribution on this year income, in two equal instalments, at the next year rate', () => {
-    expect(inpsAdvance(ruleSet2026, 33_500, 26.07)).toEqual({ total: 6_986, first: 3_493, second: 3_493, mode: 'TWO_INSTALMENTS' }); // 8,733 × 80%, whole euro
+    expect(inpsAdvance(ruleSet2026, 33_500, 26.07)).toEqual({ total: 6_986.76, first: 3_493.38, second: 3_493.38, mode: 'TWO_INSTALMENTS' });
+  });
+  it('real 2026 form: contribution 11,342.99 → first advance 4,537.20', () => {
+    const base = 11_342.99 / 0.2607;
+    expect(inpsAdvance(ruleSet2026, base, 26.07).first).toBe(4_537.2);
   });
 });
 
@@ -66,6 +76,8 @@ describe('rounding (Istr. Redditi PF 2026, "Modalità di arrotondamento")', () =
     expect(r.contributionsDeducted).toBe(1_235);
     expect(r.netIncome).toBe(7_037);
     expect(r.substituteTax).toBe(352); // 7,037 × 5% = 351.85
+    expect(r.inpsTaxableIncome).toBe(8_271.6); // INPS base in cents: 12,345.67 × 67%
+    expect(r.inpsContribution).toBe(2_156.41);
   });
 });
 

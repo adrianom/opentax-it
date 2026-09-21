@@ -33,13 +33,19 @@ export const FiscalRuleSetSchema = z.object({
     profitabilityByAteco: z.record(z.string(), pct),
   }),
 
-  /** Advance payments ("acconti"): art. 72 D.Lgs. 33/2025; Redditi PF instructions (RN62/LC2). Also apply to the substitute tax (L. 190 par. 64). */
+  /**
+   * Advance payments ("acconti"): art. 72 D.Lgs. 33/2025; DPR 435/2001 art. 17 par. 3 (two
+   * installments unless the first is at most EUR 103; 40% first); DL 124/2019 art. 58 (50% + 50%
+   * for taxpayers with an ISA-approved activity, extended to the flat-rate substitute tax by
+   * AdE resolution 93/E/2019). Also apply to the substitute tax (L. 190 par. 64).
+   */
   advancePayment: z.object({
     percentage: pct,
     notDueBelow: z.number(),
-    singleInstallmentBelow: z.number(),
+    /** Single payment in November when the first installment would not exceed this amount. */
+    singleIfFirstInstallmentAtMost: z.number(),
     firstInstallmentPct: pct,
-    secondInstallmentPct: pct,
+    isaSubjectsFirstInstallmentPct: pct,
   }),
 
   /** Payment deadlines of the year (year in which the tax return is filed). */

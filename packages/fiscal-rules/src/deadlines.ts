@@ -43,6 +43,8 @@ export interface Deadline {
 export interface DeadlineOptions {
   /** The taxpayer is eligible for the yearly extension (flat-rate/ISA), when the rule set provides one. */
   applyExtension?: boolean;
+  /** Activity with an approved ISA within its revenue limit: advances 50% + 50% (DL 124/2019 art. 58). */
+  isaSubject?: boolean;
   /** Supplies services to EU taxable persons (quarterly Intrastat for services rendered). */
   quarterlyIntrastat?: boolean;
   /**
@@ -74,13 +76,14 @@ export function buildDeadlines(rules: FiscalRuleSet, opts: DeadlineOptions = {})
   const firstDate = useExtension ? d.balanceAndFirstAdvanceExtended! : d.balanceAndFirstAdvance;
   const extensionSource = useExtension ? rules.sourceRefs['deadlines.balanceAndFirstAdvanceExtended']?.title : undefined;
   const inpsAdvanceEach = rules.inps.advancePct / rules.inps.advanceInstallments;
+  const firstAdvancePct = opts.isaSubject ? rules.advancePayment.isaSubjectsFirstInstallmentPct : rules.advancePayment.firstInstallmentPct;
 
   const out: Deadline[] = [
     deadline('TAX_BALANCE', firstDate, `Substitute tax balance ${year - 1} (or first installment)`, { taxYear: year - 1, splittable: true }, tc.substituteTaxBalance, extensionSource),
-    deadline('TAX_FIRST_ADVANCE', firstDate, `Substitute tax first advance ${year} (${rules.advancePayment.firstInstallmentPct}%)`, { taxYear: year, percentage: rules.advancePayment.firstInstallmentPct, splittable: true }, tc.substituteTaxFirstAdvance, extensionSource),
+    deadline('TAX_FIRST_ADVANCE', firstDate, `Substitute tax first advance ${year} (${firstAdvancePct}%)`, { taxYear: year, percentage: firstAdvancePct, splittable: true }, tc.substituteTaxFirstAdvance, extensionSource),
     deadline('INPS_BALANCE', firstDate, `INPS Gestione Separata balance ${year - 1}`, { taxYear: year - 1, splittable: true }, ir.contribution, extensionSource),
     deadline('INPS_FIRST_ADVANCE', firstDate, `INPS first advance ${year} (${inpsAdvanceEach}%)`, { taxYear: year, percentage: inpsAdvanceEach, splittable: true }, ir.contribution, extensionSource),
-    deadline('TAX_SECOND_ADVANCE', d.secondAdvance, `Substitute tax second advance ${year} (${rules.advancePayment.secondInstallmentPct}%) — cannot be split`, { taxYear: year, percentage: rules.advancePayment.secondInstallmentPct, splittable: false }, tc.substituteTaxSecondAdvance),
+    deadline('TAX_SECOND_ADVANCE', d.secondAdvance, `Substitute tax second advance ${year} (${100 - firstAdvancePct}%) — cannot be split`, { taxYear: year, percentage: 100 - firstAdvancePct, splittable: false }, tc.substituteTaxSecondAdvance),
     deadline('INPS_SECOND_ADVANCE', d.secondAdvance, `INPS second advance ${year} (${inpsAdvanceEach}%)`, { taxYear: year, percentage: inpsAdvanceEach, splittable: false }, ir.contribution),
     deadline('TAX_RETURN', d.taxReturnFiling, `Redditi PF ${year} filing (tax year ${year - 1})`, { taxYear: year - 1 }),
   ];

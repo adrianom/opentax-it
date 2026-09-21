@@ -19,8 +19,10 @@ import { profitabilityCoefficient } from './rule-set.js';
  * - Advance payments: Circ. AdE 10/E/2016 §4 ("si applicano tutte le disposizioni
  *   vigenti in materia di versamenti a saldo ed in acconto ... dell'IRPEF"); art. 72
  *   D.Lgs. 33/2025 (100% of the previous period's tax net of credits and withholdings);
- *   Redditi PF 2026 instructions, booklet 1, RN62 (not due below EUR 51.65; single
- *   instalment by 30 November below EUR 257.52; otherwise 40% + 60%).
+ *   DPR 435/2001 art. 17 par. 3 (two installments unless the first would not exceed
+ *   EUR 103, 40% first); DL 124/2019 art. 58 + AdE resolution 93/E/2019 + Redditi PF 2026
+ *   instructions, booklet 2, LM advances (50% + 50% for taxpayers with an ISA-approved
+ *   activity, including the flat-rate substitute tax); RN62 (not due below EUR 51.65).
  * - INPS advances: L. 662/1996 art. 1 par. 212 (40% + 40% of the contribution due on the
  *   previous year's income); INPS circular no. 8/2026 §4.2 (computed with the current
  *   year's rate).
@@ -30,17 +32,20 @@ import { profitabilityCoefficient } from './rule-set.js';
  *   §7 "Gli importi delle imposte che scaturiscono dalla dichiarazione devono essere versati
  *   arrotondati all'unità di euro, così come determinati nella dichiarazione stessa. Se,
  *   invece, l'ammontare indicato in dichiarazione deve essere successivamente elaborato
- *   (rateazioni) ... arrotondamento al centesimo". Every value below is a return row and
- *   is therefore a whole number of euro; installments are split in cents (installment-plan.ts).
+ *   (rateazioni) ... arrotondamento al centesimo". The LM rows (income, tax, balance) are
+ *   therefore whole euro. Advances are not a return row and are computed in cents from
+ *   the whole-euro tax; the INPS contribution is computed in cents as on the F24 forms
+ *   prepared by an intermediary for the author (see docs/compliance.md, open points).
  */
 
 /** Rounds to the euro unit as in the tax return (≥ 50 cents up). */
 export const roundEuro = (n: number) => Math.round(n + Number.EPSILON);
+const round2 = (n: number) => Math.round((n + Number.EPSILON) * 100) / 100;
 
 export interface TaxInput {
   /** Tax year. */
   year: number;
-  /** Revenue collected in the year (cash basis), EUR — LM22 col. 3. */
+  /** Revenue collected in the year (cash basis), EUR — LM22 col. 3 (rounded to the euro for the LM rows; used as is for INPS). */
   collectedRevenue: number;
   /** ATECO 2007 code of the activity. */
   atecoCode: string;
@@ -84,8 +89,8 @@ export function computeTaxes(rules: FiscalRuleSet, input: TaxInput): TaxResult {
     : rules.flatRate.standardRatePct;
   const substituteTax = roundEuro((netIncome * taxRatePct) / 100);
   const taxNetOfCredits = Math.max(0, roundEuro(substituteTax - roundEuro(input.taxCredits ?? 0)));
-  const inpsTaxableIncome = Math.min(grossIncome, rules.inps.incomeCeiling);
-  const inpsContribution = roundEuro((inpsTaxableIncome * input.inpsRatePct) / 100);
+  const inpsTaxableIncome = Math.min(round2((input.collectedRevenue * coefficientPct) / 100), rules.inps.incomeCeiling);
+  const inpsContribution = round2((inpsTaxableIncome * input.inpsRatePct) / 100);
   return { coefficientPct, grossIncome, contributionsDeducted, netIncome, taxRatePct, substituteTax, taxNetOfCredits, inpsTaxableIncome, inpsContribution };
 }
 
@@ -99,14 +104,19 @@ export interface AdvanceSchedule {
   mode: 'NOT_DUE' | 'SINGLE' | 'TWO_INSTALMENTS';
 }
 
-/** Substitute tax advance for the following year (IRPEF rules per Circ. 10/E/2016 §4; Istr. RN62). */
-export function substituteTaxAdvance(rules: FiscalRuleSet, taxNetOfCredits: number): AdvanceSchedule {
+/**
+ * Substitute tax advance for the following year (IRPEF rules per Circ. 10/E/2016 §4).
+ * `isaSubject`: the taxpayer exercises an activity with an approved ISA within its revenue
+ * limit (DL 124/2019 art. 58; res. 93/E/2019): 50% + 50% instead of 40% + 60%.
+ */
+export function substituteTaxAdvance(rules: FiscalRuleSet, taxNetOfCredits: number, isaSubject = false): AdvanceSchedule {
   const a = rules.advancePayment;
-  const total = roundEuro((taxNetOfCredits * a.percentage) / 100);
+  const total = round2((taxNetOfCredits * a.percentage) / 100);
   if (taxNetOfCredits < a.notDueBelow) return { total: 0, first: 0, second: 0, mode: 'NOT_DUE' };
-  if (total < a.singleInstallmentBelow) return { total, first: 0, second: total, mode: 'SINGLE' };
-  const first = roundEuro((total * a.firstInstallmentPct) / 100);
-  return { total, first, second: roundEuro(total - first), mode: 'TWO_INSTALMENTS' };
+  const firstPct = isaSubject ? a.isaSubjectsFirstInstallmentPct : a.firstInstallmentPct;
+  const first = round2((total * firstPct) / 100);
+  if (first <= a.singleIfFirstInstallmentAtMost) return { total, first: 0, second: total, mode: 'SINGLE' };
+  return { total, first, second: round2(total - first), mode: 'TWO_INSTALMENTS' };
 }
 
 /**
@@ -114,10 +124,10 @@ export function substituteTaxAdvance(rules: FiscalRuleSet, taxNetOfCredits: numb
  * income (L. 662/96 par. 212), using the given rate (the following year's rate per INPS circular).
  */
 export function inpsAdvance(rules: FiscalRuleSet, inpsTaxableIncome: number, nextYearRatePct: number): AdvanceSchedule {
-  const contribution = roundEuro((inpsTaxableIncome * nextYearRatePct) / 100);
-  const total = roundEuro((contribution * rules.inps.advancePct) / 100);
-  const each = roundEuro(total / rules.inps.advanceInstallments);
-  return { total, first: each, second: roundEuro(total - each), mode: 'TWO_INSTALMENTS' };
+  const contribution = round2((inpsTaxableIncome * nextYearRatePct) / 100);
+  const total = round2((contribution * rules.inps.advancePct) / 100);
+  const each = round2(total / rules.inps.advanceInstallments);
+  return { total, first: each, second: round2(total - each), mode: 'TWO_INSTALMENTS' };
 }
 
 export interface ThresholdStatus {

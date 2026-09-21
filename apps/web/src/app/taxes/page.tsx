@@ -80,17 +80,17 @@ export default async function TaxesPage({ searchParams }: PageProps<'/taxes'>) {
           <Card>
             <CardHeader>
               <CardTitle>Acconti per il {year + 1}</CardTitle>
-              <CardDescription>Imposta: 100% dell&apos;imposta {year} al netto di crediti (Istr. RN62 via Circ. 10/E/2016). INPS: 80% del contributo con l&apos;aliquota {s.input.nextYearInpsRatePct}% del {year + 1}, in due rate (L. 662/96 c. 212). Le deleghe si generano in <Link href={`/f24?year=${year}`} className="underline">F24 e rate</Link>.</CardDescription>
+              <CardDescription>Imposta: 100% dell&apos;imposta {year} al netto di crediti (Circ. 10/E/2016 §4), {s.input.isaSubject ? 'in due rate del 50% (soggetto ISA, DL 124/2019 art. 58)' : 'prima rata 40% e seconda 60% (DPR 435/2001 art. 17)'}. INPS: 80% del contributo con l&apos;aliquota {s.input.nextYearInpsRatePct}% del {year + 1}, in due rate (L. 662/96 c. 212). Le deleghe si generano in <Link href={`/f24?year=${year}`} className="underline">F24 e rate</Link>.</CardDescription>
             </CardHeader>
             <CardContent className="grid gap-6 sm:grid-cols-2">
               <div className="divide-y">
                 <Row label="Imposta sostitutiva — totale" value={formatMoney(s.nextYearAdvances.tax.total)} strong />
                 {s.nextYearAdvances.tax.mode === 'NOT_DUE' && <p className="py-1 text-sm text-muted-foreground">Non dovuto (imposta inferiore a 51,65 €).</p>}
-                {s.nextYearAdvances.tax.mode === 'SINGLE' && <Row label="Unica soluzione (30 novembre)" value={formatMoney(s.nextYearAdvances.tax.second)} code="1791" />}
+                {s.nextYearAdvances.tax.mode === 'SINGLE' && <Row label="Unica soluzione (30 novembre): prima rata non superiore a 103 €" value={formatMoney(s.nextYearAdvances.tax.second)} code="1791" />}
                 {s.nextYearAdvances.tax.mode === 'TWO_INSTALMENTS' && (
                   <>
-                    <Row label="Prima rata 40% (con il saldo)" value={formatMoney(s.nextYearAdvances.tax.first)} code="1790" />
-                    <Row label="Seconda rata 60% (30 novembre)" value={formatMoney(s.nextYearAdvances.tax.second)} code="1791" />
+                    <Row label={`Prima rata ${s.input.isaSubject ? 50 : 40}% (con il saldo)`} value={formatMoney(s.nextYearAdvances.tax.first)} code="1790" />
+                    <Row label={`Seconda rata ${s.input.isaSubject ? 50 : 60}% (30 novembre)`} value={formatMoney(s.nextYearAdvances.tax.second)} code="1791" />
                   </>
                 )}
               </div>

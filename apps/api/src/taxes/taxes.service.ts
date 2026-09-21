@@ -95,6 +95,7 @@ export class TaxesService {
         atecoCode: profile.atecoCode,
         activityStartYear: profile.activityStartYear,
         reducedRateEligible: profile.reducedRate,
+        isaSubject: profile.isaSubject,
         contributionsPaid: Number(data.contributionsPaid),
         taxAdvancesPaid: Number(data.taxAdvancesPaid),
         inpsAdvancesPaid: Number(data.inpsAdvancesPaid),
@@ -106,7 +107,7 @@ export class TaxesService {
       taxBalance,
       inpsBalance,
       nextYearAdvances: {
-        tax: substituteTaxAdvance(paymentRules, result.taxNetOfCredits),
+        tax: substituteTaxAdvance(paymentRules, result.taxNetOfCredits, profile.isaSubject),
         inps: inpsAdvance(paymentRules, result.inpsTaxableIncome, nextYearInpsRatePct),
       },
     };

@@ -32,6 +32,9 @@ const ADM_INTRASTAT =
 const INPS_F24_SHEET =
   'https://www.inps.it/it/it/dettaglio-approfondimento.schede-informative.49920.F24-per-professionisti-iscritti-alla-Gestione-Separata.html';
 
+const NORM_DPR435_17 = 'https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.del.presidente.della.repubblica:2001-12-07;435~art17!vig=';
+const NORM_DL124_58 = 'https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legge:2019-10-26;124~art58!vig=';
+
 const V = '2026-09-19';
 
 export const ruleSet2026: FiscalRuleSet = {
@@ -67,9 +70,9 @@ export const ruleSet2026: FiscalRuleSet = {
   advancePayment: {
     percentage: 100,
     notDueBelow: 51.65,
-    singleInstallmentBelow: 257.52,
+    singleIfFirstInstallmentAtMost: 103,
     firstInstallmentPct: 40,
-    secondInstallmentPct: 60,
+    isaSubjectsFirstInstallmentPct: 50,
   },
 
   deadlines: {
@@ -155,7 +158,9 @@ export const ruleSet2026: FiscalRuleSet = {
     'flatRate.standardRatePct': { url: NORM_L190, title: 'L. 190/2014 art. 1 par. 64', quote: 'imposta sostitutiva ... pari al 15 per cento', verifiedOn: V },
     'flatRate.reducedRatePct': { url: NORM_L190, title: 'L. 190/2014 art. 1 par. 65', quote: "per il periodo d'imposta in cui l'attività è iniziata e per i quattro successivi, l'aliquota ... è stabilita nella misura del 5 per cento", verifiedOn: V },
     'flatRate.profitabilityByAteco': { url: ADE_PF3, title: 'Redditi PF 2026 instructions, booklet 3, profitability table; D.Lgs. 81/2025 art. 1', quote: 'Altre attività economiche ... (58-59-60-61-62-63) ... 67%', verifiedOn: V },
-    'advancePayment': { url: ADE_PF1, title: 'Redditi PF 2026 instructions, booklet 1, row RN62; art. 72 D.Lgs. 33/2025', quote: "in unica soluzione entro il 30 novembre 2026 se l'importo dovuto è inferiore ad euro 257,52 ... la prima, nella misura del 40 per cento ... la seconda, nella restante misura del 60 per cento", verifiedOn: V },
+    'advancePayment': { url: ADE_PF1, title: 'Redditi PF 2026 instructions, booklet 1, row RN62; art. 72 D.Lgs. 33/2025', quote: "in unica soluzione entro il 30 novembre 2026 se l'importo dovuto è inferiore ad euro 257,52 (il cui 40 per cento, infatti, è pari ad euro 103,00) ... la prima, nella misura del 40 per cento ... la seconda, nella restante misura del 60 per cento", verifiedOn: V },
+    'advancePayment.singleIfFirstInstallmentAtMost': { url: NORM_DPR435_17, title: 'DPR 435/2001 art. 17 par. 3', quote: 'sono effettuati in due rate salvo che il versamento da effettuare alla scadenza della prima rata non superi euro 103. Il quaranta per cento dell\'acconto dovuto è versato alla scadenza della prima rata e il residuo importo alla scadenza della seconda', verifiedOn: '2026-09-21' },
+    'advancePayment.isaSubjectsFirstInstallmentPct': { url: NORM_DL124_58, title: 'DL 124/2019 art. 58; AdE resolution 93/E of 12/11/2019; Redditi PF 2026 instructions, booklet 2, LM advances', quote: 'in due rate ciascuna nella misura del 50 per cento (art. 58); si applica anche ai contribuenti che applicano il regime forfetario ... anche all\'imposta sostitutiva delle imposte sui redditi ... dovuta dai contribuenti che si avvalgono di forme di determinazione del reddito con criteri forfetari (ris. 93/E); Per i soggetti che esercitano attività economiche per le quali sono stati approvati gli ISA, i versamenti in acconto dell\'imposta sostitutiva sono effettuati in due rate ciascuna nella misura del 50 per cento (istruzioni)', verifiedOn: '2026-09-21' },
     'deadlines.balanceAndFirstAdvanceExtended': { url: GU_DL89, title: 'DL 22 May 2026 no. 89, art. 6', quote: 'effettuano i predetti versamenti entro il 20 luglio 2026 senza alcuna maggiorazione, ovvero entro il trentesimo giorno successivo al 20 luglio 2026, maggiorando le somme da versare dello 0,80 per cento', verifiedOn: V },
     'deadlines.deferred': { url: ADE_PF1, title: 'Redditi PF 2026 instructions, booklet 1, "Rateazione"; art. 17 par. 2 DPR 435/2001', quote: 'differimento dal 30 giugno 2026 al 30 luglio 2026 ... maggiorare preventivamente gli importi della misura dello 0,40 per cento', verifiedOn: V },
     'deadlines.taxReturnFiling': { url: ADE_PF1, title: 'Redditi PF 2026 instructions, booklet 1, filing terms', quote: 'dal 15 aprile 2026 al 2 novembre 2026 (dal momento che il 31 ottobre 2026 è sabato)', verifiedOn: V },
