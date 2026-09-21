@@ -60,8 +60,11 @@ export const api = {
   createTenant: (data: unknown) => request<Tenant>('/tenants', { method: 'POST', body: JSON.stringify(data) }),
   ruleSets: (year: number) => request<RuleSetSummary[]>(`/fiscal-rules/${year}`),
   ruleSetStatus: (year: number) => request<{ year: number; ok: boolean; reason?: string }>(`/fiscal-rules/${year}/status`),
-  deadlines: (year: number, intrastat = false) =>
-    request<Deadline[]>(`/fiscal-rules/${year}/deadlines?extension=true&intrastat=${intrastat}`),
+  deadlines: async (year: number, intrastat = false) => {
+    const path = `/fiscal-rules/${year}/deadlines?extension=true&intrastat=${intrastat}`;
+    const tenantId = await currentTenantId();
+    return request<Deadline[]>(path, {}, tenantId);
+  },
   customers: () => tenantRequest<Customer[]>('/customers'),
   customer: (id: string) => tenantRequest<Customer>(`/customers/${id}`),
   createCustomer: (data: unknown) => tenantRequest<Customer>('/customers', { method: 'POST', body: JSON.stringify(data) }),

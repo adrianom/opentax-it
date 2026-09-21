@@ -26,7 +26,15 @@ export interface Deadline {
   date: string;
   description: string;
   /** Structured details so that user interfaces can localize the description. */
-  details: { taxYear: number; percentage?: number; quarter?: number; splittable?: boolean };
+  details: {
+    taxYear: number;
+    percentage?: number;
+    quarter?: number;
+    splittable?: boolean;
+    /** Stamp duty: amount due for the quarter, and the ordinary date when the deferral moved the deadline. */
+    amount?: number;
+    deferredFrom?: string;
+  };
   /** F24 tax code / INPS reason to use, when applicable. */
   code?: string;
   source?: string;
@@ -37,6 +45,12 @@ export interface DeadlineOptions {
   applyExtension?: boolean;
   /** Supplies services to EU taxable persons (quarterly Intrastat for services rendered). */
   quarterlyIntrastat?: boolean;
+  /**
+   * Stamp duty due per quarter (EUR). When provided, the deferrals of the AdE stamp duty guide
+   * are applied: Q1 may be paid with Q2 if Q1 ≤ threshold; Q1 and Q2 may be paid with Q3 if
+   * Q1 + Q2 ≤ threshold. Quarters not listed count as 0.
+   */
+  stampDutyByQuarter?: Partial<Record<1 | 2 | 3 | 4, number>>;
 }
 
 function deadline(
@@ -71,8 +85,31 @@ export function buildDeadlines(rules: FiscalRuleSet, opts: DeadlineOptions = {})
     deadline('TAX_RETURN', d.taxReturnFiling, `Redditi PF ${year} filing (tax year ${year - 1})`, { taxYear: year - 1 }),
   ];
 
-  for (const s of rules.stampDuty.deadlines) {
-    out.push(deadline('STAMP_DUTY', s.date, `E-invoice stamp duty ${year} — Q${s.quarter}`, { taxYear: year, quarter: s.quarter }, s.taxCode));
+  const stampDeadlines = [...rules.stampDuty.deadlines].sort((a, b) => a.quarter - b.quarter);
+  const dateOfQuarter = (q: number) => stampDeadlines.find((s) => s.quarter === q)?.date;
+  const amounts = opts.stampDutyByQuarter;
+  for (const s of stampDeadlines) {
+    let nominal = s.date;
+    let deferredFrom: string | undefined;
+    if (amounts) {
+      // AdE stamp duty guide (June 2026), notes (*) and (**) to the deadline table.
+      const q1 = amounts[1] ?? 0;
+      const q2 = amounts[2] ?? 0;
+      const th = rules.stampDuty.deferralThreshold;
+      const q3Date = dateOfQuarter(3);
+      const q2Date = dateOfQuarter(2);
+      if (s.quarter === 1 && q1 + q2 <= th && q3Date) [nominal, deferredFrom] = [q3Date, s.date];
+      else if (s.quarter === 1 && q1 <= th && q2Date) [nominal, deferredFrom] = [q2Date, s.date];
+      else if (s.quarter === 2 && q1 + q2 <= th && q3Date) [nominal, deferredFrom] = [q3Date, s.date];
+    }
+    out.push(
+      deadline('STAMP_DUTY', nominal, `E-invoice stamp duty ${year} — Q${s.quarter}`, {
+        taxYear: year,
+        quarter: s.quarter,
+        amount: amounts ? (amounts[s.quarter as 1 | 2 | 3 | 4] ?? 0) : undefined,
+        deferredFrom,
+      }, s.taxCode),
+    );
   }
 
   if (opts.quarterlyIntrastat) {

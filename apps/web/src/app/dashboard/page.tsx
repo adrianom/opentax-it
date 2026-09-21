@@ -16,7 +16,7 @@ function describeDeadline(d: Deadline): string {
     INPS_BALANCE: `Saldo INPS ${taxYear}`,
     INPS_FIRST_ADVANCE: `1° acconto INPS ${taxYear}`,
     INPS_SECOND_ADVANCE: `2° acconto INPS ${taxYear}`,
-    STAMP_DUTY: `Bollo fatture — ${quarter}° trim. ${taxYear}`,
+    STAMP_DUTY: `Bollo fatture — ${quarter}° trim. ${taxYear}${d.details.deferredFrom ? ' (differito)' : ''}`,
     TAX_RETURN: `Dichiarazione Redditi PF ${taxYear + 1}`,
     INTRASTAT: `Intrastat — ${quarter}° trim. ${taxYear}`,
   };

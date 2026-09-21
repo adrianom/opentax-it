@@ -25,6 +25,26 @@ describe('deadlines 2026', () => {
     expect(s.map((x) => x.code)).toEqual(['2521', '2522', '2523', '2524']);
   });
 
+  it('stamp duty deferrals (AdE guide notes * and **): small amounts move Q1 and Q2 to the Q3 date', () => {
+    const s = buildDeadlines(ruleSet2026, { stampDutyByQuarter: { 1: 6, 2: 4, 3: 2 } }).filter((x) => x.kind === 'STAMP_DUTY');
+    expect(s.map((x) => [x.details.quarter, x.date, x.details.deferredFrom ?? null, x.details.amount])).toEqual([
+      [1, '2026-11-30', '2026-05-31', 6],
+      [2, '2026-11-30', '2026-09-30', 4],
+      [3, '2026-11-30', null, 2],
+      [4, '2027-03-01', null, 0],
+    ]);
+  });
+
+  it('stamp duty: Q1 above the threshold is due at the ordinary date; Q1 ≤ threshold but Q1+Q2 above moves Q1 to the Q2 date', () => {
+    const big = buildDeadlines(ruleSet2026, { stampDutyByQuarter: { 1: 6000, 2: 10 } }).filter((x) => x.kind === 'STAMP_DUTY');
+    expect(big[0].date).toBe('2026-06-01');
+    expect(big[1].date).toBe('2026-09-30');
+    const mid = buildDeadlines(ruleSet2026, { stampDutyByQuarter: { 1: 3000, 2: 3000 } }).filter((x) => x.kind === 'STAMP_DUTY');
+    expect(mid[0].date).toBe('2026-09-30');
+    expect(mid[0].details.deferredFrom).toBe('2026-05-31');
+    expect(mid[1].date).toBe('2026-09-30');
+  });
+
   it('quarterly Intrastat: 25 April 2026 is a holiday and a Saturday → 27 April', () => {
     const i = buildDeadlines(ruleSet2026, { quarterlyIntrastat: true }).filter((x) => x.kind === 'INTRASTAT');
     expect(i.map((x) => x.date)).toEqual(['2026-04-27', '2026-07-27', '2026-10-26', '2027-01-25']);

@@ -1,4 +1,5 @@
 import { Controller, Get, Param, ParseBoolPipe, ParseIntPipe, Post, Query } from '@nestjs/common';
+import { OptionalTenantId } from '../common/optional-tenant.decorator.js';
 import { FiscalRulesService } from './fiscal-rules.service.js';
 
 @Controller('fiscal-rules')
@@ -15,13 +16,15 @@ export class FiscalRulesController {
     return this.service.getActive(year);
   }
 
+  /** Deadline calendar; with an `x-tenant-id` header the stamp duty deferrals use the tenant's invoices. */
   @Get(':year/deadlines')
   deadlines(
     @Param('year', ParseIntPipe) year: number,
+    @OptionalTenantId() tenantId: string | undefined,
     @Query('extension', new ParseBoolPipe({ optional: true })) extension?: boolean,
     @Query('intrastat', new ParseBoolPipe({ optional: true })) intrastat?: boolean,
   ) {
-    return this.service.deadlines(year, { applyExtension: extension ?? true, quarterlyIntrastat: intrastat ?? false });
+    return this.service.deadlines(year, { applyExtension: extension ?? true, quarterlyIntrastat: intrastat ?? false }, tenantId);
   }
 
   // TODO: restrict to PLATFORM_ADMIN once authentication is in place.

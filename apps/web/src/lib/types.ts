@@ -5,7 +5,7 @@ export interface Deadline {
   nominalDate: string;
   date: string;
   description: string;
-  details: { taxYear: number; percentage?: number; quarter?: number; splittable?: boolean };
+  details: { taxYear: number; percentage?: number; quarter?: number; splittable?: boolean; amount?: number; deferredFrom?: string };
   code?: string;
   source?: string;
 }

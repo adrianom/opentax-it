@@ -2,7 +2,7 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { cn } from 'cn';
-import { api, fetchOrNull, type Deadline } from '@/lib/api';
+import { api, fetchOrNull, formatMoney, type Deadline } from '@/lib/api';
 
 const KIND_LABELS: Record<string, string> = {
   TAX_BALANCE: 'Saldo imposta sostitutiva',
@@ -31,8 +31,13 @@ function describe(d: Deadline): string {
       return `Primo acconto INPS ${taxYear} (${percentage}%)`;
     case 'INPS_SECOND_ADVANCE':
       return `Secondo acconto INPS ${taxYear} (${percentage}%)`;
-    case 'STAMP_DUTY':
-      return `Imposta di bollo fatture elettroniche — ${quarter}° trimestre ${taxYear}`;
+    case 'STAMP_DUTY': {
+      const { amount, deferredFrom } = d.details;
+      const base = `Imposta di bollo fatture elettroniche — ${quarter}° trimestre ${taxYear}`;
+      const amt = amount !== undefined ? ` — finora ${formatMoney(amount)}` : '';
+      const def = deferredFrom ? ` — differita dal ${formatDate(deferredFrom)} (importo ≤ 5.000 €, Guida AdE)` : '';
+      return `${base}${amt}${def}`;
+    }
     case 'TAX_RETURN':
       return `Presentazione Redditi PF ${taxYear + 1} (periodo d'imposta ${taxYear})`;
     case 'INTRASTAT':

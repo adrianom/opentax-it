@@ -83,8 +83,26 @@ export class FiscalRulesService {
     });
   }
 
-  async deadlines(year: number, opts: DeadlineOptions): Promise<Deadline[]> {
+  async deadlines(year: number, opts: DeadlineOptions, tenantId?: string): Promise<Deadline[]> {
     const rules = await this.getActive(year);
-    return buildDeadlines(rules, opts);
+    const stampDutyByQuarter = tenantId ? await this.stampDutyByQuarter(tenantId, year) : undefined;
+    return buildDeadlines(rules, { ...opts, stampDutyByQuarter });
+  }
+
+  /**
+   * Stamp duty due per quarter from the tenant's issued e-invoices (virtual stamp flagged),
+   * by document date — the basis of the AdE lists A/B (stamp duty guide, June 2026).
+   */
+  async stampDutyByQuarter(tenantId: string, year: number): Promise<Record<1 | 2 | 3 | 4, number>> {
+    const rows = await this.prisma.invoice.findMany({
+      where: { tenantId, year, virtualStamp: true, status: { notIn: ['DRAFT', 'CANCELLED'] } },
+      select: { date: true, stampAmount: true },
+    });
+    const totals: Record<1 | 2 | 3 | 4, number> = { 1: 0, 2: 0, 3: 0, 4: 0 };
+    for (const r of rows) {
+      const q = (Math.floor(r.date.getUTCMonth() / 3) + 1) as 1 | 2 | 3 | 4;
+      totals[q] = Math.round((totals[q] + Number(r.stampAmount)) * 100) / 100;
+    }
+    return totals;
   }
 }
