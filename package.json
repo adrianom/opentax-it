@@ -6,7 +6,8 @@
   "license": "AGPL-3.0-only",
   "packageManager": "pnpm@10.18.1",
   "engines": {
-    "node": ">=22"
+    "node": ">=24 <25",
+    "pnpm": ">=10"
   },
   "scripts": {
     "dev": "pnpm -r --parallel run dev",

@@ -8,13 +8,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
-        with:
-          version: 10
+      - uses: pnpm/action-setup@v4 # version comes from "packageManager" in package.json
       - uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version-file: .nvmrc # Node LTS
           cache: pnpm
+      - run: sudo apt-get install -y --no-install-recommends libxml2-utils # xmllint for XSD validation tests
       - run: pnpm install --frozen-lockfile
       - run: pnpm lint
       - run: pnpm test
