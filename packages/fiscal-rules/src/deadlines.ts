@@ -25,6 +25,8 @@ export interface Deadline {
   /** Effective date after moving to the next business day. */
   date: string;
   description: string;
+  /** Structured details so that user interfaces can localize the description. */
+  details: { taxYear: number; percentage?: number; quarter?: number; splittable?: boolean };
   /** F24 tax code / INPS reason to use, when applicable. */
   code?: string;
   source?: string;
@@ -37,8 +39,15 @@ export interface DeadlineOptions {
   quarterlyIntrastat?: boolean;
 }
 
-function deadline(kind: DeadlineKind, nominal: string, description: string, code?: string, source?: string): Deadline {
-  return { kind, nominalDate: nominal, date: toIsoDate(nextBusinessDay(parseIsoDate(nominal))), description, code, source };
+function deadline(
+  kind: DeadlineKind,
+  nominal: string,
+  description: string,
+  details: Deadline['details'],
+  code?: string,
+  source?: string,
+): Deadline {
+  return { kind, nominalDate: nominal, date: toIsoDate(nextBusinessDay(parseIsoDate(nominal))), description, details, code, source };
 }
 
 export function buildDeadlines(rules: FiscalRuleSet, opts: DeadlineOptions = {}): Deadline[] {
@@ -53,17 +62,17 @@ export function buildDeadlines(rules: FiscalRuleSet, opts: DeadlineOptions = {})
   const inpsAdvanceEach = rules.inps.advancePct / rules.inps.advanceInstallments;
 
   const out: Deadline[] = [
-    deadline('TAX_BALANCE', firstDate, `Substitute tax balance ${year - 1} (or first installment)`, tc.substituteTaxBalance, extensionSource),
-    deadline('TAX_FIRST_ADVANCE', firstDate, `Substitute tax first advance ${year} (${rules.advancePayment.firstInstallmentPct}%)`, tc.substituteTaxFirstAdvance, extensionSource),
-    deadline('INPS_BALANCE', firstDate, `INPS Gestione Separata balance ${year - 1}`, ir.contribution, extensionSource),
-    deadline('INPS_FIRST_ADVANCE', firstDate, `INPS first advance ${year} (${inpsAdvanceEach}%)`, ir.contribution, extensionSource),
-    deadline('TAX_SECOND_ADVANCE', d.secondAdvance, `Substitute tax second advance ${year} (${rules.advancePayment.secondInstallmentPct}%) — cannot be split`, tc.substituteTaxSecondAdvance),
-    deadline('INPS_SECOND_ADVANCE', d.secondAdvance, `INPS second advance ${year} (${inpsAdvanceEach}%)`, ir.contribution),
-    deadline('TAX_RETURN', d.taxReturnFiling, `Redditi PF ${year} filing (tax year ${year - 1})`),
+    deadline('TAX_BALANCE', firstDate, `Substitute tax balance ${year - 1} (or first installment)`, { taxYear: year - 1, splittable: true }, tc.substituteTaxBalance, extensionSource),
+    deadline('TAX_FIRST_ADVANCE', firstDate, `Substitute tax first advance ${year} (${rules.advancePayment.firstInstallmentPct}%)`, { taxYear: year, percentage: rules.advancePayment.firstInstallmentPct, splittable: true }, tc.substituteTaxFirstAdvance, extensionSource),
+    deadline('INPS_BALANCE', firstDate, `INPS Gestione Separata balance ${year - 1}`, { taxYear: year - 1, splittable: true }, ir.contribution, extensionSource),
+    deadline('INPS_FIRST_ADVANCE', firstDate, `INPS first advance ${year} (${inpsAdvanceEach}%)`, { taxYear: year, percentage: inpsAdvanceEach, splittable: true }, ir.contribution, extensionSource),
+    deadline('TAX_SECOND_ADVANCE', d.secondAdvance, `Substitute tax second advance ${year} (${rules.advancePayment.secondInstallmentPct}%) — cannot be split`, { taxYear: year, percentage: rules.advancePayment.secondInstallmentPct, splittable: false }, tc.substituteTaxSecondAdvance),
+    deadline('INPS_SECOND_ADVANCE', d.secondAdvance, `INPS second advance ${year} (${inpsAdvanceEach}%)`, { taxYear: year, percentage: inpsAdvanceEach, splittable: false }, ir.contribution),
+    deadline('TAX_RETURN', d.taxReturnFiling, `Redditi PF ${year} filing (tax year ${year - 1})`, { taxYear: year - 1 }),
   ];
 
   for (const s of rules.stampDuty.deadlines) {
-    out.push(deadline('STAMP_DUTY', s.date, `E-invoice stamp duty ${year} — Q${s.quarter}`, s.taxCode));
+    out.push(deadline('STAMP_DUTY', s.date, `E-invoice stamp duty ${year} — Q${s.quarter}`, { taxYear: year, quarter: s.quarter }, s.taxCode));
   }
 
   if (opts.quarterlyIntrastat) {
@@ -71,7 +80,7 @@ export function buildDeadlines(rules: FiscalRuleSet, opts: DeadlineOptions = {})
     const quarters: Array<[number, number]> = [[1, 4], [2, 7], [3, 10], [4, 1]];
     for (const [q, month] of quarters) {
       const y = q === 4 ? year + 1 : year;
-      out.push(deadline('INTRASTAT', toIsoDate(utcDate(y, month, rules.intrastat.dueDay)), `Intrastat services rendered — Q${q} ${year}`));
+      out.push(deadline('INTRASTAT', toIsoDate(utcDate(y, month, rules.intrastat.dueDay)), `Intrastat services rendered — Q${q} ${year}`, { taxYear: year, quarter: q }));
     }
   }
 

@@ -15,7 +15,7 @@ Gestionale **open source** (`opentax-it`) per partite IVA italiane in **regime f
 
 ## Stato
 
-Fase iniziale: schema dati e regole fiscali. Le fonti normative verificate (aggiornate al 2026) sono in [docs/normativa-2026.md](docs/normativa-2026.md); il design del monitoraggio normativo in [docs/monitoraggio-normativo.md](docs/monitoraggio-normativo.md).
+Fase iniziale. Funziona: set di regole 2026 (`packages/fiscal-rules`, con fonti), attivazione da parte dell'admin via API, scadenzario generato e mostrato nel web (`/deadlines`). Le fonti normative verificate (aggiornate al 2026) sono in [docs/normativa-2026.md](docs/normativa-2026.md); il design del monitoraggio normativo in [docs/monitoraggio-normativo.md](docs/monitoraggio-normativo.md).
 
 ## Struttura
 
@@ -35,7 +35,15 @@ pnpm install
 cp .env.example .env
 pnpm db:up          # PostgreSQL in Docker
 pnpm db:migrate     # schema Prisma
-pnpm dev            # api + web
+pnpm dev            # api (http://localhost:3000/api) + web (http://localhost:3001)
+```
+
+Al primo avvio carica e attiva il set di regole 2026 (finché non esiste una UI di amministrazione):
+
+```bash
+curl -X POST http://localhost:3000/api/fiscal-rules/seed
+curl http://localhost:3000/api/fiscal-rules/2026          # prendi l'id
+curl -X POST http://localhost:3000/api/fiscal-rules/<id>/activate
 ```
 
 ## Contribuire
