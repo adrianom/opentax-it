@@ -11,7 +11,7 @@ Ogni funzionalità del software è ancorata a una fonte ufficiale. Quando si agg
 | Acconti: 100%, soglie 51,65 / 257,52 €, 40% + 60% | `advancePayment` | D.Lgs. 33/2025 art. 72 (GU S.O. 8/2025); Istr. Redditi PF 2026 Fasc. 1 rigo RN62; L. 190/2014 c. 64 ultimo periodo | 2026-09-20 |
 | Scadenze 30/6, 30/11; differimento 30/7 +0,40% | `deadlines` | DPR 435/2001 art. 17; Istr. Fasc. 1 | 2026-09-19 |
 | Proroga 2026: 20/7 senza maggiorazione, 19/8 +0,80% | `deadlines.balanceAndFirstAdvanceExtended` | DL 89/2026 art. 6 (GU n. 117 del 22/05/2026) | 2026-09-19 |
-| Rate mensili al 16, fine 16/12, interessi 4% (0,18 + 0,33) | `installment-plan.ts` | D.Lgs. 33/2025 art. 10; DM 21/05/2009 art. 5 (4% annuo, GU 15/06/2009); Istr. Fasc. 1 §Rateazione (prospetto ufficiale riprodotto nei test, **solo per prime rate 30/6 e 30/7**) | 2026-09-21 |
+| Rate mensili al 16, fine 16/12; interessi 4% annuo con **metodo commerciale** sulla 2ª rata (dal giorno dopo la 1ª alla scadenza nominale della 2ª, mesi di 30 giorni) e +0,33% forfettario sulle successive | `installment-plan.ts` | D.Lgs. 33/2025 art. 10; DM 21/05/2009 art. 5 (4% annuo, GU 15/06/2009); Istr. Fasc. 1 §Rateazione (testo della regola). Il metodo riproduce il prospetto ufficiale per 30/6 e 30/7 e gli importi di due F24 reali 2026 (rate 3 e 4 di 5, partenza 20/7): test nel package | 2026-09-21 |
 | Slittamento 1-20 agosto → 20 agosto | `installment-plan.ts`, `deadlines.augustDeferral` | D.Lgs. 33/2025 art. 11 | 2026-09-20 |
 | Slittamento sabato/festivi a giorno lavorativo | `calendar.ts` | DL 70/2011 art. 7 c. 1 lett. h) e c. 2 lett. l) (testo vigente letto su Normattiva); applicazione nelle Istr. Fasc. 1 (31/10/2026 → 2/11/2026) | 2026-09-21 |
 | Termine presentazione Redditi PF | `deadlines.taxReturnFiling` | Istr. Fasc. 1 (15/4 – 2/11/2026) | 2026-09-19 |
@@ -49,7 +49,6 @@ Regola del progetto: ciò che è in questa lista **non è implementato come rego
 
 | Punto | Stato | Cosa serve |
 |---|---|---|
-| Interessi di rateazione quando la prima rata non è il 30/6 o il 30/7 (es. proroga al 20/7/2026) | Nessun prospetto ufficiale trovato (Istr. Redditi PF 2026 agg. 28/05/2026 non lo contengono). Il piano viene calcolato con le percentuali del prospetto ma marcato `interestVerified: false`. In un F24 reale (rata 3 di 5, 2026) gli interessi risultano pari allo 0,62% della quota: non corrisponde né allo 0,51% del prospetto né allo 0,66% ottenuto applicando il metodo commerciale del testo delle istruzioni; l'origine del valore non è nota. | Documento AdE (FAQ, comunicato, risoluzione) sul calcolo degli interessi in caso di proroga, oppure chiarimento del commercialista con riferimento normativo |
 | Prefisso "NC-" per la numerazione delle note di credito | Scelta di progetto, non una regola: la Spec. 1.9.1 ammette lo stesso numero tra TD01 e TD04 nello stesso anno; il DPR 633/72 art. 21 c. 2 lett. b) richiede solo un numero progressivo univoco | — |
 | RiferimentoNormativo nel DatiRiepilogo ("Art. 1, commi 54-89, L. 190/2014"; "Art. 7-ter DPR 633/72") | Testo libero richiesto dalla Spec. quando Natura è valorizzata; la formulazione è una scelta di progetto | — |
 | Codice sede INPS (es. 5500) | Dipende dalla residenza (scheda INPS); non ancora nel profilo | Campo nel profilo + tabella codici sede INPS (AdE) |

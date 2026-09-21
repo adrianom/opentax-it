@@ -61,10 +61,12 @@ export const FiscalRuleSetSchema = z.object({
     augustDeferral: monthDay,
   }),
 
-  /** Installment interest (decree referenced by art. 10 par. 2 D.Lgs. 33/2025; Redditi PF instructions). */
+  /**
+   * Installment interest: annual rate (DM 21/05/2009 art. 5), applied with the commercial
+   * method to the second installment; forfait increment on each following one (Redditi PF instructions).
+   */
   installments: z.object({
     annualInterestPct: z.number(),
-    secondInstallmentPct: z.number(),
     incrementPct: z.number(),
   }),
 

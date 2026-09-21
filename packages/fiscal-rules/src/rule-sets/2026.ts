@@ -86,7 +86,7 @@ export const ruleSet2026: FiscalRuleSet = {
     augustDeferral: { month: 8, day: 20 },
   },
 
-  installments: { annualInterestPct: 4, secondInstallmentPct: 0.18, incrementPct: 0.33 },
+  installments: { annualInterestPct: 4, incrementPct: 0.33 },
 
   inps: {
     fullRatePct: 26.07,
@@ -161,7 +161,8 @@ export const ruleSet2026: FiscalRuleSet = {
     'deadlines.taxReturnFiling': { url: ADE_PF1, title: 'Redditi PF 2026 instructions, booklet 1, filing terms', quote: 'dal 15 aprile 2026 al 2 novembre 2026 (dal momento che il 31 ottobre 2026 è sabato)', verifiedOn: V },
     'deadlines.installmentsEnd': { url: GU_TU33, title: 'D.Lgs. 33/2025 art. 10 par. 1 and 4', quote: 'il pagamento deve essere completato entro il 16 dicembre ... I versamenti rateali sono effettuati entro il giorno 16 di ciascun mese', verifiedOn: V },
     'deadlines.augustDeferral': { url: GU_TU33, title: 'D.Lgs. 33/2025 art. 11', quote: 'che hanno scadenza dal 1° al 20 agosto di ogni anno, possono essere effettuati entro il giorno 20 dello stesso mese, senza alcuna maggiorazione', verifiedOn: V },
-    'installments': { url: ADE_PF1, title: 'Redditi PF 2026 instructions, booklet 1, "Rateazione"', quote: "interessi nella misura del 4 per cento annuo ... la seconda scade il successivo 16 luglio con l'applicazione degli interessi dello 0,18 per cento ... 0,33 per cento in misura forfetaria", verifiedOn: V },
+    'installments': { url: ADE_PF1, title: 'Redditi PF 2026 instructions, booklet 1, "Rateazione"', quote: "interessi nella misura del 4 per cento annuo, da calcolarsi secondo il metodo commerciale, tenendo conto del periodo decorrente dal giorno successivo a quello di scadenza della prima rata fino alla data di scadenza della seconda ... Sugli importi da versare con le rate mensili successive, si applicano gli interessi dello 0,33 per cento in misura forfetaria", verifiedOn: '2026-09-21' },
+    'installments.annualInterestPct': { url: 'https://www.gazzettaufficiale.it/atto/serie_generale/caricaDettaglioAtto/originario?atto.dataPubblicazioneGazzetta=2009-06-15&atto.codiceRedazionale=09A06833', title: 'DM 21 maggio 2009 art. 5', quote: 'Gli interessi per i pagamenti rateali ... sono dovuti nella misura del 4 per cento annuo', verifiedOn: '2026-09-21' },
     'inps.fullRatePct': { url: INPS_C8, title: 'INPS circular no. 8 of 3/2/2026, par. 2', quote: 'Soggetti non assicurati presso altra forma di previdenza obbligatoria 26,07% (25,00 IVS + 0,72 aliquota aggiuntiva + 0,35 ISCRO)', verifiedOn: V },
     'inps.reducedRatePct': { url: INPS_C8, title: 'INPS circular no. 8 of 3/2/2026, par. 2', quote: "pensionati o assicurati presso altre forme di previdenza obbligatorie ... l'aliquota è confermata al 24%", verifiedOn: V },
     'inps.incomeCeiling': { url: INPS_C8, title: 'INPS circular no. 8 of 3/2/2026, par. 6.1', quote: 'il massimale di reddito ... è pari a 122.295,00 euro', verifiedOn: V },

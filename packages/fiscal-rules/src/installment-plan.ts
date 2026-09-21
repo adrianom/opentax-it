@@ -9,20 +9,29 @@
  *   between 1 and 20 August move to 20 August.
  *   (In force from 1/1/2026; previously art. 20 D.Lgs. 241/97 as amended by
  *   D.Lgs. 1/2024 art. 8, applicable from the 2023 balance.)
- * - Redditi PF 2026 instructions, booklet 1, "Rateazione": 4% annual interest,
- *   commercial method: 0.18% on the second installment, then +0.33% for each
- *   following one, paid separately (tax code 1668).
+ * - DM 21 May 2009 art. 5 (GU 15/06/2009): interest at 4% per year.
+ * - Redditi PF 2026 instructions, booklet 1, "Rateazione": "interessi nella misura del
+ *   4 per cento annuo, da calcolarsi secondo il metodo commerciale, tenendo conto del
+ *   periodo decorrente dal giorno successivo a quello di scadenza della prima rata fino
+ *   alla data di scadenza della seconda"; on the following monthly installments
+ *   "interessi dello 0,33 per cento in misura forfetaria". Interest is paid separately
+ *   (tax code 1668; INPS reason DPPI).
+ *
+ * Implementation of that text: the second installment carries 4% × D / 360, where D
+ * is the number of days, counted with the commercial method (30-day months), from the
+ * day after the first due date to the nominal due date of the second installment
+ * (the 16th of the following month; the August deferral to the 20th is a payment
+ * facility and does not enter the computation). Each later installment adds 0.33
+ * percentage points. Percentages are rounded to two decimals.
+ *
+ * This reproduces the official table for both published start dates (30/6 → 0.18,
+ * 0.51, …; 30/7 → 0.18, 0.51, …) and, for the 2026 flat-rate extension (first
+ * installment 20/7 → 0.29, 0.62, 0.95, …), the amounts of real F24 forms prepared by
+ * an intermediary (see installment-plan.test.ts).
  *
  * The number of installments is NOT fixed: it depends on the first due date
  * (30/6 ordinary, 30/7 with 0.40% surcharge, or the date of a yearly extension).
  * That is why the computation always starts from the actual first date.
- *
- * Interest: the official table (0.18% on the 2nd installment, then +0.33%) is
- * published by AdE for two first dates only: 30 June and 30 July. For any other
- * first date (e.g. a yearly extension such as 20 July 2026) no official table has
- * been found: the plan is still computed with the same percentages but flagged
- * `interestVerified: false`, and the amounts must be checked against an official
- * source before use. Never treat them as certain.
  */
 
 export interface InstallmentPlanParams {
@@ -36,18 +45,24 @@ export interface InstallmentPlanParams {
   installmentDay?: number;
   /** Month/day by which the plan must be completed (art. 10 par. 1: 16 December). */
   end?: { month: number; day: number };
-  /** Interest: percentage on the second installment and increment for each following one. */
-  interest?: { secondInstallmentPct: number; incrementPct: number };
+  /** Interest: annual rate applied to the second installment (commercial method) and forfait increment for each following one. */
+  interest?: { annualPct: number; incrementPct: number };
 }
 
-/** First due dates for which AdE publishes the interest table (Redditi PF instructions, "Rateazione"). */
-const OFFICIAL_TABLE_START_DATES: ReadonlyArray<{ month: number; day: number }> = [
-  { month: 6, day: 30 },
-  { month: 7, day: 30 },
-];
+/**
+ * Days between two dates with the commercial method (30-day months, 360-day year),
+ * from `from` (exclusive) to `to` (inclusive). The 31st counts as the 30th.
+ */
+export function commercialDays(from: Date, to: Date): number {
+  const d = (x: Date) => [x.getUTCFullYear(), x.getUTCMonth() + 1, Math.min(x.getUTCDate(), 30)] as const;
+  const [y1, m1, d1] = d(from);
+  const [y2, m2, d2] = d(to);
+  return (y2 - y1) * 360 + (m2 - m1) * 30 + (d2 - d1);
+}
 
-export function isInterestTableOfficial(firstDueDate: Date): boolean {
-  return OFFICIAL_TABLE_START_DATES.some((d) => d.month === firstDueDate.getUTCMonth() + 1 && d.day === firstDueDate.getUTCDate());
+/** Interest percentage on the second installment: annual rate × commercial days / 360, rounded to 2 decimals. */
+export function secondInstallmentInterestPct(firstDueDate: Date, secondNominalDueDate: Date, annualPct: number): number {
+  return round2((annualPct * commercialDays(firstDueDate, secondNominalDueDate)) / 360);
 }
 
 export interface Installment {
@@ -58,13 +73,11 @@ export interface Installment {
   interestPct: number;
   interest: number;
   total: number;
-  /** True only when the first due date is one covered by the official AdE interest table. */
-  interestVerified: boolean;
 }
 
 const DEFAULT_INSTALLMENT_DAY = 16;
 const DEFAULT_END = { month: 12, day: 16 };
-const DEFAULT_INTEREST = { secondInstallmentPct: 0.18, incrementPct: 0.33 };
+const DEFAULT_INTEREST = { annualPct: 4, incrementPct: 0.33 };
 
 function round2(n: number): number {
   return Math.round((n + Number.EPSILON) * 100) / 100;
@@ -82,6 +95,11 @@ export function applyAugustDeferral(date: Date): Date {
     return utc(date.getUTCFullYear(), 8, 20);
   }
   return date;
+}
+
+/** Nominal due date of the installment after the first: the installment day of the following month. */
+export function secondNominalDueDate(firstDueDate: Date, installmentDay = DEFAULT_INSTALLMENT_DAY): Date {
+  return utc(firstDueDate.getUTCFullYear(), firstDueDate.getUTCMonth() + 2, installmentDay);
 }
 
 /** Due dates after the first: the 16th of each following month, up to and including 16 December. */
@@ -124,14 +142,14 @@ export function buildInstallmentPlan(params: InstallmentPlanParams): Installment
   }
 
   const principal = round2(params.amount / n);
-  const interestVerified = isInterestTableOfficial(params.firstDueDate);
+  const secondPct = secondInstallmentInterestPct(params.firstDueDate, secondNominalDueDate(params.firstDueDate, installmentDay), interest.annualPct);
   const plan: Installment[] = [];
   let remaining = round2(params.amount);
   for (let i = 0; i < n; i++) {
     const isLast = i === n - 1;
     const p = isLast ? remaining : principal; // the last one absorbs rounding
     remaining = round2(remaining - p);
-    const pct = i === 0 ? 0 : round2(interest.secondInstallmentPct + interest.incrementPct * (i - 1));
+    const pct = i === 0 ? 0 : round2(secondPct + interest.incrementPct * (i - 1));
     const int = round2((p * pct) / 100);
     plan.push({
       number: i + 1,
@@ -140,7 +158,6 @@ export function buildInstallmentPlan(params: InstallmentPlanParams): Installment
       interestPct: pct,
       interest: int,
       total: round2(p + int),
-      interestVerified,
     });
   }
   return plan;

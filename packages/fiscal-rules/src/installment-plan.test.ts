@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buildInstallmentPlan, isInterestTableOfficial, maxInstallmentDates, maxInstallments } from './installment-plan';
+import { buildInstallmentPlan, commercialDays, maxInstallmentDates, maxInstallments, secondInstallmentInterestPct } from './installment-plan';
 
 const d = (s: string) => new Date(`${s}T00:00:00Z`);
 const iso = (x: Date) => x.toISOString().slice(0, 10);
@@ -34,12 +34,31 @@ describe('installment plan – 2026 flat-rate extension (DL 89/2026 art. 6)', ()
     expect(maxInstallments(d('2026-08-19'))).toBe(5);
   });
 
-  it('interest is flagged as verified only for the official table start dates (30/6, 30/7)', () => {
-    expect(isInterestTableOfficial(d('2026-06-30'))).toBe(true);
-    expect(isInterestTableOfficial(d('2026-07-30'))).toBe(true);
-    expect(isInterestTableOfficial(d('2026-07-20'))).toBe(false);
-    expect(buildInstallmentPlan({ amount: 100, firstDueDate: d('2026-06-30') }).every((r) => r.interestVerified)).toBe(true);
-    expect(buildInstallmentPlan({ amount: 100, firstDueDate: d('2026-07-20') }).every((r) => !r.interestVerified)).toBe(true);
+  it('commercial method (instructions text): 30/6→16/7 = 16 days, 30/7→16/8 = 16 days, 20/7→16/8 = 26 days', () => {
+    expect(commercialDays(d('2026-06-30'), d('2026-07-16'))).toBe(16);
+    expect(commercialDays(d('2026-07-30'), d('2026-08-16'))).toBe(16);
+    expect(commercialDays(d('2026-07-20'), d('2026-08-16'))).toBe(26);
+    expect(secondInstallmentInterestPct(d('2026-07-20'), d('2026-08-16'), 4)).toBe(0.29);
+  });
+
+  it('first installment 20 July 2026: 0 / 0.29 / 0.62 / 0.95 / 1.28 / 1.61', () => {
+    const plan = buildInstallmentPlan({ amount: 6000, firstDueDate: d('2026-07-20') });
+    expect(plan.map((r) => r.interestPct)).toEqual([0, 0.29, 0.62, 0.95, 1.28, 1.61]);
+  });
+
+  it('matches real 2026 F24 forms (5 installments from 20 July): interest of installments 3 and 4', () => {
+    // Amounts per installment as printed on the F24 (rata 3: 4,05 / 8,09 / 7,91 / 5,63; rata 4: 6,20 / 12,40 / 12,12 / 8,62).
+    const cases: Array<[number, number, number]> = [
+      [652.7, 4.05, 6.2],
+      [1305.4, 8.09, 12.4],
+      [1275.9, 7.91, 12.12],
+      [907.44, 5.63, 8.62],
+    ];
+    for (const [principal, third, fourth] of cases) {
+      const plan = buildInstallmentPlan({ amount: principal * 5, firstDueDate: d('2026-07-20'), installments: 5 });
+      expect(plan[2].interest).toBe(third);
+      expect(plan[3].interest).toBe(fourth);
+    }
   });
 });
 
