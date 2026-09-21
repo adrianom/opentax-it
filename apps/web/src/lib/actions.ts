@@ -236,13 +236,13 @@ export async function saveBankAccount(_prev: ActionState, formData: FormData): P
   } catch (e) {
     return { error: errorMessage(e) };
   }
-  revalidatePath('/setup');
+  revalidatePath('/banks');
   return undefined;
 }
 
 export async function deleteBankAccount(formData: FormData) {
   await api.deleteBankAccount(String(formData.get('id')));
-  revalidatePath('/setup');
+  revalidatePath('/banks');
 }
 
 export async function savePaymentTerms(_prev: ActionState, formData: FormData): Promise<ActionState> {
@@ -252,11 +252,11 @@ export async function savePaymentTerms(_prev: ActionState, formData: FormData): 
   } catch (e) {
     return { error: errorMessage(e) };
   }
-  revalidatePath('/setup');
+  revalidatePath('/payment-terms');
   return undefined;
 }
 
 export async function deletePaymentTerms(formData: FormData) {
   await api.deletePaymentTerms(String(formData.get('id')));
-  revalidatePath('/setup');
+  revalidatePath('/payment-terms');
 }

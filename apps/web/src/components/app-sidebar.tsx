@@ -1,6 +1,6 @@
 'use client';
 
-import { CalendarDays, Calculator, FileText, LayoutDashboard, Settings, Users } from 'lucide-react';
+import { CalendarClock, CalendarDays, Calculator, FileText, Landmark, LayoutDashboard, Settings, Users } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
@@ -22,6 +22,11 @@ const NAV = [
   { href: '/customers', label: 'Clienti', icon: Users },
   { href: '/deadlines', label: 'Scadenzario', icon: CalendarDays },
   { href: '/taxes', label: 'Imposte', icon: Calculator },
+];
+
+const CONFIG_NAV = [
+  { href: '/banks', label: 'Banche', icon: Landmark },
+  { href: '/payment-terms', label: 'Profili di scadenza', icon: CalendarClock },
 ];
 
 export function AppSidebar({ tenantName }: { tenantName: string | null }) {
@@ -47,6 +52,21 @@ export function AppSidebar({ tenantName }: { tenantName: string | null }) {
           <SidebarGroupContent>
             <SidebarMenu>
               {NAV.map((item) => (
+                <SidebarMenuItem key={item.href}>
+                  <SidebarMenuButton isActive={pathname === item.href || pathname.startsWith(`${item.href}/`)} tooltip={item.label} render={<Link href={item.href} />}>
+                    <item.icon />
+                    <span>{item.label}</span>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+        <SidebarGroup>
+          <SidebarGroupLabel>Configurazione</SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {CONFIG_NAV.map((item) => (
                 <SidebarMenuItem key={item.href}>
                   <SidebarMenuButton isActive={pathname === item.href || pathname.startsWith(`${item.href}/`)} tooltip={item.label} render={<Link href={item.href} />}>
                     <item.icon />
