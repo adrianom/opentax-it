@@ -45,7 +45,7 @@ export async function fetchOrNull<T>(fn: () => Promise<T>): Promise<T | null> {
   try {
     return await fn();
   } catch (e) {
-    if (e instanceof ApiError && (e.status === 404 || e.status === 400)) return null;
+    if (e instanceof ApiError && e.status >= 400 && e.status < 500) return null;
     throw e;
   }
 }
@@ -55,6 +55,7 @@ export const api = {
   inpsOffices: () => request<Array<{ code: string; name: string }>>('/tenants/inps-offices'),
   createTenant: (data: unknown) => request<Tenant>('/tenants', { method: 'POST', body: JSON.stringify(data) }),
   ruleSets: (year: number) => request<RuleSetSummary[]>(`/fiscal-rules/${year}`),
+  ruleSetStatus: (year: number) => request<{ year: number; ok: boolean; reason?: string }>(`/fiscal-rules/${year}/status`),
   deadlines: (year: number, intrastat = false) =>
     request<Deadline[]>(`/fiscal-rules/${year}/deadlines?extension=true&intrastat=${intrastat}`),
   customers: () => tenantRequest<Customer[]>('/customers'),

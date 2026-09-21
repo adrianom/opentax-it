@@ -49,7 +49,11 @@ function formatDate(iso: string) {
 export default async function DeadlinesPage({ searchParams }: PageProps<'/deadlines'>) {
   const params = await searchParams;
   const year = Number(params.year ?? new Date().getFullYear());
-  const [deadlines, ruleSets] = await Promise.all([fetchOrNull(() => api.deadlines(year, true)), fetchOrNull(() => api.ruleSets(year))]);
+  const [deadlines, ruleSets, ruleStatus] = await Promise.all([
+    fetchOrNull(() => api.deadlines(year, true)),
+    fetchOrNull(() => api.ruleSets(year)),
+    fetchOrNull(() => api.ruleSetStatus(year)),
+  ]);
   const active = ruleSets?.find((r) => r.status === 'ACTIVE');
 
   return (
@@ -64,9 +68,9 @@ export default async function DeadlinesPage({ searchParams }: PageProps<'/deadli
       {!active || !deadlines ? (
         <Card>
           <CardHeader>
-            <CardTitle>Nessun set di regole attivo per il {year}</CardTitle>
+            <CardTitle>{active ? `Set di regole ${year} non utilizzabile` : `Nessun set di regole attivo per il ${year}`}</CardTitle>
             <CardDescription>
-              Un amministratore deve attivare il set di regole prima che il calendario possa essere generato.
+              {ruleStatus?.reason ?? 'Un amministratore deve attivare il set di regole prima che il calendario possa essere generato.'}
               {ruleSets?.length ? ` Set disponibili: ${ruleSets.map((r) => `v${r.version} (${r.status})`).join(', ')}.` : ''}
             </CardDescription>
           </CardHeader>

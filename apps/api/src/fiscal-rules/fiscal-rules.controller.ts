@@ -34,4 +34,15 @@ export class FiscalRulesController {
   seed() {
     return this.service.seedBundled().then((inserted) => ({ inserted }));
   }
+
+  /** Whether the active set for a year is usable; lets the UI explain what to do instead of failing. */
+  @Get(':year/status')
+  async status(@Param('year', ParseIntPipe) year: number) {
+    try {
+      await this.service.getActive(year);
+      return { year, ok: true };
+    } catch (e) {
+      return { year, ok: false, reason: (e as Error).message };
+    }
+  }
 }

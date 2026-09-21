@@ -39,10 +39,11 @@ export default async function DashboardPage() {
   if (!(await currentTenantId())) return <NoTenant />;
   const year = new Date().getFullYear();
   const today = new Date().toISOString().slice(0, 10);
-  const [invoices, deadlines, ruleSet] = await Promise.all([
+  const [invoices, deadlines, ruleSet, ruleStatus] = await Promise.all([
     fetchOrNull(() => api.invoices(year)),
     fetchOrNull(() => api.deadlines(year, false)),
     fetchOrNull(() => api.ruleSets(year)),
+    fetchOrNull(() => api.ruleSetStatus(year)),
   ]);
   const all: Invoice[] = invoices ?? [];
   const issued = all.filter((i) => i.status !== 'DRAFT' && i.status !== 'CANCELLED');
@@ -61,6 +62,7 @@ export default async function DashboardPage() {
         <div>
           <h1 className="text-2xl font-semibold">Dashboard {year}</h1>
           <p className="text-sm text-muted-foreground">Regole fiscali {active ? `v${active.version} attive` : 'non attive — attivale dalle impostazioni'}.</p>
+          {ruleStatus && !ruleStatus.ok && <p className="text-sm font-medium text-destructive">{ruleStatus.reason}</p>}
         </div>
         <Button render={<Link href="/invoices/new" />}>Nuova fattura</Button>
       </div>

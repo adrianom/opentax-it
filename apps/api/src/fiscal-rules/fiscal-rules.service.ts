@@ -1,4 +1,6 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, UnprocessableEntityException } from '@nestjs/common';
+import { createHash } from 'node:crypto';
+import { ZodError } from 'zod';
 import {
   buildDeadlines,
   parseFiscalRuleSet,
@@ -12,21 +14,30 @@ import { PrismaService } from '../prisma/prisma.service.js';
 /** Rule sets shipped with the code; they are seeded as DRAFT and must be activated by an admin. */
 const BUNDLED_RULE_SETS: FiscalRuleSet[] = [ruleSet2026];
 
+function contentHash(...parts: unknown[]): string {
+  return createHash('sha256').update(JSON.stringify(parts)).digest('hex');
+}
+
 @Injectable()
 export class FiscalRulesService {
   constructor(private readonly prisma: PrismaService) {}
 
-  /** Insert bundled rule sets that are not in the database yet (as DRAFT). Idempotent. */
-  async seedBundled(): Promise<number> {
-    let inserted = 0;
+  /**
+   * Insert bundled rule sets as DRAFT. For each year: nothing if the latest stored
+   * version has the same content; otherwise a new version (never overwrites a stored
+   * set, never activates). Idempotent.
+   */
+  async seedBundled(): Promise<Array<{ year: number; version: number }>> {
+    const inserted: Array<{ year: number; version: number }> = [];
     for (const rules of BUNDLED_RULE_SETS) {
-      const exists = await this.prisma.fiscalRuleSet.findFirst({ where: { year: rules.year } });
-      if (exists) continue;
       const { sourceRefs, ...data } = rules;
+      const latest = await this.prisma.fiscalRuleSet.findFirst({ where: { year: rules.year }, orderBy: { version: 'desc' } });
+      if (latest && contentHash(latest.data, latest.sourceRefs) === contentHash(data, sourceRefs)) continue;
+      const version = (latest?.version ?? 0) + 1;
       await this.prisma.fiscalRuleSet.create({
-        data: { year: rules.year, version: 1, status: 'DRAFT', data, sourceRefs, notes: 'Bundled with the application' },
+        data: { year: rules.year, version, status: 'DRAFT', data, sourceRefs, notes: 'Bundled with the application' },
       });
-      inserted += 1;
+      inserted.push({ year: rules.year, version });
     }
     return inserted;
   }
@@ -39,11 +50,25 @@ export class FiscalRulesService {
     });
   }
 
-  /** The ACTIVE rule set for a year, parsed against the schema. Throws if none is active. */
+  /**
+   * The ACTIVE rule set for a year, parsed against the current schema. Throws 404 if none
+   * is active and 422 if the stored set no longer matches the schema (a newer bundled
+   * version must be seeded and activated by an admin).
+   */
   async getActive(year: number): Promise<FiscalRuleSet> {
     const row = await this.prisma.fiscalRuleSet.findFirst({ where: { year, status: 'ACTIVE' }, orderBy: { version: 'desc' } });
     if (!row) throw new NotFoundException(`No active fiscal rule set for ${year}`);
-    return parseFiscalRuleSet({ ...(row.data as object), sourceRefs: row.sourceRefs });
+    try {
+      return parseFiscalRuleSet({ ...(row.data as object), sourceRefs: row.sourceRefs });
+    } catch (e) {
+      if (e instanceof ZodError) {
+        const fields = e.issues.map((i) => i.path.join('.')).join(', ');
+        throw new UnprocessableEntityException(
+          `Active fiscal rule set ${year} v${row.version} does not match the current schema (${fields}). Seed and activate a newer version.`,
+        );
+      }
+      throw e;
+    }
   }
 
   async activate(id: string, userId?: string) {
