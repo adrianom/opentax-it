@@ -83,10 +83,21 @@ export class FiscalRulesService {
     });
   }
 
+  /**
+   * Deadlines for a year. With a tenant: stamp duty deferrals from its invoices, and Intrastat
+   * only when the profile is VIES-registered or invoices were issued to EU customers in the year
+   * (Circ. AdE 10/E/2016 §4.1.2: services to EU taxable persons require the Intrastat list).
+   */
   async deadlines(year: number, opts: DeadlineOptions, tenantId?: string): Promise<Deadline[]> {
     const rules = await this.getActive(year);
-    const stampDutyByQuarter = tenantId ? await this.stampDutyByQuarter(tenantId, year) : undefined;
-    return buildDeadlines(rules, { ...opts, stampDutyByQuarter });
+    if (!tenantId) return buildDeadlines(rules, opts);
+    const [stampDutyByQuarter, profile, euInvoices] = await Promise.all([
+      this.stampDutyByQuarter(tenantId, year),
+      this.prisma.tenantProfile.findUnique({ where: { tenantId }, select: { viesRegistered: true } }),
+      this.prisma.invoice.count({ where: { tenantId, year, status: { notIn: ['DRAFT', 'CANCELLED'] }, customer: { kind: 'EU' } } }),
+    ]);
+    const quarterlyIntrastat = opts.quarterlyIntrastat ?? (profile?.viesRegistered === true || euInvoices > 0);
+    return buildDeadlines(rules, { ...opts, quarterlyIntrastat, stampDutyByQuarter });
   }
 
   /**

@@ -60,10 +60,10 @@ export const api = {
   createTenant: (data: unknown) => request<Tenant>('/tenants', { method: 'POST', body: JSON.stringify(data) }),
   ruleSets: (year: number) => request<RuleSetSummary[]>(`/fiscal-rules/${year}`),
   ruleSetStatus: (year: number) => request<{ year: number; ok: boolean; reason?: string }>(`/fiscal-rules/${year}/status`),
-  deadlines: async (year: number, intrastat = false) => {
-    const path = `/fiscal-rules/${year}/deadlines?extension=true&intrastat=${intrastat}`;
+  /** With a selected tenant the calendar is derived from its profile and invoices (stamp duty, Intrastat). */
+  deadlines: async (year: number) => {
     const tenantId = await currentTenantId();
-    return request<Deadline[]>(path, {}, tenantId);
+    return request<Deadline[]>(`/fiscal-rules/${year}/deadlines?extension=true`, {}, tenantId);
   },
   customers: () => tenantRequest<Customer[]>('/customers'),
   customer: (id: string) => tenantRequest<Customer>(`/customers/${id}`),

@@ -56,7 +56,7 @@ export default async function DeadlinesPage({ searchParams }: PageProps<'/deadli
   const params = await searchParams;
   const year = Number(params.year ?? new Date().getFullYear());
   const [deadlines, ruleSets, ruleStatus] = await Promise.all([
-    fetchOrNull(() => api.deadlines(year, true)),
+    fetchOrNull(() => api.deadlines(year)),
     fetchOrNull(() => api.ruleSets(year)),
     fetchOrNull(() => api.ruleSetStatus(year)),
   ]);
@@ -70,7 +70,7 @@ export default async function DeadlinesPage({ searchParams }: PageProps<'/deadli
       <header className="space-y-1">
         <h1 className="text-2xl font-semibold">Scadenzario {year}</h1>
         <p className="text-sm text-muted-foreground">
-          Generato dal set di regole fiscali attivo per l&apos;anno. Le date slittano al primo giorno lavorativo utile.
+          Generato dal set di regole fiscali attivo per l&apos;anno e dai tuoi dati (profilo, fatture): bollo differito secondo gli importi maturati, Intrastat solo se operi con soggetti UE. Le date slittano al primo giorno lavorativo utile.
         </p>
       </header>
 

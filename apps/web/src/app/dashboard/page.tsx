@@ -41,7 +41,7 @@ export default async function DashboardPage() {
   const today = new Date().toISOString().slice(0, 10);
   const [invoices, deadlines, ruleSet, ruleStatus] = await Promise.all([
     fetchOrNull(() => api.invoices(year)),
-    fetchOrNull(() => api.deadlines(year, false)),
+    fetchOrNull(() => api.deadlines(year)),
     fetchOrNull(() => api.ruleSets(year)),
     fetchOrNull(() => api.ruleSetStatus(year)),
   ]);

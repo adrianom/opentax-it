@@ -24,7 +24,7 @@ export class FiscalRulesController {
     @Query('extension', new ParseBoolPipe({ optional: true })) extension?: boolean,
     @Query('intrastat', new ParseBoolPipe({ optional: true })) intrastat?: boolean,
   ) {
-    return this.service.deadlines(year, { applyExtension: extension ?? true, quarterlyIntrastat: intrastat ?? false }, tenantId);
+    return this.service.deadlines(year, { applyExtension: extension ?? true, quarterlyIntrastat: intrastat }, tenantId);
   }
 
   // TODO: restrict to PLATFORM_ADMIN once authentication is in place.
