@@ -1,6 +1,6 @@
-import { Body, Controller, Get, Post } from '@nestjs/common';
+import { Body, Controller, Get, Post, Put } from '@nestjs/common';
 import { TenantId } from '../common/tenant.decorator.js';
-import { CreateTenantDto } from './tenants.dto.js';
+import { CreateTenantDto, UpdateTenantProfileDto } from './tenants.dto.js';
 import { TenantsService } from './tenants.service.js';
 
 @Controller('tenants')
@@ -25,5 +25,10 @@ export class TenantsController {
   @Get('me')
   me(@TenantId() tenantId: string) {
     return this.service.getWithProfile(tenantId);
+  }
+
+  @Put('me')
+  updateMe(@TenantId() tenantId: string, @Body() dto: UpdateTenantProfileDto) {
+    return this.service.updateProfile(tenantId, dto);
   }
 }

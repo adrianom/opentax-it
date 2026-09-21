@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { findInpsOffice, findInpsOffices, INPS_OFFICES, isValidInpsOfficeForGestioneSeparata } from './inps-offices';
+import { findInpsOffice, findInpsOfficeById, findInpsOffices, INPS_OFFICES, isValidInpsOfficeForGestioneSeparata, isValidInpsOfficeIdForGestioneSeparata } from './inps-offices';
 
 describe('INPS office codes (AdE table)', () => {
   it('contains the full table with zero-padded 4-digit codes', () => {
@@ -13,8 +13,13 @@ describe('INPS office codes (AdE table)', () => {
     expect(isValidInpsOfficeForGestioneSeparata('5500')).toBe(true);
   });
 
-  it('keeps the duplicated code 8103 exactly as published by AdE', () => {
+  it('keeps the duplicated code 8103 exactly as published by AdE, with unique ids', () => {
     expect(findInpsOffices('8103').map((o) => o.name)).toEqual(['Torino Nord', 'Torino Sud']);
+    expect(findInpsOffices('8103').map((o) => o.id)).toEqual(['8103-torino-nord', '8103-torino-sud']);
+    expect(new Set(INPS_OFFICES.map((o) => o.id)).size).toBe(INPS_OFFICES.length);
+    expect(findInpsOfficeById('5500-palermo')?.code).toBe('5500');
+    expect(isValidInpsOfficeIdForGestioneSeparata('5500-palermo')).toBe(true);
+    expect(isValidInpsOfficeIdForGestioneSeparata('9999-nowhere')).toBe(false);
   });
 
   it('offices flagged NO for other contributions are rejected', () => {

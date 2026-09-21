@@ -1,6 +1,6 @@
 import 'server-only';
 import { cookies } from 'next/headers';
-import type { Customer, Deadline, Invoice, RuleSetSummary, Tenant } from './types';
+import type { Customer, Deadline, Invoice, RuleSetSummary, Tenant, TenantWithProfile } from './types';
 
 export * from './types';
 export * from './format';
@@ -52,7 +52,11 @@ export async function fetchOrNull<T>(fn: () => Promise<T>): Promise<T | null> {
 
 export const api = {
   tenants: () => request<Tenant[]>('/tenants'),
-  inpsOffices: () => request<Array<{ code: string; name: string }>>('/tenants/inps-offices'),
+  me: () => tenantRequest<TenantWithProfile>('/tenants/me'),
+  updateMe: (data: unknown) => tenantRequest<TenantWithProfile>('/tenants/me', { method: 'PUT', body: JSON.stringify(data) }),
+  activateRuleSet: (id: string) => request<RuleSetSummary>(`/fiscal-rules/${id}/activate`, { method: 'POST' }),
+  seedRuleSets: () => request<{ inserted: Array<{ year: number; version: number }> }>('/fiscal-rules/seed', { method: 'POST' }),
+  inpsOffices: () => request<Array<{ id: string; code: string; name: string }>>('/tenants/inps-offices'),
   createTenant: (data: unknown) => request<Tenant>('/tenants', { method: 'POST', body: JSON.stringify(data) }),
   ruleSets: (year: number) => request<RuleSetSummary[]>(`/fiscal-rules/${year}`),
   ruleSetStatus: (year: number) => request<{ year: number; ok: boolean; reason?: string }>(`/fiscal-rules/${year}/status`),

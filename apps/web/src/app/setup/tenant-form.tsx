@@ -1,7 +1,8 @@
 'use client';
 
 import { useActionState } from 'react';
-import { createTenant } from '@/lib/actions';
+import { createTenant, updateTenantProfile } from '@/lib/actions';
+import type { TenantProfile } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
@@ -10,17 +11,26 @@ import { ErrorAlert } from '@/components/error-alert';
 import { HelpTip } from '@/components/help-tip';
 import { NativeSelect } from '@/components/native-select';
 
-export function TenantForm({ offices }: { offices: Array<{ code: string; name: string }> }) {
-  const [state, action, pending] = useActionState(createTenant, undefined);
+export interface OfficeOption { id: string; code: string; name: string }
+
+interface Props {
+  offices: OfficeOption[];
+  /** When set, the form edits the current tenant instead of creating one. */
+  current?: { name: string; profile: TenantProfile };
+}
+
+export function TenantForm({ offices, current }: Props) {
+  const [state, action, pending] = useActionState(current ? updateTenantProfile : createTenant, undefined);
+  const p = current?.profile;
   return (
     <form action={action} className="grid gap-4 sm:grid-cols-2">
       <ErrorAlert message={state?.error} />
-      <Field label="Nome (interno)" htmlFor="name"><Input id="name" name="name" required /></Field>
-      <Field label="Denominazione (opzionale)" htmlFor="businessName"><Input id="businessName" name="businessName" /></Field>
-      <Field label="Nome" htmlFor="firstName"><Input id="firstName" name="firstName" required /></Field>
-      <Field label="Cognome" htmlFor="lastName"><Input id="lastName" name="lastName" required /></Field>
-      <Field label="Codice fiscale" htmlFor="fiscalCode"><Input id="fiscalCode" name="fiscalCode" required minLength={16} maxLength={16} /></Field>
-      <Field label="Partita IVA" htmlFor="vatNumber"><Input id="vatNumber" name="vatNumber" required pattern="\d{11}" /></Field>
+      <Field label="Nome (interno)" htmlFor="name"><Input id="name" name="name" required defaultValue={current?.name ?? ''} /></Field>
+      <Field label="Denominazione (opzionale)" htmlFor="businessName"><Input id="businessName" name="businessName" defaultValue={p?.businessName ?? ''} /></Field>
+      <Field label="Nome" htmlFor="firstName"><Input id="firstName" name="firstName" required defaultValue={p?.firstName ?? ''} /></Field>
+      <Field label="Cognome" htmlFor="lastName"><Input id="lastName" name="lastName" required defaultValue={p?.lastName ?? ''} /></Field>
+      <Field label="Codice fiscale" htmlFor="fiscalCode"><Input id="fiscalCode" name="fiscalCode" required minLength={16} maxLength={16} defaultValue={p?.fiscalCode ?? ''} /></Field>
+      <Field label="Partita IVA" htmlFor="vatNumber"><Input id="vatNumber" name="vatNumber" required pattern="\d{11}" defaultValue={p?.vatNumber ?? ''} /></Field>
       <Field
         label="Codice ATECO (2007)"
         htmlFor="atecoCode"
@@ -32,7 +42,7 @@ export function TenantForm({ offices }: { offices: Array<{ code: string; name: s
           </HelpTip>
         }
       >
-        <Input id="atecoCode" name="atecoCode" required placeholder="62.02" />
+        <Input id="atecoCode" name="atecoCode" required placeholder="62.02" defaultValue={p?.atecoCode ?? ''} />
       </Field>
       <Field
         label="Anno inizio attività"
@@ -45,16 +55,16 @@ export function TenantForm({ offices }: { offices: Array<{ code: string; name: s
           </HelpTip>
         }
       >
-        <Input id="activityStartYear" name="activityStartYear" type="number" required min={1990} />
+        <Input id="activityStartYear" name="activityStartYear" type="number" required min={1990} defaultValue={p?.activityStartYear ?? ''} />
       </Field>
-      <Field label="Indirizzo" htmlFor="address"><Input id="address" name="address" required /></Field>
-      <Field label="CAP" htmlFor="postalCode"><Input id="postalCode" name="postalCode" required pattern="\d{5}" /></Field>
-      <Field label="Comune" htmlFor="city"><Input id="city" name="city" required /></Field>
-      <Field label="Provincia" htmlFor="province"><Input id="province" name="province" required minLength={2} maxLength={2} /></Field>
-      <Field label="PEC (per l'invio allo SDI)" htmlFor="pecAddress"><Input id="pecAddress" name="pecAddress" type="email" /></Field>
+      <Field label="Indirizzo" htmlFor="address"><Input id="address" name="address" required defaultValue={p?.address ?? ''} /></Field>
+      <Field label="CAP" htmlFor="postalCode"><Input id="postalCode" name="postalCode" required pattern="\d{5}" defaultValue={p?.postalCode ?? ''} /></Field>
+      <Field label="Comune" htmlFor="city"><Input id="city" name="city" required defaultValue={p?.city ?? ''} /></Field>
+      <Field label="Provincia" htmlFor="province"><Input id="province" name="province" required minLength={2} maxLength={2} defaultValue={p?.province ?? ''} /></Field>
+      <Field label="PEC (per l'invio allo SDI)" htmlFor="pecAddress"><Input id="pecAddress" name="pecAddress" type="email" defaultValue={p?.pecAddress ?? ''} /></Field>
       <Field
         label="Sede INPS (codice sede F24)"
-        htmlFor="inpsOfficeCode"
+        htmlFor="inpsOfficeId"
         help={
           <HelpTip label="Dove trovo la sede INPS">
             <p>È la sede INPS competente in base alla residenza (scheda INPS &quot;F24 per professionisti iscritti alla Gestione Separata&quot;). La trovi su un F24 già pagato (sezione INPS, colonna &quot;codice sede&quot;) o nel cassetto previdenziale INPS.</p>
@@ -62,18 +72,18 @@ export function TenantForm({ offices }: { offices: Array<{ code: string; name: s
           </HelpTip>
         }
       >
-        <NativeSelect id="inpsOfficeCode" name="inpsOfficeCode" defaultValue="">
+        <NativeSelect id="inpsOfficeId" name="inpsOfficeId" defaultValue={p?.inpsOfficeId ?? ''}>
           <option value="">— non impostata —</option>
-          {offices.map((o) => <option key={`${o.code}-${o.name}`} value={o.code}>{o.code} · {o.name}</option>)}
+          {offices.map((o) => <option key={o.id} value={o.id}>{o.code} · {o.name}</option>)}
         </NativeSelect>
       </Field>
       <div className="flex flex-col gap-2 sm:col-span-2">
-        <label className="flex items-center gap-2 text-sm"><Checkbox name="reducedRate" /> Aliquota ridotta 5% (requisiti art. 1 c. 65 L. 190/2014)</label>
-        <label className="flex items-center gap-2 text-sm"><Checkbox name="applyInpsSurcharge" /> Applica rivalsa INPS 4% in fattura</label>
-        <label className="flex items-center gap-2 text-sm"><Checkbox name="viesRegistered" /> Iscritto al VIES</label>
+        <label className="flex items-center gap-2 text-sm"><Checkbox name="reducedRate" defaultChecked={p?.reducedRate} /> Aliquota ridotta 5% (requisiti art. 1 c. 65 L. 190/2014)</label>
+        <label className="flex items-center gap-2 text-sm"><Checkbox name="applyInpsSurcharge" defaultChecked={p?.applyInpsSurcharge} /> Applica rivalsa INPS 4% in fattura</label>
+        <label className="flex items-center gap-2 text-sm"><Checkbox name="viesRegistered" defaultChecked={p?.viesRegistered} /> Iscritto al VIES</label>
       </div>
       <div className="sm:col-span-2">
-        <Button type="submit" disabled={pending}>{pending ? 'Salvataggio…' : 'Crea'}</Button>
+        <Button type="submit" disabled={pending}>{pending ? 'Salvataggio…' : current ? 'Salva modifiche' : 'Crea'}</Button>
       </div>
     </form>
   );

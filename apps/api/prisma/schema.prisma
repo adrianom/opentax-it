@@ -86,8 +86,9 @@ model TenantProfile {
   applyInpsSurcharge Boolean  @default(false)
   /// Registered in VIES (required for EU B2B services, Circ. 10/E/2016).
   viesRegistered     Boolean  @default(false)
-  /// INPS office code ("codice sede") for the F24 INPS section, by residence (INPS sheet "F24 per professionisti iscritti alla GS"); AdE table of codes.
-  inpsOfficeCode     String?
+  /// INPS office ("codice sede") for the F24 INPS section, by residence (INPS sheet "F24 per professionisti iscritti alla GS").
+  /// Stored as the unique id from packages/fiscal-rules INPS_OFFICES (e.g. "5500-palermo"); the 4-digit code is derived from it.
+  inpsOfficeId       String?
   /// PEC credentials for SDI submissions: encrypted at rest with APP_ENCRYPTION_KEY.
   pecAddress         String?
   pecCredentialsEnc  String?

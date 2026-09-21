@@ -18,7 +18,7 @@ Ogni funzionalità del software è ancorata a una fonte ufficiale. Quando si agg
 | INPS GS: 26,07% / 24%, massimale 122.295, minimale 18.808 | `inps` | Circolare INPS n. 8 del 3/2/2026 §2, §6 | 2026-09-19 |
 | INPS acconti 40% + 40%, rivalsa 4% | `inps.advancePct`, `inps.surchargePct` | L. 662/1996 art. 1 c. 212 (Normattiva) | 2026-09-19 |
 | Codici tributo 1790/1791/1792/1668 | `taxCodes` | Istr. Fasc. 1 "Principali codici tributo" | 2026-09-19 |
-| Codice sede INPS nel profilo, validato sulla tabella ufficiale (colonna "altri contributi") | `inps-offices.ts`, `TenantProfile.inpsOfficeCode` | Scheda INPS "F24 per professionisti iscritti alla GS" (sede "in base alla residenza"); AdE "Tabella codici sede INPS" | 2026-09-21 |
+| Codice sede INPS nel profilo, validato sulla tabella ufficiale (colonna "altri contributi") | `inps-offices.ts` (id univoco per riga: il codice non è univoco nella tabella, es. 8103), `TenantProfile.inpsOfficeId` | Scheda INPS "F24 per professionisti iscritti alla GS" (sede "in base alla residenza"); AdE "Tabella codici sede INPS" | 2026-09-21 |
 | Causali INPS: PXX (unica soluzione), PXXR (rate), DPPI (interessi differimento/rate), P10/P10R per aliquota 24%; codice sede per residenza; periodo 01AAAA–12AAAA | `inpsReasons` | Scheda INPS "F24 per professionisti iscritti alla Gestione Separata" (agg. 8/7/2025); tabella causali AdE (02/07/2026) | 2026-09-21 |
 | Bollo 2 € > 77,47 €, scadenze trimestrali, soglia 5.000 €, codici 2521-2524 | `stampDuty` | DM 17/06/2014 art. 6; Guida AdE bollo FE giugno 2026 | 2026-09-19 |
 | Obbligo fattura elettronica forfettari | (design) | DL 36/2022 art. 18 c. 2-3 | 2026-09-19 |

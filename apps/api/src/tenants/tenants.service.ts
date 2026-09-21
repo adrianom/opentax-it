@@ -1,7 +1,7 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
-import { INPS_OFFICES, isValidInpsOfficeForGestioneSeparata } from '@opentax-it/fiscal-rules';
+import { INPS_OFFICES, isValidInpsOfficeIdForGestioneSeparata } from '@opentax-it/fiscal-rules';
 import { PrismaService } from '../prisma/prisma.service.js';
-import type { CreateTenantDto } from './tenants.dto.js';
+import type { CreateTenantDto, UpdateTenantProfileDto } from './tenants.dto.js';
 
 @Injectable()
 export class TenantsService {
@@ -9,9 +9,8 @@ export class TenantsService {
 
   create(dto: CreateTenantDto) {
     const { name, ...profile } = dto;
-    if (profile.inpsOfficeCode !== undefined) {
-      if (!isValidInpsOfficeForGestioneSeparata(profile.inpsOfficeCode)) throw new BadRequestException('Unknown INPS office code (see the AdE "Tabella codici sede INPS")');
-      profile.inpsOfficeCode = profile.inpsOfficeCode.padStart(4, '0');
+    if (profile.inpsOfficeId !== undefined && !isValidInpsOfficeIdForGestioneSeparata(profile.inpsOfficeId)) {
+      throw new BadRequestException('Unknown INPS office (see the AdE "Tabella codici sede INPS")');
     }
     return this.prisma.tenant.create({
       data: { name, profile: { create: profile } },
@@ -19,9 +18,22 @@ export class TenantsService {
     });
   }
 
+  async updateProfile(tenantId: string, dto: UpdateTenantProfileDto) {
+    await this.getWithProfile(tenantId);
+    const { name, ...profile } = dto;
+    if (profile.inpsOfficeId !== undefined && profile.inpsOfficeId !== '' && !isValidInpsOfficeIdForGestioneSeparata(profile.inpsOfficeId)) {
+      throw new BadRequestException('Unknown INPS office (see the AdE "Tabella codici sede INPS")');
+    }
+    return this.prisma.tenant.update({
+      where: { id: tenantId },
+      data: { ...(name ? { name } : {}), profile: { update: { ...profile, inpsOfficeId: profile.inpsOfficeId === '' ? null : profile.inpsOfficeId } } },
+      include: { profile: true },
+    });
+  }
+
   /** INPS offices accepting Gestione Separata contributions, for form selects (one entry per published row). */
   inpsOffices() {
-    return INPS_OFFICES.filter((o) => o.otherContributions).map(({ code, name }) => ({ code, name }));
+    return INPS_OFFICES.filter((o) => o.otherContributions).map(({ id, code, name }) => ({ id, code, name }));
   }
 
   async getWithProfile(tenantId: string) {

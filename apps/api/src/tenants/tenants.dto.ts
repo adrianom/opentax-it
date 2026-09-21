@@ -17,6 +17,26 @@ export class CreateTenantDto {
   @IsOptional() @IsBoolean() reducedRate?: boolean;
   @IsOptional() @IsBoolean() applyInpsSurcharge?: boolean;
   @IsOptional() @IsBoolean() viesRegistered?: boolean;
-  @IsOptional() @IsString() @Matches(/^\d{3,4}$/) inpsOfficeCode?: string;
+  @IsOptional() @IsString() @Matches(/^\d{4}-[a-z0-9-]+$/) inpsOfficeId?: string;
   @IsOptional() @IsString() pecAddress?: string;
+}
+
+export class UpdateTenantProfileDto {
+  @IsOptional() @IsString() @Length(1, 120) name?: string;
+  @IsOptional() @IsString() @Length(1, 80) businessName?: string;
+  @IsOptional() @IsString() @Length(1, 60) firstName?: string;
+  @IsOptional() @IsString() @Length(1, 60) lastName?: string;
+  @IsOptional() @IsString() @Matches(/^[A-Z0-9]{16}$/) fiscalCode?: string;
+  @IsOptional() @IsString() @Matches(/^\d{11}$/) vatNumber?: string;
+  @IsOptional() @IsString() @Matches(/^\d{2}(\.\d{1,2}){0,2}$/) atecoCode?: string;
+  @IsOptional() @IsString() @Length(1, 60) address?: string;
+  @IsOptional() @IsString() @Matches(/^\d{5}$/) postalCode?: string;
+  @IsOptional() @IsString() @Length(1, 60) city?: string;
+  @IsOptional() @IsString() @Length(2, 2) province?: string;
+  @IsOptional() @IsInt() @Min(1990) activityStartYear?: number;
+  @IsOptional() @IsBoolean() reducedRate?: boolean;
+  @IsOptional() @IsBoolean() applyInpsSurcharge?: boolean;
+  @IsOptional() @IsBoolean() viesRegistered?: boolean;
+  @IsOptional() @IsString() pecAddress?: string;
+  @IsOptional() @IsString() @Matches(/^\d{4}-[a-z0-9-]+$/) inpsOfficeId?: string;
 }

@@ -25,6 +25,29 @@ export interface Tenant {
   createdAt: string;
 }
 
+export interface TenantProfile {
+  businessName: string | null;
+  firstName: string;
+  lastName: string;
+  fiscalCode: string;
+  vatNumber: string;
+  atecoCode: string;
+  address: string;
+  postalCode: string;
+  city: string;
+  province: string;
+  activityStartYear: number;
+  reducedRate: boolean;
+  applyInpsSurcharge: boolean;
+  viesRegistered: boolean;
+  pecAddress: string | null;
+  inpsOfficeId: string | null;
+}
+
+export interface TenantWithProfile extends Tenant {
+  profile: TenantProfile;
+}
+
 export type CustomerKind = 'IT_B2B' | 'IT_B2C' | 'IT_PA' | 'EU' | 'NON_EU';
 
 export interface Customer {
