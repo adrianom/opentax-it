@@ -39,13 +39,7 @@ pnpm db:migrate     # schema Prisma
 pnpm dev            # api (http://localhost:3000/api) + web (http://localhost:3001)
 ```
 
-Al primo avvio — e ogni volta che il codice aggiorna il set di regole (il seed crea una nuova versione, mai attivata automaticamente) — carica e attiva il set 2026 (finché non esiste una UI di amministrazione):
-
-```bash
-curl -X POST http://localhost:3000/api/fiscal-rules/seed
-curl http://localhost:3000/api/fiscal-rules/2026          # prendi l'id
-curl -X POST http://localhost:3000/api/fiscal-rules/<id>/activate
-```
+Al primo avvio apri http://localhost:3001/setup: crea la partita IVA (profilo fiscale, banche, profili di scadenza) e, nella sezione **Regole fiscali**, carica il set fornito con l'applicazione e attivalo. Lo stesso vale ogni volta che un aggiornamento del codice porta un nuovo set: viene proposto come nuova versione in bozza e non è mai attivato automaticamente.
 
 ## Contribuire
 
