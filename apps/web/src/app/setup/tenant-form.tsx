@@ -7,6 +7,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Field } from '@/components/field';
 import { ErrorAlert } from '@/components/error-alert';
+import { HelpTip } from '@/components/help-tip';
 
 export function TenantForm() {
   const [state, action, pending] = useActionState(createTenant, undefined);
@@ -19,8 +20,32 @@ export function TenantForm() {
       <Field label="Cognome" htmlFor="lastName"><Input id="lastName" name="lastName" required /></Field>
       <Field label="Codice fiscale" htmlFor="fiscalCode"><Input id="fiscalCode" name="fiscalCode" required minLength={16} maxLength={16} /></Field>
       <Field label="Partita IVA" htmlFor="vatNumber"><Input id="vatNumber" name="vatNumber" required pattern="\d{11}" /></Field>
-      <Field label="Codice ATECO (2007)" htmlFor="atecoCode" hint="Es. 62.02 — determina il coefficiente di redditività"><Input id="atecoCode" name="atecoCode" required placeholder="62.02" /></Field>
-      <Field label="Anno inizio attività" htmlFor="activityStartYear" hint="Per l'aliquota 5% (primi 5 anni)"><Input id="activityStartYear" name="activityStartYear" type="number" required min={1990} /></Field>
+      <Field
+        label="Codice ATECO (2007)"
+        htmlFor="atecoCode"
+        hint="Es. 62.02 — determina il coefficiente di redditività"
+        help={
+          <HelpTip label="Dove trovo il codice ATECO">
+            <p>Lo trovi nel <a className="underline" href="https://www.agenziaentrate.gov.it/portale/web/guest/area-riservata" target="_blank" rel="noreferrer">cassetto fiscale</a> (area riservata AdE → Dati anagrafici → Attività) o sul certificato di attribuzione della partita IVA (mod. AA9).</p>
+            <p>Per cercare la descrizione: <a className="underline" href="https://www.istat.it/classificazione/ateco-2025/" target="_blank" rel="noreferrer">ISTAT ATECO</a>. Qui va il codice ATECO 2007, usato per il coefficiente fino ai nuovi coefficienti ATECO 2025 (D.Lgs. 81/2025 art. 1).</p>
+          </HelpTip>
+        }
+      >
+        <Input id="atecoCode" name="atecoCode" required placeholder="62.02" />
+      </Field>
+      <Field
+        label="Anno inizio attività"
+        htmlFor="activityStartYear"
+        hint="Per l'aliquota 5% (primi 5 anni)"
+        help={
+          <HelpTip label="Dove trovo la data di inizio attività">
+            <p>Nel cassetto fiscale (Dati anagrafici → partita IVA: data inizio attività) o sul certificato di attribuzione della partita IVA.</p>
+            <p>L&apos;aliquota ridotta del 5% vale per l&apos;anno di inizio e i quattro successivi, se ricorrono le condizioni dell&apos;art. 1 c. 65 L. 190/2014.</p>
+          </HelpTip>
+        }
+      >
+        <Input id="activityStartYear" name="activityStartYear" type="number" required min={1990} />
+      </Field>
       <Field label="Indirizzo" htmlFor="address"><Input id="address" name="address" required /></Field>
       <Field label="CAP" htmlFor="postalCode"><Input id="postalCode" name="postalCode" required pattern="\d{5}" /></Field>
       <Field label="Comune" htmlFor="city"><Input id="city" name="city" required /></Field>
