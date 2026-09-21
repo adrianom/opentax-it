@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import { api, currentTenantId, fetchOrNull } from '@/lib/api';
 import { AppSidebar } from '@/components/app-sidebar';
+import { Clock } from '@/components/clock';
 import { Separator } from '@/components/ui/separator';
 import { SidebarInset, SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
 
@@ -16,6 +17,7 @@ export async function AppShell({ children }: { children: ReactNode }) {
           <SidebarTrigger />
           <Separator orientation="vertical" className="h-4" />
           <span className="text-sm text-muted-foreground">{tenant ? tenant.name : 'Seleziona una partita IVA'}</span>
+          <div className="ml-auto"><Clock /></div>
         </header>
         <div className="flex-1">{children}</div>
       </SidebarInset>

@@ -1,6 +1,7 @@
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { cn } from 'cn';
 import { api, fetchOrNull, type Deadline } from '@/lib/api';
 
 const KIND_LABELS: Record<string, string> = {
@@ -55,6 +56,9 @@ export default async function DeadlinesPage({ searchParams }: PageProps<'/deadli
     fetchOrNull(() => api.ruleSetStatus(year)),
   ]);
   const active = ruleSets?.find((r) => r.status === 'ACTIVE');
+  const today = new Date().toISOString().slice(0, 10);
+  // The next deadline date (all rows sharing it are highlighted, e.g. balance + first advance on the same day).
+  const nextDate = deadlines?.find((d) => d.date >= today)?.date;
 
   return (
     <main className="mx-auto w-full max-w-5xl p-6 space-y-6">
@@ -81,6 +85,7 @@ export default async function DeadlinesPage({ searchParams }: PageProps<'/deadli
             <CardTitle>Adempimenti</CardTitle>
             <CardDescription>
               Regole v{active.version}, attivate il {active.activatedAt ? formatDate(active.activatedAt.slice(0, 10)) : '—'}.
+              {nextDate && <> Prossima scadenza: <span className="font-medium text-foreground">{formatDate(nextDate)}</span>.</>}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -94,9 +99,17 @@ export default async function DeadlinesPage({ searchParams }: PageProps<'/deadli
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {deadlines.map((d) => (
-                  <TableRow key={`${d.kind}-${d.date}-${d.description}`}>
+                {deadlines.map((d) => {
+                  const isNext = d.date === nextDate;
+                  const isPast = d.date < today;
+                  return (
+                  <TableRow
+                    key={`${d.kind}-${d.date}-${d.description}`}
+                    className={cn(isNext && 'bg-primary/10 hover:bg-primary/15 font-medium', isPast && 'text-muted-foreground')}
+                    aria-current={isNext ? 'date' : undefined}
+                  >
                     <TableCell className="font-mono whitespace-nowrap">
+                      {isNext && <span className="mr-2 inline-block size-2 rounded-full bg-primary align-middle" aria-hidden />}
                       {formatDate(d.date)}
                       {d.date !== d.nominalDate && (
                         <span className="ml-2 text-xs text-muted-foreground">(nom. {formatDate(d.nominalDate)})</span>
@@ -108,7 +121,8 @@ export default async function DeadlinesPage({ searchParams }: PageProps<'/deadli
                     <TableCell className="text-sm">{describe(d)}</TableCell>
                     <TableCell className="font-mono">{d.code ?? '—'}</TableCell>
                   </TableRow>
-                ))}
+                  );
+                })}
               </TableBody>
             </Table>
           </CardContent>
