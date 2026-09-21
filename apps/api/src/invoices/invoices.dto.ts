@@ -1,0 +1,43 @@
+import { Type } from 'class-transformer';
+import { ArrayMinSize, IsBoolean, IsEnum, IsIn, IsNumber, IsOptional, IsString, Length, Matches, Min, ValidateNested } from 'class-validator';
+import { DocumentType } from '../generated/prisma/enums.js';
+
+export class InvoiceLineDto {
+  @IsString() @Length(1, 1000) description!: string;
+  @IsOptional() @IsNumber() @Min(0) quantity?: number;
+  @IsOptional() @IsString() @Length(1, 10) unit?: string;
+  @IsNumber() unitPrice!: number;
+}
+
+export class InvoicePaymentDto {
+  @IsOptional() @IsString() @Matches(/^\d{4}-\d{2}-\d{2}$/) dueDate?: string;
+  /** ModalitaPagamento (spec 1.9.1): MP05 bank transfer, MP08 card, MP19 SEPA DD, ... */
+  @IsOptional() @IsString() @Matches(/^MP\d{2}$/) method?: string;
+  @IsOptional() @IsString() @Length(15, 34) iban?: string;
+}
+
+export class CreateInvoiceDto {
+  @IsString() customerId!: string;
+  @IsOptional() @IsEnum(DocumentType) type?: DocumentType;
+  @IsString() @Matches(/^\d{4}-\d{2}-\d{2}$/) date!: string;
+  @IsOptional() @IsString() @Length(3, 3) currency?: string;
+  @IsOptional() @IsNumber() @Min(0) exchangeRate?: number;
+  @ValidateNested({ each: true }) @Type(() => InvoiceLineDto) @ArrayMinSize(1) lines!: InvoiceLineDto[];
+  /** Override the tenant default for the 4% INPS surcharge on this invoice. */
+  @IsOptional() @IsBoolean() applyInpsSurcharge?: boolean;
+  @IsOptional() @ValidateNested() @Type(() => InvoicePaymentDto) payment?: InvoicePaymentDto;
+  /** For TD04/TD05: id of the corrected invoice. */
+  @IsOptional() @IsString() refInvoiceId?: string;
+  @IsOptional() @IsString() internalNotes?: string;
+}
+
+export class UpdateInvoiceDto extends CreateInvoiceDto {}
+
+export class IssueInvoiceDto {
+  @IsOptional() @ValidateNested() @Type(() => InvoicePaymentDto) payment?: InvoicePaymentDto;
+}
+
+export class ListInvoicesQuery {
+  @IsOptional() @Type(() => Number) @IsNumber() year?: number;
+  @IsOptional() @IsIn(['DRAFT', 'ISSUED', 'SENT', 'DELIVERED', 'NOT_DELIVERED', 'REJECTED', 'CANCELLED']) status?: string;
+}

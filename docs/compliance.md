@@ -29,6 +29,8 @@ Ogni funzionalità del software è ancorata a una fonte ufficiale. Quando si agg
 | Rivalsa INPS in fattura: TipoCassa TC22 | `socialSecurityFund` | Spec. 1.9.1 tabella TipoCassa | 2026-09-20 |
 | Note di credito TD04 con DatiFattureCollegate | `builder.ts` | Spec. 1.9.1 (TipoDocumento; controllo unicità con TD04) | 2026-09-21 |
 | Nome file IT<CF>_<progressivo>.xml | `invoiceFileName` | Spec. 1.9.1 §1.2.2 | 2026-09-21 |
+| Numerazione progressiva per anno e tipo documento; note di credito serie "NC-" | `apps/api/src/invoices/invoices.service.ts` → `issue` | DPR 633/72 art. 21 c. 2 lett. b) (numero progressivo univoco); Spec. 1.9.1 (unicità nome file e numero, TD04) | 2026-09-21 |
+| Calcolo bollo/rivalsa/totale e diciture sulla singola fattura dal set regole dell'anno | `invoices.service.ts` → `prepare` | L. 190/2014 c. 58, 67; L. 662/96 c. 212; DM 17/06/2014; Guida AdE FE dic. 2025 | 2026-09-21 |
 | Invio SDI via PEC (sdi01@pec.fatturapa.it, poi indirizzo assegnato) | (design, `TenantProfile.sdiPecAssigned`) | Spec. 1.9.1 §1.5 "servizio PEC" | 2026-09-19 |
 | Intrastat servizi resi trimestrale/mensile, 25 del mese | `intrastat`, `deadlines` | Circ. AdE 10/E/2016 §4.1.2; ADM Det. 493869/2021 e guida Intrastat | 2026-09-20 |
 | Avvisi bonari: 60 gg, sanzione 1/3, 20 rate trimestrali | `taxNotices` | D.Lgs. 462/1997 art. 2 c. 2 e 3-bis (Normattiva) | 2026-09-20 |
