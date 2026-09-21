@@ -39,7 +39,7 @@ function describe(d: Deadline): string {
       return `${base}${amt}${def}`;
     }
     case 'TAX_RETURN':
-      return `Presentazione Redditi PF ${taxYear + 1} (periodo d'imposta ${taxYear})`;
+      return `Presentazione telematica Redditi PF ${taxYear + 1} (periodo d'imposta ${taxYear}) — i versamenti hanno scadenze proprie`;
     case 'INTRASTAT':
       return `Elenco Intrastat servizi resi — ${quarter}° trimestre ${taxYear}`;
     default:
