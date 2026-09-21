@@ -1,6 +1,6 @@
 import 'server-only';
 import { cookies } from 'next/headers';
-import type { Customer, Deadline, Invoice, Payment, RuleSetSummary, TaxSummary, TaxYearData, Tenant, TenantWithProfile } from './types';
+import type { Customer, Deadline, ImportResult, Invoice, Payment, RuleSetSummary, TaxSummary, TaxYearData, Tenant, TenantWithProfile } from './types';
 
 export * from './types';
 export * from './format';
@@ -81,6 +81,7 @@ export const api = {
   taxSummary: (year: number) => tenantRequest<TaxSummary>(`/taxes/${year}/summary`),
   taxYearData: (year: number) => tenantRequest<TaxYearData>(`/taxes/${year}/data`),
   updateTaxYearData: (year: number, data: unknown) => tenantRequest<TaxYearData>(`/taxes/${year}/data`, { method: 'PUT', body: JSON.stringify(data) }),
+  importInvoices: (files: Array<{ name: string; xml: string }>) => tenantRequest<ImportResult[]>('/invoices/import', { method: 'POST', body: JSON.stringify({ files }) }),
   invoiceXml: async (id: string) => {
     const tenantId = await currentTenantId();
     const res = await fetch(`${API_URL}/invoices/${id}/xml`, { headers: tenantId ? { 'x-tenant-id': tenantId } : {}, cache: 'no-store' });

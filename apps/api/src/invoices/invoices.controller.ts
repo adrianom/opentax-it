@@ -1,12 +1,17 @@
 import { Body, Controller, Delete, Get, Header, HttpCode, Param, Post, Put, Query, Res } from '@nestjs/common';
 import type { Response } from 'express';
 import { TenantId } from '../common/tenant.decorator.js';
-import { CreateInvoiceDto, IssueInvoiceDto, ListInvoicesQuery, UpdateInvoiceDto } from './invoices.dto.js';
+import { CreateInvoiceDto, ImportInvoicesDto, IssueInvoiceDto, ListInvoicesQuery, UpdateInvoiceDto } from './invoices.dto.js';
+import { InvoicesImportService } from './invoices-import.service.js';
 import { InvoicesService } from './invoices.service.js';
 
 @Controller('invoices')
 export class InvoicesController {
-  constructor(private readonly service: InvoicesService) {}
+  constructor(private readonly service: InvoicesService, private readonly importer: InvoicesImportService) {}
+
+  /** Import FatturaPA XML files issued elsewhere (declared before ':id' routes). */
+  @Post('import')
+  importXml(@TenantId() tenantId: string, @Body() dto: ImportInvoicesDto) { return this.importer.importFiles(tenantId, dto.files); }
 
   @Get() list(@TenantId() tenantId: string, @Query() q: ListInvoicesQuery) { return this.service.list(tenantId, q); }
   @Get(':id') get(@TenantId() tenantId: string, @Param('id') id: string) { return this.service.get(tenantId, id); }

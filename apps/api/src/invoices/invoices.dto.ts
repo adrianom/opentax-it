@@ -1,5 +1,5 @@
 import { Type } from 'class-transformer';
-import { ArrayMinSize, IsBoolean, IsEnum, IsIn, IsNumber, IsOptional, IsString, Length, Matches, Min, ValidateNested } from 'class-validator';
+import { ArrayMaxSize, ArrayMinSize, IsBoolean, IsEnum, IsIn, IsNumber, IsOptional, IsString, Length, Matches, MaxLength, Min, ValidateNested } from 'class-validator';
 import { DocumentType } from '../generated/prisma/enums.js';
 
 export class InvoiceLineDto {
@@ -40,4 +40,14 @@ export class IssueInvoiceDto {
 export class ListInvoicesQuery {
   @IsOptional() @Type(() => Number) @IsNumber() year?: number;
   @IsOptional() @IsIn(['DRAFT', 'ISSUED', 'SENT', 'DELIVERED', 'NOT_DELIVERED', 'REJECTED', 'CANCELLED']) status?: string;
+}
+
+export class ImportFileDto {
+  @IsString() @Length(1, 200) name!: string;
+  /** XML content (max 5 MB per SDI rules). */
+  @IsString() @MaxLength(5 * 1024 * 1024) xml!: string;
+}
+
+export class ImportInvoicesDto {
+  @ValidateNested({ each: true }) @Type(() => ImportFileDto) @ArrayMinSize(1) @ArrayMaxSize(200) files!: ImportFileDto[];
 }

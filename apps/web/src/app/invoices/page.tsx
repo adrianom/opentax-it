@@ -35,6 +35,7 @@ export default async function InvoicesPage({ searchParams }: PageProps<'/invoice
         <div className="flex gap-2">
           <Button variant="outline" render={<Link href={`/invoices?year=${year - 1}`} />}>{year - 1}</Button>
           <Button variant="outline" render={<Link href={`/invoices?year=${year + 1}`} />}>{year + 1}</Button>
+          <Button variant="outline" render={<Link href="/invoices/import" />}>Importa XML</Button>
           <Button render={<Link href="/invoices/new" />}>Nuova fattura</Button>
         </div>
       </div>

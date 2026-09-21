@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { api, ApiError, TENANT_COOKIE } from './api';
+import type { ImportResult } from './types';
 
 export type ActionState = { error?: string } | undefined;
 
@@ -208,4 +209,17 @@ export async function saveTaxYearData(_prev: ActionState, formData: FormData): P
   revalidatePath('/taxes');
   revalidatePath('/dashboard');
   return undefined;
+}
+
+export async function importInvoiceFiles(files: Array<{ name: string; xml: string }>): Promise<{ results?: ImportResult[]; error?: string }> {
+  try {
+    const results = await api.importInvoices(files);
+    revalidatePath('/invoices');
+    revalidatePath('/customers');
+    revalidatePath('/dashboard');
+    revalidatePath('/deadlines');
+    return { results };
+  } catch (e) {
+    return { error: errorMessage(e) };
+  }
 }
