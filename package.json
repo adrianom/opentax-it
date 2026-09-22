@@ -15,6 +15,7 @@
     "test": "pnpm -r run test",
     "lint": "pnpm -r run lint",
     "db:up": "docker compose up -d db",
-    "db:migrate": "pnpm --filter @opentax-it/api exec prisma migrate dev"
+    "db:migrate": "pnpm --filter @opentax-it/api exec prisma migrate dev",
+    "demo:seed": "pnpm --filter @opentax-it/api run demo:seed"
   }
 }

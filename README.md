@@ -15,7 +15,7 @@ Gestionale **open source** (`opentax-it`) per partite IVA italiane in **regime f
 
 ## Stato
 
-Fase iniziale. Ogni feature è ancorata a una fonte ufficiale: vedi [docs/compliance.md](docs/compliance.md). Funziona: set di regole 2026 (`packages/fiscal-rules`, con fonti), attivazione da parte dell'admin via API, scadenzario (`/deadlines`), anagrafica clienti, fatture e note di credito con emissione e XML FatturaPA validato (`/invoices`), incassi per cassa, stima imposta sostitutiva/INPS e acconti (`/taxes`). Manca: autenticazione (la partita IVA attiva è scelta in `/setup` e salvata in un cookie), invio PEC allo SDI, F24/rate. Le fonti normative verificate (aggiornate al 2026) sono in [docs/normativa-2026.md](docs/normativa-2026.md); il design del monitoraggio normativo in [docs/monitoraggio-normativo.md](docs/monitoraggio-normativo.md).
+Fase iniziale. Ogni feature è ancorata a una fonte ufficiale: vedi [docs/compliance.md](docs/compliance.md). Funziona: set di regole 2025 e 2026 (`packages/fiscal-rules`, con fonti), attivazione manuale da `/setup`, scadenzario (`/deadlines`), anagrafica clienti, fatture e note di credito con emissione e XML FatturaPA validato (`/invoices`), import di XML emessi altrove, incassi per cassa, calcolo imposta sostitutiva/INPS e acconti (`/taxes`), piano rate e deleghe F24 con stato (`/f24`). Manca: autenticazione (la partita IVA attiva è scelta in `/setup` e salvata in un cookie), invio PEC allo SDI, compensazioni. Le fonti normative verificate (aggiornate al 2026) sono in [docs/normativa-2026.md](docs/normativa-2026.md); il design del monitoraggio normativo in [docs/monitoraggio-normativo.md](docs/monitoraggio-normativo.md).
 
 ## Struttura
 
@@ -38,6 +38,8 @@ pnpm db:up          # PostgreSQL in Docker
 pnpm db:migrate     # schema Prisma
 pnpm dev            # api (http://localhost:3000/api) + web (http://localhost:3001)
 ```
+
+Per vedere il flusso con dati inventati: `pnpm demo:seed` (con `pnpm dev` attivo) crea la partita IVA "Demo Forfettario" con clienti, fatture e incassi dell'anno scorso e di quest'anno; selezionala in `/setup` e apri `/taxes` e `/f24`.
 
 Al primo avvio apri http://localhost:3001/setup: crea la partita IVA (profilo fiscale, banche, profili di scadenza) e, nella sezione **Regole fiscali**, carica il set fornito con l'applicazione e attivalo. Lo stesso vale ogni volta che un aggiornamento del codice porta un nuovo set: viene proposto come nuova versione in bozza e non è mai attivato automaticamente.
 
