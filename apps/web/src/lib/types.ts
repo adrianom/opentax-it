@@ -213,15 +213,19 @@ export interface PlanOptions {
   secondAdvanceDate: string;
 }
 
-export type F24Kind = 'BALANCE' | 'FIRST_ADVANCE' | 'SECOND_ADVANCE' | 'INSTALLMENT' | 'STAMP_DUTY' | 'TAX_NOTICE' | 'OTHER';
+export type F24Kind = 'BALANCE' | 'FIRST_ADVANCE' | 'SECOND_ADVANCE' | 'INSTALLMENT' | 'COMPENSATION' | 'STAMP_DUTY' | 'TAX_NOTICE' | 'OTHER';
 export type F24Status = 'PLANNED' | 'SCHEDULED_I24' | 'PAID' | 'CANCELLED';
+
+export type F24Section = 'TREASURY' | 'INPS' | 'REGIONAL' | 'LOCAL';
 
 export interface F24Line {
   id?: string;
-  section: 'TREASURY' | 'INPS';
+  section: F24Section;
+  role?: 'BALANCE' | 'FIRST_ADVANCE' | 'SECOND_ADVANCE' | 'INTEREST' | 'CREDIT' | 'OTHER';
   code: string;
   officeCode?: string | null;
   installmentCode?: string | null;
+  localCode?: string | null;
   periodFrom?: string | null;
   periodTo?: string | null;
   referenceYear: number;
@@ -237,6 +241,7 @@ export interface F24Draft {
   installmentNumber?: number | null;
   installmentsTotal?: number | null;
   totalDebit: string | number;
+  totalCredit?: string | number;
   i24CancelBy?: string | null;
   lines: F24Line[];
 }
@@ -259,11 +264,38 @@ export interface PlanPreview {
   surchargePct: number;
   installments: number;
   maxInstallments: number;
-  amounts: { taxBalance: number; taxFirstAdvance: number; taxSecondAdvance: number; inpsBalance: number; inpsFirstAdvance: number; inpsSecondAdvance: number };
+  due: PlanAmounts;
+  amounts: PlanAmounts;
   credits: { tax: number; inps: number };
+  compensation: { used: number; unused: number; order: 'INPS_FIRST' | 'TAX_FIRST'; usages: Array<{ creditId: string; amount: number }> };
   inpsOfficeCode: string;
   forms: F24Draft[];
   warnings: string[];
+}
+
+export interface PlanAmounts {
+  taxBalance: number;
+  taxFirstAdvance: number;
+  taxSecondAdvance: number;
+  inpsBalance: number;
+  inpsFirstAdvance: number;
+  inpsSecondAdvance: number;
+}
+
+export interface TaxCredit {
+  id: string;
+  section: F24Section;
+  code: string;
+  localCode: string | null;
+  installmentCode: string | null;
+  referenceYear: number;
+  amount: string;
+  usableFrom: string | null;
+  description: string | null;
+  notes: string | null;
+  used: number;
+  remaining: number;
+  usages: Array<{ id: string; amount: string; f24Line: { f24: { id: string; paymentDate: string; status: string } } }>;
 }
 
 export interface InstallmentPlan {
@@ -279,6 +311,7 @@ export interface InstallmentPlan {
   inpsBalance: string;
   inpsFirstAdvance: string;
   inpsSecondAdvance: string;
+  creditsUsed: string;
   ruleSetVersion?: number | null;
   createdAt: string;
   f24s: F24[];

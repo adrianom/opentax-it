@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { parseIsoDate, toIsoDate } from './calendar';
-import { buildPaymentSchedule, i24CancelBy, installmentCode } from './f24-schedule';
+import { buildCompensation, buildPaymentSchedule, i24CancelBy, installmentCode } from './f24-schedule';
 import { ruleSet2026 } from './rule-sets/2026';
 
 const d = parseIsoDate;
@@ -125,5 +125,52 @@ describe('buildPaymentSchedule – single payment', () => {
 
   it('installmentCode pads to NNRR', () => {
     expect(installmentCode(2, 6)).toBe('0206');
+  });
+});
+
+describe('buildCompensation – real 2026 zero-balance form (IRPEF and municipal surtax credits against the INPS balance)', () => {
+  const result = buildCompensation(ruleSet2026, {
+    ...base,
+    amounts: { taxBalance: 6527, taxFirstAdvance: 3263.5, taxSecondAdvance: 3263.5, inpsBalance: 11342.99, inpsFirstAdvance: 4537.2, inpsSecondAdvance: 4537.2 },
+    date: d('2026-06-29'),
+    order: 'INPS_FIRST',
+    credits: [
+      { id: 'irpef', section: 'TREASURY', code: '4001', referenceYear: 2025, amount: 4854.49, installmentCode: '0101' },
+      { id: 'surtax', section: 'LOCAL', code: '3844', referenceYear: 2025, amount: 109, localCode: 'D567', installmentCode: '0101' },
+    ],
+  });
+
+  it('covers the INPS balance with the credits and leaves the residual for the installments', () => {
+    expect(result.form?.lines.map((l) => [l.section, l.code, l.installmentCode ?? '', l.localCode ?? '', l.periodFrom ?? '', l.referenceYear, l.debitAmount, l.creditAmount ?? 0])).toEqual([
+      ['INPS', 'PXX', '', '', '01/2025', 2025, 4963.49, 0],
+      ['TREASURY', '4001', '0101', '', '', 2025, 0, 4854.49],
+      ['LOCAL', '3844', '0101', 'D567', '', 2025, 0, 109],
+    ]);
+    expect(result.form?.totalDebit).toBe(4963.49);
+    expect(result.form?.totalCredit).toBe(4963.49);
+    expect(result.amounts.inpsBalance).toBe(6379.5); // 1,275.90 × 5 on the real installments
+    expect(result.amounts.taxBalance).toBe(6527);
+    expect(result.usages).toEqual([{ creditId: 'irpef', amount: 4854.49 }, { creditId: 'surtax', amount: 109 }]);
+    expect(result.unusedCredit).toBe(0);
+  });
+
+  it('with TAX_FIRST the substitute tax balance is covered first, with 0101', () => {
+    const r = buildCompensation(ruleSet2026, {
+      ...base,
+      amounts: { taxBalance: 1000, taxFirstAdvance: 500, taxSecondAdvance: 500, inpsBalance: 2000, inpsFirstAdvance: 800, inpsSecondAdvance: 800 },
+      date: d('2026-06-30'),
+      order: 'TAX_FIRST',
+      credits: [{ id: 'c', section: 'TREASURY', code: '1792', referenceYear: 2024, amount: 1200 }],
+    });
+    expect(r.form?.lines.map((l) => [l.code, l.installmentCode, l.debitAmount, l.creditAmount ?? 0])).toEqual([
+      ['1792', '0101', 1000, 0],
+      ['1790', '0101', 200, 0],
+      ['1792', '0101', 0, 1200],
+    ]);
+    expect(r.amounts).toMatchObject({ taxBalance: 0, taxFirstAdvance: 300, inpsBalance: 2000 });
+  });
+
+  it('returns no form when there is no credit or nothing to offset', () => {
+    expect(buildCompensation(ruleSet2026, { ...base, amounts: { taxBalance: 0, taxFirstAdvance: 0, taxSecondAdvance: 0, inpsBalance: 0, inpsFirstAdvance: 0, inpsSecondAdvance: 0 }, date: d('2026-06-30'), order: 'INPS_FIRST', credits: [{ id: 'c', section: 'TREASURY', code: '4001', referenceYear: 2025, amount: 50 }] }).form).toBeUndefined();
   });
 });

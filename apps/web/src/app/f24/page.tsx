@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { ErrorAlert } from '@/components/error-alert';
 import { Field } from '@/components/field';
@@ -39,7 +40,10 @@ export default async function F24Page({ searchParams }: PageProps<'/f24'>) {
   const today = new Date().toISOString().slice(0, 10);
   const taxYear = Number(params.year ?? new Date().getFullYear() - 1);
   const error = typeof params.error === 'string' ? params.error : undefined;
-  const [plan, options] = await Promise.all([fetchOrNull(() => api.plan(taxYear)), fetchOrNull(() => api.planOptions(taxYear))]);
+  const [plan, options, credits] = await Promise.all([fetchOrNull(() => api.plan(taxYear)), fetchOrNull(() => api.planOptions(taxYear)), fetchOrNull(() => api.taxCredits())]);
+  const availableCredit = (credits ?? []).reduce((s, c) => s + c.remaining, 0);
+  const useCredits = params.useCredits === undefined ? availableCredit > 0 : params.useCredits === 'on';
+  const creditOrder = params.creditOrder === 'TAX_FIRST' ? 'TAX_FIRST' : 'INPS_FIRST';
 
   const start = (typeof params.start === 'string' ? params.start : options?.starts[0]?.start) as PlanStart | undefined;
   const startOpt = options?.starts.find((o) => o.start === start);
@@ -48,7 +52,7 @@ export default async function F24Page({ searchParams }: PageProps<'/f24'>) {
   let previewError: string | undefined;
   if (!plan && options && start) {
     try {
-      preview = await api.previewPlan(taxYear, { start, installments });
+      preview = await api.previewPlan(taxYear, { start, installments, useCredits, creditOrder });
     } catch (e) {
       if (!(e instanceof ApiError)) throw e;
       previewError = e.message;
@@ -94,6 +98,7 @@ export default async function F24Page({ searchParams }: PageProps<'/f24'>) {
                 <CardDescription>
                   Prima scadenza {formatDate(plan.firstDueDate)} · {plan.installments === 1 ? 'unica soluzione' : `${plan.installments} rate mensili`}
                   {Number(plan.surchargePct) > 0 && ` · maggiorazione ${Number(plan.surchargePct).toLocaleString('it-IT')}%`}
+                  {Number(plan.creditsUsed) > 0 && ` · crediti compensati ${formatMoney(plan.creditsUsed)}`}
                   {plan.ruleSetVersion && ` · regole ${plan.paymentYear} v${plan.ruleSetVersion}`}
                 </CardDescription>
               </div>
@@ -137,6 +142,20 @@ export default async function F24Page({ searchParams }: PageProps<'/f24'>) {
                   {Array.from({ length: startOpt?.maxInstallments ?? 1 }, (_, i) => i + 1).map((n) => <option key={n} value={n}>{n === 1 ? 'Unica soluzione' : `${n} rate`}</option>)}
                 </NativeSelect>
               </Field>
+              {availableCredit > 0 && (
+                <>
+                  <label className="flex items-center gap-2 text-sm sm:col-span-2">
+                    <Checkbox name="useCredits" defaultChecked={useCredits} /> Usa i crediti disponibili ({formatMoney(availableCredit)}) in un modello a saldo zero
+                    <HelpTip><p>Istr. Redditi PF 2026 Fasc. 1 §8 e Avvertenze F24 &quot;Compensazione e rateazione&quot;: un primo modello a saldo zero con i crediti (rateazione 0101) e un secondo con la prima rata del debito residuo. Il modello con compensazione si trasmette solo con i servizi telematici AdE; sopra 5.000 € annui serve il visto di conformità. I crediti si gestiscono in <Link href="/credits" className="underline">Crediti</Link>.</p></HelpTip>
+                  </label>
+                  <Field label="Compensa prima" htmlFor="creditOrder" help={<HelpTip><p>Le istruzioni non impongono un ordine: è una scelta del contribuente. Nei modelli reali visti i crediti IRPEF coprivano il saldo INPS.</p></HelpTip>}>
+                    <NativeSelect id="creditOrder" name="creditOrder" defaultValue={creditOrder}>
+                      <option value="INPS_FIRST">Saldo INPS, poi acconto INPS, poi imposta</option>
+                      <option value="TAX_FIRST">Saldo imposta, poi acconto imposta, poi INPS</option>
+                    </NativeSelect>
+                  </Field>
+                </>
+              )}
               <div className="flex items-end"><Button type="submit" variant="outline">Aggiorna anteprima</Button></div>
             </form>
 
@@ -159,6 +178,12 @@ export default async function F24Page({ searchParams }: PageProps<'/f24'>) {
                     Crediti non inclusi nelle deleghe: imposta {formatMoney(preview.credits.tax)} (LM47), INPS {formatMoney(preview.credits.inps)} (RR8). La compensazione in F24 sarà gestita dal modulo compensazioni.
                   </p>
                 )}
+                {preview.compensation.used > 0 && (
+                  <p className="text-sm">
+                    Crediti usati nel modello a saldo zero: <span className="font-mono">{formatMoney(preview.compensation.used)}</span>
+                    {preview.compensation.unused > 0 && <> · residuo non usato {formatMoney(preview.compensation.unused)}</>}. Importi rateizzati al netto dei crediti.
+                  </p>
+                )}
                 <p className="text-sm text-muted-foreground">
                   Sede INPS {preview.inpsOfficeCode} dal profilo.{' '}
                   {preview.forms.length === 0
@@ -169,6 +194,8 @@ export default async function F24Page({ searchParams }: PageProps<'/f24'>) {
                   <input type="hidden" name="taxYear" value={taxYear} />
                   <input type="hidden" name="start" value={preview.start} />
                   <input type="hidden" name="installments" value={preview.installments} />
+                  <input type="hidden" name="useCredits" value={useCredits ? 'true' : 'false'} />
+                  <input type="hidden" name="creditOrder" value={preview.compensation.order} />
                   <Button type="submit" disabled={preview.forms.length === 0 || preview.rulesYear !== taxYear + 1}>Salva piano</Button>
                 </form>
               </>

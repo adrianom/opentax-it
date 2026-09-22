@@ -1,6 +1,6 @@
 'use client';
 
-import { CalendarClock, CalendarDays, Calculator, FileText, Landmark, LayoutDashboard, Receipt, Settings, Users } from 'lucide-react';
+import { BadgePercent, CalendarClock, CalendarDays, Calculator, FileText, Landmark, LayoutDashboard, Receipt, Settings, Users } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
@@ -23,6 +23,7 @@ const NAV = [
   { href: '/deadlines', label: 'Scadenzario', icon: CalendarDays },
   { href: '/taxes', label: 'Imposte', icon: Calculator },
   { href: '/f24', label: 'F24 e rate', icon: Receipt },
+  { href: '/credits', label: 'Crediti', icon: BadgePercent },
 ];
 
 const CONFIG_NAV = [

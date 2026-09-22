@@ -68,6 +68,13 @@ Fonte: Normattiva, `urn:nir:stato:legge:2014-12-23;190~art1`; Istruzioni Redditi
 - **Arrotondamenti osservati sugli F24 reali**: imposta in euro interi (6.527,00, come da Istr. Fasc. 1 §7), acconto al centesimo (3.263,50), contributi INPS al centesimo (saldo 2025 = 4.963,49 compensato + 6.379,50 a rate = 11.342,99; acconto 2026 = 40% = 4.537,20). Il tool segue lo stesso schema.
 - **Compensazione + rateazione (F24 reale del 29/06/2026)**: un primo modello a saldo zero con crediti IRPEF `4001` (anno 2025, rateazione 0101) e addizionale comunale `3844` (codice comune, 0101) a fronte di `PXX` 012025–122025 per la quota di saldo INPS coperta; un secondo modello con la prima rata (`0105`) del residuo. È la procedura "Compensazione e rateazione" delle Avvertenze F24 ("due modelli: il primo con saldo finale eguale a zero ... con l'indicazione 0101 ...; il secondo per evidenziare l'importo della prima rata"). Da implementare nel modulo compensazioni.
 
+### 2.2-bis Compensazione (Istr. Redditi PF 2026 Fasc. 1 §8; verificato il 22/09/2026)
+- Crediti e debiti verso enti diversi (Stato, INPS, enti locali) si compensano nel modello F24, che "deve essere presentato in ogni caso ... anche se il saldo finale ... risulti uguale a zero".
+- Crediti da Redditi utilizzabili dal giorno successivo alla chiusura del periodo d'imposta; sopra **5.000 € annui** dal decimo giorno successivo alla presentazione della dichiarazione (art. 3 D.Lgs. 33/2025; Ris. 110/E/2019) e con **visto di conformità** (L. 147/2013 art. 1 c. 574).
+- F24 con crediti di imposte sui redditi/sostitutive: solo servizi telematici AdE (art. 37 c. 49-bis DL 223/2006); in ogni caso F24 telematico per chi compensa (art. 11 c. 2 lett. a DL 66/2014).
+- Credito INPS GS (RR8 col. 2): "utilizzato in compensazione esclusivamente con modello F24 con l'indicazione dell'anno".
+- Procedura con rateazione (Avvertenze F24): primo modello a saldo zero con 0101, secondo con la prima rata del residuo. Nel tool: `buildCompensation` + piano sul residuo.
+
 ### 2.3 Rateazione (Istr. Fasc. 1 §"Rateazione"; art. 20 D.Lgs. 241/97 come modificato da D.Lgs. 1/2024 art. 8; **dal 1/1/2026 art. 10 e 11 del D.Lgs. 33/2025 "Testo unico versamenti e riscossione"** — GU S.O. n. 8 del 26/03/2025, letto integralmente: art. 10 = rate mensili di pari importo con interessi, fine 16/12, versamenti entro il 16; art. 11 = differimento 1-20 agosto → 20 agosto; art. 3 = compensazione, >5.000 € dal 10° giorno dopo la dichiarazione; art. 72 = acconto 100%, soglia 51,65 €)
 - Rate **mensili di uguale importo**, ciascuna entro il **giorno 16** del mese; il piano deve chiudersi entro il **16 dicembre** dello stesso anno.
 - Regola in vigore **dal saldo 2023 (versato nel 2024)**. Prima: fine novembre.

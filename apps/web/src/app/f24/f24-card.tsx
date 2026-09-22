@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { HelpTip } from '@/components/help-tip';
 import { setF24Status } from '@/lib/actions';
-import { formatDate, formatMoney, type F24, type F24Draft, type F24Line } from '@/lib/api';
+import { formatDate, formatMoney, type F24, type F24Draft, type F24Line, type F24Section } from '@/lib/api';
 
 const STATUS: Record<string, { label: string; variant: 'default' | 'secondary' | 'destructive' | 'outline' }> = {
   PLANNED: { label: 'Pianificato', variant: 'outline' },
@@ -15,6 +15,7 @@ const STATUS: Record<string, { label: string; variant: 'default' | 'secondary' |
 };
 
 export function f24Title(f: F24Draft): string {
+  if (f.kind === 'COMPENSATION') return 'Compensazione (saldo zero)';
   if (f.kind === 'SECOND_ADVANCE') return 'Secondo acconto (unica soluzione)';
   if (f.kind === 'INSTALLMENT') return `Rata ${f.installmentNumber} di ${f.installmentsTotal}`;
   if (f.kind === 'BALANCE') return 'Saldo e primo acconto (unica soluzione)';
@@ -33,60 +34,75 @@ function lineLabel(l: F24Line, taxYear: number): string {
     case 'DPPI': return `Interessi di rateazione INPS ${y}`;
     case 'PXX': case 'P10': return balance ? `Saldo contributi GS ${y}` : `Acconto contributi GS ${y}`;
     case 'PXXR': case 'P10R': return balance ? `Saldo contributi GS ${y} (rata)` : `Acconto contributi GS ${y} (rata)`;
+    case '4001': return `Credito IRPEF ${y}`;
+    case '3844': return `Credito addizionale comunale ${y}`;
+    case '3801': return `Credito addizionale regionale ${y}`;
     default: return l.description ?? '';
   }
 }
 
-function LinesTable({ lines, section, taxYear }: { lines: F24Line[]; section: 'TREASURY' | 'INPS'; taxYear: number }) {
+const SECTION_TITLE: Record<F24Section, string> = { TREASURY: 'Sezione Erario', INPS: 'Sezione INPS', REGIONAL: 'Sezione Regioni', LOCAL: 'Sezione IMU e altri tributi locali' };
+
+function LinesTable({ lines, section, taxYear }: { lines: F24Line[]; section: F24Section; taxYear: number }) {
   const rows = lines.filter((l) => l.section === section);
   if (rows.length === 0) return null;
-  const treasury = section === 'TREASURY';
+  const inps = section === 'INPS';
+  const local = section === 'REGIONAL' || section === 'LOCAL';
+  const hasCredit = lines.some((l) => Number(l.creditAmount ?? 0) > 0);
+  const debit = rows.reduce((s, l) => s + Number(l.debitAmount), 0);
+  const credit = rows.reduce((s, l) => s + Number(l.creditAmount ?? 0), 0);
+  const cols = (inps ? 4 : local ? 4 : 3) + (hasCredit ? 2 : 1);
   return (
     <div className="overflow-x-auto">
-      <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">{treasury ? 'Sezione Erario' : 'Sezione INPS'}</p>
+      <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">{SECTION_TITLE[section]}</p>
       <Table>
         <TableHeader>
           <TableRow>
-            {treasury ? (
-              <>
-                <TableHead>Codice tributo</TableHead>
-                <TableHead>Rateazione</TableHead>
-                <TableHead>Anno di riferimento</TableHead>
-              </>
-            ) : (
+            {inps ? (
               <>
                 <TableHead>Codice sede</TableHead>
                 <TableHead>Causale</TableHead>
                 <TableHead>Periodo da</TableHead>
                 <TableHead>a</TableHead>
               </>
+            ) : (
+              <>
+                {local && <TableHead>{section === 'REGIONAL' ? 'Codice regione' : 'Codice ente/comune'}</TableHead>}
+                <TableHead>Codice tributo</TableHead>
+                <TableHead>Rateazione</TableHead>
+                <TableHead>Anno di riferimento</TableHead>
+              </>
             )}
             <TableHead className="text-right">Importo a debito</TableHead>
+            {hasCredit && <TableHead className="text-right">Importo a credito</TableHead>}
           </TableRow>
         </TableHeader>
         <TableBody>
           {rows.map((l, i) => (
             <TableRow key={l.id ?? `${l.code}-${l.referenceYear}-${i}`}>
-              {treasury ? (
-                <>
-                  <TableCell className="font-mono">{l.code}<span className="ml-2 font-sans text-xs text-muted-foreground">{lineLabel(l, taxYear)}</span></TableCell>
-                  <TableCell className="font-mono">{l.installmentCode ?? ''}</TableCell>
-                  <TableCell className="font-mono">{l.referenceYear}</TableCell>
-                </>
-              ) : (
+              {inps ? (
                 <>
                   <TableCell className="font-mono">{l.officeCode}</TableCell>
                   <TableCell className="font-mono">{l.code}<span className="ml-2 font-sans text-xs text-muted-foreground">{lineLabel(l, taxYear)}</span></TableCell>
                   <TableCell className="font-mono">{l.periodFrom}</TableCell>
                   <TableCell className="font-mono">{l.periodTo}</TableCell>
                 </>
+              ) : (
+                <>
+                  {local && <TableCell className="font-mono">{l.localCode ?? ''}</TableCell>}
+                  <TableCell className="font-mono">{l.code}<span className="ml-2 font-sans text-xs text-muted-foreground">{lineLabel(l, taxYear)}</span></TableCell>
+                  <TableCell className="font-mono">{l.installmentCode ?? ''}</TableCell>
+                  <TableCell className="font-mono">{l.referenceYear}</TableCell>
+                </>
               )}
-              <TableCell className="text-right font-mono tabular-nums">{formatMoney(l.debitAmount)}</TableCell>
+              <TableCell className="text-right font-mono tabular-nums">{Number(l.debitAmount) > 0 ? formatMoney(l.debitAmount) : ''}</TableCell>
+              {hasCredit && <TableCell className="text-right font-mono tabular-nums">{Number(l.creditAmount ?? 0) > 0 ? formatMoney(l.creditAmount ?? 0) : ''}</TableCell>}
             </TableRow>
           ))}
           <TableRow>
-            <TableCell colSpan={treasury ? 3 : 4} className="text-right text-xs text-muted-foreground">Totale sezione</TableCell>
-            <TableCell className="text-right font-mono tabular-nums">{formatMoney(rows.reduce((s, l) => s + Number(l.debitAmount), 0))}</TableCell>
+            <TableCell colSpan={cols - (hasCredit ? 2 : 1)} className="text-right text-xs text-muted-foreground">Totale sezione</TableCell>
+            <TableCell className="text-right font-mono tabular-nums">{formatMoney(debit)}</TableCell>
+            {hasCredit && <TableCell className="text-right font-mono tabular-nums">{formatMoney(credit)}</TableCell>}
           </TableRow>
         </TableBody>
       </Table>
@@ -121,13 +137,16 @@ export function F24Card({ f, taxYear, highlight }: { f: F24Draft | F24; taxYear:
           </div>
           <div className="text-right">
             <p className="text-xs text-muted-foreground">Saldo finale</p>
-            <p className="font-mono text-lg tabular-nums">{formatMoney(f.totalDebit)}</p>
+            <p className="font-mono text-lg tabular-nums">{formatMoney(Number(f.totalDebit) - Number(f.totalCredit ?? 0))}</p>
+            {Number(f.totalCredit ?? 0) > 0 && <p className="text-xs text-muted-foreground">debiti {formatMoney(f.totalDebit)} − crediti {formatMoney(f.totalCredit ?? 0)}</p>}
           </div>
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
         <LinesTable lines={f.lines} section="TREASURY" taxYear={taxYear} />
         <LinesTable lines={f.lines} section="INPS" taxYear={taxYear} />
+        <LinesTable lines={f.lines} section="REGIONAL" taxYear={taxYear} />
+        <LinesTable lines={f.lines} section="LOCAL" taxYear={taxYear} />
         {saved && saved.status !== 'CANCELLED' && (
           <div className="flex flex-wrap items-end gap-2 border-t pt-3">
             <Button size="sm" variant="outline" render={<a href={`/f24/${saved.id}/pdf`} />}>Scarica PDF (Mod. F24)</Button>

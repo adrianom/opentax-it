@@ -190,6 +190,10 @@ export class F24PdfService {
       const cx = typeof box === 'number' ? box : (box[0] + box[1]) / 2;
       text(s, cx - width(s) / 2, baseline);
     };
+    const boxed = (s: string, box: Box, baseline: number) => {
+      const w = (box[1] - box[0]) / s.length;
+      [...s].forEach((ch, i) => text(ch, box[0] + w * i + (w - width(ch)) / 2, baseline));
+    };
     const amount = (value: number, col: { intRight: number; decimals: Box }, baseline: number) => {
       if (!(value > 0)) return;
       const [int, dec] = value.toFixed(2).split('.');
@@ -268,7 +272,7 @@ export class F24PdfService {
       let credit = 0;
       rows.forEach((line, i) => {
         const b = l.firstBaseline - i * l.rowStep;
-        if (line.localCode) centered(line.localCode, l.localCode, b);
+        if (line.localCode) boxed(line.localCode, l.localCode, b); // one character per printed box
         centered(line.code, l.code, b);
         if (line.installmentCode) centered(line.installmentCode, l.installment, b);
         centered(String(line.referenceYear), l.year, b);

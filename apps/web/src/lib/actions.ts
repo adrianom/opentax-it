@@ -274,7 +274,12 @@ export async function deletePaymentTerms(formData: FormData) {
 export async function createPlan(formData: FormData) {
   const taxYear = Number(formData.get('taxYear'));
   try {
-    await api.createPlan(taxYear, { start: String(formData.get('start')), installments: Number(formData.get('installments')) });
+    await api.createPlan(taxYear, {
+      start: String(formData.get('start')),
+      installments: Number(formData.get('installments')),
+      useCredits: formData.get('useCredits') === 'on' || formData.get('useCredits') === 'true',
+      creditOrder: String(formData.get('creditOrder') || 'INPS_FIRST'),
+    });
   } catch (e) {
     redirect(`/f24?year=${taxYear}&error=${encodeURIComponent(errorMessage(e))}`);
   }
@@ -307,4 +312,36 @@ export async function setF24Status(formData: FormData) {
   }
   revalidatePath('/f24');
   revalidatePath('/dashboard');
+}
+
+export async function saveTaxCredit(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  const f = (k: string) => String(formData.get(k) ?? '').trim();
+  try {
+    await api.createTaxCredit({
+      section: f('section'),
+      code: f('code').toUpperCase(),
+      referenceYear: Number(f('referenceYear')),
+      amount: Number(f('amount').replace(',', '.')),
+      localCode: f('localCode').toUpperCase() || undefined,
+      installmentCode: f('installmentCode') || undefined,
+      usableFrom: f('usableFrom') || undefined,
+      description: f('description') || undefined,
+    });
+  } catch (e) {
+    return { error: errorMessage(e) };
+  }
+  revalidatePath('/credits');
+  revalidatePath('/f24');
+  return undefined;
+}
+
+export async function deleteTaxCredit(formData: FormData) {
+  const id = String(formData.get('id'));
+  try {
+    await api.deleteTaxCredit(id);
+  } catch (e) {
+    redirect(`/credits?error=${encodeURIComponent(errorMessage(e))}`);
+  }
+  revalidatePath('/credits');
+  revalidatePath('/f24');
 }

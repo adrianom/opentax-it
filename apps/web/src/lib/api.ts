@@ -1,6 +1,6 @@
 import 'server-only';
 import { cookies } from 'next/headers';
-import type { BankAccount, Customer, Deadline, F24, ImportResult, InstallmentPlan, Invoice, Payment, PaymentTerms, PlanOptions, PlanPreview, RuleSetSummary, TaxSummary, TaxYearData, Tenant, TenantWithProfile } from './types';
+import type { BankAccount, Customer, Deadline, F24, ImportResult, InstallmentPlan, Invoice, Payment, PaymentTerms, PlanOptions, PlanPreview, RuleSetSummary, TaxCredit, TaxSummary, TaxYearData, Tenant, TenantWithProfile } from './types';
 
 export * from './types';
 export * from './format';
@@ -87,6 +87,9 @@ export const api = {
   taxSummary: (year: number) => tenantRequest<TaxSummary>(`/taxes/${year}/summary`),
   taxYearData: (year: number) => tenantRequest<TaxYearData>(`/taxes/${year}/data`),
   updateTaxYearData: (year: number, data: unknown) => tenantRequest<TaxYearData>(`/taxes/${year}/data`, { method: 'PUT', body: JSON.stringify(data) }),
+  taxCredits: () => tenantRequest<TaxCredit[]>('/taxes/credits'),
+  createTaxCredit: (data: unknown) => tenantRequest<TaxCredit>('/taxes/credits', { method: 'POST', body: JSON.stringify(data) }),
+  deleteTaxCredit: (id: string) => tenantRequest<void>(`/taxes/credits/${id}`, { method: 'DELETE' }),
   f24s: (year: number) => tenantRequest<F24[]>(`/f24?year=${year}`),
   f24: (id: string) => tenantRequest<F24>(`/f24/${id}`),
   planOptions: (taxYear: number) => tenantRequest<PlanOptions>(`/f24/plans/${taxYear}/options`),

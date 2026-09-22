@@ -1,5 +1,6 @@
 import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import {
+  buildCompensation,
   buildPaymentSchedule,
   findInpsOfficeById,
   i24CancelBy,
@@ -13,6 +14,7 @@ import {
 } from '@opentax-it/fiscal-rules';
 import type { F24Kind, F24Status } from '../generated/prisma/enums.js';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { TaxCreditsService } from '../taxes/tax-credits.service.js';
 import { TaxesService } from '../taxes/taxes.service.js';
 import { TenantsService } from '../tenants/tenants.service.js';
 import { F24PdfService } from './f24-pdf.service.js';
@@ -44,6 +46,7 @@ export class F24Service {
     private readonly taxes: TaxesService,
     private readonly tenants: TenantsService,
     private readonly pdf24: F24PdfService,
+    private readonly credits: TaxCreditsService,
   ) {}
 
   /** The four possible first due dates (ordinary, yearly extension, 30-day deferrals) offered by the payment year's rule set. */
@@ -76,7 +79,7 @@ export class F24Service {
     if (!start) throw new BadRequestException(`Start "${dto.start}" is not available for ${paymentRulesYear}`);
     if (dto.installments > start.maxInstallments) throw new BadRequestException(`At most ${start.maxInstallments} installments from ${start.date} (plan must end by 16 December)`);
 
-    const amounts: PaymentScheduleAmounts = {
+    const due: PaymentScheduleAmounts = {
       taxBalance: Math.max(0, summary.taxBalance),
       taxFirstAdvance: summary.nextYearAdvances.tax.first,
       taxSecondAdvance: summary.nextYearAdvances.tax.second,
@@ -84,16 +87,34 @@ export class F24Service {
       inpsFirstAdvance: summary.nextYearAdvances.inps.first,
       inpsSecondAdvance: summary.nextYearAdvances.inps.second,
     };
+    const inpsReducedRate = summary.input.inpsRatePct === paymentRules.inps.reducedRatePct;
+    const availableCredits = dto.useCredits ? await this.credits.available(tenantId) : [];
+    const compensation = buildCompensation(paymentRules, {
+      taxYear,
+      amounts: due,
+      inpsOfficeCode: office.code,
+      inpsReducedRate,
+      date: parseIsoDate(start.date),
+      credits: availableCredits,
+      order: dto.creditOrder ?? 'INPS_FIRST',
+    });
+    const amounts = compensation.amounts;
     const schedule = buildPaymentSchedule(paymentRules, {
       taxYear,
       amounts,
       inpsOfficeCode: office.code,
-      inpsReducedRate: summary.input.inpsRatePct === paymentRules.inps.reducedRatePct,
+      inpsReducedRate,
       firstDueDate: parseIsoDate(start.date),
       surchargePct: start.surchargePct,
       installments: dto.installments,
       secondAdvanceDate: parseIsoDate(paymentRules.deadlines.secondAdvance),
     });
+    const creditsUsed = round2(compensation.usages.reduce((s, u) => s + u.amount, 0));
+    const compensationWarnings: string[] = [];
+    if (compensation.form) {
+      compensationWarnings.push('Form with compensation: file it only through the AdE telematic services (F24 web/online), even with a zero balance (Istr. Redditi PF §8; art. 37 par. 49-bis DL 223/2006)');
+      if (creditsUsed > 5000) compensationWarnings.push('Credits above EUR 5,000 in the year: usable from the 10th day after filing the return and with the compliance visa (art. 3 D.Lgs. 33/2025; L. 147/2013 art. 1 par. 574)');
+    }
     return {
       taxYear,
       paymentYear: taxYear + 1,
@@ -104,11 +125,15 @@ export class F24Service {
       surchargePct: start.surchargePct,
       installments: dto.installments,
       maxInstallments: start.maxInstallments,
+      /** Amounts due from the return, before credits. */
+      due,
+      /** Amounts split into the forms, after credits. */
       amounts,
       credits: { tax: Math.max(0, -summary.taxBalance), inps: Math.max(0, -summary.inpsBalance) },
+      compensation: { used: creditsUsed, unused: compensation.unusedCredit, order: dto.creditOrder ?? 'INPS_FIRST', usages: compensation.usages },
       inpsOfficeCode: office.code,
-      forms: schedule.forms.map(serializeForm),
-      warnings: [...warnings, ...schedule.warnings],
+      forms: [...(compensation.form ? [compensation.form] : []), ...schedule.forms].map(serializeForm),
+      warnings: [...warnings, ...compensationWarnings, ...schedule.warnings],
     };
   }
 
@@ -142,6 +167,7 @@ export class F24Service {
         inpsFirstAdvance: p.amounts.inpsFirstAdvance,
         inpsSecondAdvance: p.amounts.inpsSecondAdvance,
         ruleSetVersion: p.ruleSetVersion,
+        creditsUsed: creditsUsedTotal(p),
         f24s: {
           create: p.forms.map((f) => ({
             tenantId,
@@ -150,20 +176,25 @@ export class F24Service {
             installmentNumber: f.installmentNumber ?? null,
             installmentsTotal: f.installmentsTotal ?? null,
             totalDebit: f.totalDebit,
-            balance: f.totalDebit,
+            totalCredit: f.totalCredit,
+            balance: round2(f.totalDebit - f.totalCredit),
             i24CancelBy: parseIsoDate(f.i24CancelBy),
             lines: {
-              create: f.lines.map((l) => ({
+              create: f.lines.map((l, i) => ({
                 section: l.section,
                 role: l.role,
                 code: l.code,
                 officeCode: l.officeCode ?? null,
                 installmentCode: l.installmentCode ?? null,
+                localCode: l.localCode ?? null,
                 periodFrom: l.periodFrom ?? null,
                 periodTo: l.periodTo ?? null,
                 referenceYear: l.referenceYear,
                 debitAmount: l.debitAmount,
+                creditAmount: l.creditAmount ?? 0,
                 description: l.description,
+                // Credit rows are matched to the credits in the same order they were consumed.
+                ...(l.role === 'CREDIT' ? { creditUsage: { create: { taxCreditId: p.compensation.usages[creditRowIndex(f.lines, i)].creditId, amount: l.creditAmount ?? 0 } } } : {}),
               })),
             },
           })),
@@ -247,6 +278,17 @@ export class F24Service {
           : { status, paidOn: null, i24ScheduledAt: null };
     return this.prisma.f24.update({ where: { id }, data, include: { lines: true } });
   }
+}
+
+const round2 = (n: number) => Math.round((n + Number.EPSILON) * 100) / 100;
+
+/** Position of a credit row among the credit rows of the form (= index of its usage). */
+function creditRowIndex(lines: F24Draft['lines'], index: number): number {
+  return lines.slice(0, index).filter((l) => l.role === 'CREDIT').length;
+}
+
+function creditsUsedTotal(p: { compensation: { used: number } }): number {
+  return p.compensation.used;
 }
 
 /** Payment date moved to the next business day; the I24 cancellation limit follows the actual debit date. */

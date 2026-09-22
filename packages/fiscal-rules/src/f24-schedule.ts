@@ -46,15 +46,18 @@ export interface F24LineDraft {
   officeCode?: string;
   /** Treasury "rateazione" column: NNRR or 0101; undefined when the table says 0000. */
   installmentCode?: string;
+  /** Region code / municipality cadastral code (regional and local sections). */
+  localCode?: string;
   /** INPS period MM/YYYY. */
   periodFrom?: string;
   periodTo?: string;
   referenceYear: number;
   debitAmount: number;
+  creditAmount?: number;
   description: string;
 }
 
-export type F24DraftKind = 'BALANCE' | 'INSTALLMENT' | 'SECOND_ADVANCE';
+export type F24DraftKind = 'BALANCE' | 'INSTALLMENT' | 'SECOND_ADVANCE' | 'COMPENSATION';
 
 export interface F24Draft {
   kind: F24DraftKind;
@@ -63,6 +66,7 @@ export interface F24Draft {
   installmentsTotal?: number;
   lines: F24LineDraft[];
   totalDebit: number;
+  totalCredit: number;
   /** Last day to cancel a future-dated debit (I24) for this payment date. */
   i24CancelBy: Date;
 }
@@ -224,6 +228,125 @@ function form(kind: F24DraftKind, paymentDate: Date, lines: F24LineDraft[], inst
     installmentsTotal: installment?.total,
     lines,
     totalDebit: round2(lines.reduce((s, l) => s + l.debitAmount, 0)),
+    totalCredit: round2(lines.reduce((s, l) => s + (l.creditAmount ?? 0), 0)),
     i24CancelBy: i24CancelBy(paymentDate),
   };
+}
+
+// ───────────────────────── Compensation ─────────────────────────
+
+/**
+ * Sources:
+ * - Redditi PF 2026 instructions, booklet 1, §8 "La compensazione": credits and debts towards
+ *   different bodies (State, INPS, local bodies) are offset on the F24; the form must be filed
+ *   even when the balance is zero; credits above EUR 5,000 per year from the 10th day after
+ *   filing (art. 3 D.Lgs. 33/2025) and with the compliance visa (L. 147/2013 art. 1 par. 574);
+ *   forms with compensation only through AdE telematic services (art. 37 par. 49-bis DL
+ *   223/2006; art. 11 par. 2 lett. a DL 66/2014).
+ * - AdE "Avvertenze per la compilazione del mod. F24", "Compensazione e rateazione": two
+ *   forms, "il primo con saldo finale eguale a zero per utilizzare il credito da compensare e
+ *   con l'indicazione 0101 nello spazio rateazione in corrispondenza dell'importo a debito
+ *   versato; il secondo per evidenziare l'importo della prima rata da versare del residuo
+ *   debito". The real 2026 forms of the author follow it (IRPEF 4001 and municipal surtax 3844
+ *   credits against the INPS balance PXX; the residual INPS balance in the installments).
+ * - Which debt to cover first is the taxpayer's choice (the instructions set no order):
+ *   `order` makes it explicit.
+ */
+
+export interface AvailableCredit {
+  id: string;
+  section: F24Section;
+  code: string;
+  referenceYear: number;
+  /** Remaining amount. */
+  amount: number;
+  localCode?: string;
+  installmentCode?: string;
+  description?: string;
+}
+
+export type CompensationOrder = 'INPS_FIRST' | 'TAX_FIRST';
+
+export interface CompensationInput {
+  taxYear: number;
+  amounts: PaymentScheduleAmounts;
+  inpsOfficeCode: string;
+  inpsReducedRate: boolean;
+  /** Date of the zero-balance form (the balance/first advance due date). */
+  date: Date;
+  credits: AvailableCredit[];
+  order: CompensationOrder;
+}
+
+export interface CompensationResult {
+  /** Zero-balance form; undefined when there is nothing to offset. */
+  form?: F24Draft;
+  /** Amounts still due after the compensation, to split or pay. */
+  amounts: PaymentScheduleAmounts;
+  usages: Array<{ creditId: string; amount: number }>;
+  /** Credit left after the form. */
+  unusedCredit: number;
+}
+
+const CREDIT_DEFAULT_INSTALLMENT_CODE = SINGLE_PAYMENT_INSTALLMENT_CODE;
+
+export function buildCompensation(rules: FiscalRuleSet, input: CompensationInput): CompensationResult {
+  const { taxYear, amounts } = input;
+  const tc = rules.taxCodes;
+  const ir = rules.inpsReasons;
+  const inpsReason = input.inpsReducedRate ? ir.contributionReducedRate : ir.contribution;
+  let available = round2(input.credits.reduce((s, c) => s + c.amount, 0));
+  const residual = { ...amounts };
+  if (available <= 0) return { amounts: residual, usages: [], unusedCredit: 0 };
+
+  const debts: Array<{ key: keyof PaymentScheduleAmounts; section: F24Section; role: F24LineRole; code: string; referenceYear: number; description: string }> = [
+    { key: 'inpsBalance', section: 'INPS', role: 'BALANCE', code: inpsReason, referenceYear: taxYear, description: `INPS Gestione Separata balance ${taxYear} (offset)` },
+    { key: 'inpsFirstAdvance', section: 'INPS', role: 'FIRST_ADVANCE', code: inpsReason, referenceYear: taxYear + 1, description: `INPS Gestione Separata first advance ${taxYear + 1} (offset)` },
+    { key: 'taxBalance', section: 'TREASURY', role: 'BALANCE', code: tc.substituteTaxBalance, referenceYear: taxYear, description: `Substitute tax balance ${taxYear} (offset)` },
+    { key: 'taxFirstAdvance', section: 'TREASURY', role: 'FIRST_ADVANCE', code: tc.substituteTaxFirstAdvance, referenceYear: taxYear + 1, description: `Substitute tax first advance ${taxYear + 1} (offset)` },
+  ];
+  if (input.order === 'TAX_FIRST') debts.push(...debts.splice(0, 2));
+
+  const lines: F24LineDraft[] = [];
+  let covered = 0;
+  for (const d of debts) {
+    if (available <= 0) break;
+    const due = residual[d.key];
+    if (due <= 0) continue;
+    const part = round2(Math.min(due, available));
+    lines.push(line(d.section, d.role, d.code, d.referenceYear, part, d.description, {
+      installmentCode: d.section === 'TREASURY' ? SINGLE_PAYMENT_INSTALLMENT_CODE : undefined,
+      officeCode: d.section === 'INPS' ? input.inpsOfficeCode : undefined,
+    }));
+    residual[d.key] = round2(due - part);
+    available = round2(available - part);
+    covered = round2(covered + part);
+  }
+  if (covered === 0) return { amounts: residual, usages: [], unusedCredit: round2(available) };
+
+  // Credit rows, in the order given, until the covered amount is matched.
+  const usages: CompensationResult['usages'] = [];
+  let toMatch = covered;
+  for (const c of input.credits) {
+    if (toMatch <= 0) break;
+    const used = round2(Math.min(c.amount, toMatch));
+    if (used <= 0) continue;
+    lines.push({
+      section: c.section,
+      role: 'CREDIT',
+      code: c.code,
+      installmentCode: c.installmentCode ?? (c.section === 'INPS' ? undefined : CREDIT_DEFAULT_INSTALLMENT_CODE),
+      localCode: c.localCode,
+      officeCode: c.section === 'INPS' ? input.inpsOfficeCode : undefined,
+      periodFrom: c.section === 'INPS' ? `01/${c.referenceYear}` : undefined,
+      periodTo: c.section === 'INPS' ? `12/${c.referenceYear}` : undefined,
+      referenceYear: c.referenceYear,
+      debitAmount: 0,
+      creditAmount: used,
+      description: c.description ?? `Credit ${c.code} ${c.referenceYear}`,
+    });
+    usages.push({ creditId: c.id, amount: used });
+    toMatch = round2(toMatch - used);
+  }
+  return { form: form('COMPENSATION', input.date, lines), amounts: residual, usages, unusedCredit: round2(available) };
 }

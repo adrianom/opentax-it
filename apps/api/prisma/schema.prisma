@@ -523,29 +523,32 @@ model TaxReturn {
   @@unique([tenantId, year])
 }
 
-enum TaxCreditKind {
-  SUBSTITUTE_TAX // LM47 → RX31, offsettable under art. 3 D.Lgs. 33/2025
-  INPS // RR8 col. 2, offsettable in F24 with reference year
-}
-
-/// Offsetting ledger: credit generated → uses in F24 → remainder.
+/// Credits usable in F24 (art. 17 D.Lgs. 241/97): from the return (LM47 → 1792, RR8 → PXX, IRPEF 4001,
+/// municipal surtax 3844 with the municipality code, ...) or entered by hand. Uses are tracked per F24 line.
 model TaxCredit {
-  id            String        @id @default(cuid())
-  tenantId      String
-  tenant        Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  taxReturnId   String?
-  taxReturn     TaxReturn?    @relation(fields: [taxReturnId], references: [id])
-  kind          TaxCreditKind
-  referenceYear Int
-  amount        Decimal       @db.Decimal(14, 2)
-  /// Usable from (> EUR 5,000: 10th day after filing + compliance visa).
-  usableFrom    DateTime?     @db.Date
-  notes         String?
-  createdAt     DateTime      @default(now())
+  id              String     @id @default(cuid())
+  tenantId        String
+  tenant          Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  taxReturnId     String?
+  taxReturn       TaxReturn? @relation(fields: [taxReturnId], references: [id])
+  section         F24Section
+  /// Tax code or INPS reason as written on the F24 credit row.
+  code            String
+  /// Region code / municipality cadastral code for the regional and local sections.
+  localCode       String?
+  /// "Rateazione" column of the credit row (0101 on the forms seen).
+  installmentCode String?
+  referenceYear   Int
+  amount          Decimal    @db.Decimal(14, 2)
+  /// Usable from (> EUR 5,000 per year: 10th day after filing + compliance visa; art. 3 D.Lgs. 33/2025, L. 147/2013 art. 1 par. 574).
+  usableFrom      DateTime?  @db.Date
+  description     String?
+  notes           String?
+  createdAt       DateTime   @default(now())
 
   usages TaxCreditUsage[]
 
-  @@index([tenantId, kind, referenceYear])
+  @@index([tenantId, section, referenceYear])
 }
 
 model TaxCreditUsage {
@@ -580,6 +583,8 @@ model InstallmentPlan {
   inpsBalance      Decimal  @default(0) @db.Decimal(14, 2)
   inpsFirstAdvance Decimal  @default(0) @db.Decimal(14, 2)
   inpsSecondAdvance Decimal @default(0) @db.Decimal(14, 2)
+  /// Credits offset in the zero-balance form before splitting.
+  creditsUsed      Decimal  @default(0) @db.Decimal(14, 2)
   ruleSetVersion   Int?
   createdAt        DateTime @default(now())
 
@@ -593,6 +598,7 @@ enum F24Kind {
   FIRST_ADVANCE
   SECOND_ADVANCE
   INSTALLMENT
+  COMPENSATION // zero-balance form using credits (Istr. Redditi PF §8; Avvertenze F24 "Compensazione e rateazione")
   STAMP_DUTY
   TAX_NOTICE
   OTHER
