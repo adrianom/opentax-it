@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Field } from '@/components/field';
+import { HelpTip } from '@/components/help-tip';
 import { NativeSelect } from '@/components/native-select';
 import { ErrorAlert } from '@/components/error-alert';
 
@@ -46,10 +47,20 @@ export function CustomerForm({ customer }: { customer?: Customer }) {
       {!foreign && <Field label="Provincia" htmlFor="province"><Input id="province" name="province" defaultValue={c?.province ?? ''} maxLength={2} /></Field>}
       {!foreign && (
         <>
-          <Field label="Codice destinatario SDI" htmlFor="recipientCode" hint={kind === 'IT_PA' ? 'Codice IPA a 6 caratteri (obbligatorio)' : '7 caratteri; lascia vuoto per 0000000 (PEC o cassetto fiscale)'}>
+          <Field
+            label="Codice destinatario SDI"
+            htmlFor="recipientCode"
+            hint={kind === 'IT_PA' ? 'Codice IPA a 6 caratteri (obbligatorio)' : '7 caratteri; lascia vuoto per 0000000 (PEC o cassetto fiscale)'}
+            help={
+              <HelpTip label="Codice destinatario o PEC?">
+                <p>Nessuno dei due è obbligatorio per il cliente: il campo CodiceDestinatario c&apos;è sempre e vale <code>0000000</code> quando non si conosce il canale. Lo SDI recapita così (Specifiche tecniche 1.9.1 §1.5.5): 1) se il cliente ha registrato un indirizzo telematico nel portale Fatture e Corrispettivi, usa quello, qualunque cosa ci sia in fattura; 2) altrimenti, se c&apos;è un codice destinatario valido, usa quel canale; 3) altrimenti, con <code>0000000</code> e PEC indicata, invia alla PEC; 4) con <code>0000000</code> e nessuna PEC, mette la fattura nell&apos;area riservata del cliente.</p>
+                <p>Puoi inserire entrambi: con un codice valido la PEC non viene usata dallo SDI.</p>
+              </HelpTip>
+            }
+          >
             <Input id="recipientCode" name="recipientCode" defaultValue={c?.recipientCode === '0000000' ? '' : (c?.recipientCode ?? '')} />
           </Field>
-          <Field label="PEC destinatario" htmlFor="recipientPec"><Input id="recipientPec" name="recipientPec" type="email" defaultValue={c?.recipientPec ?? ''} /></Field>
+          <Field label="PEC destinatario" htmlFor="recipientPec" hint="Usata dallo SDI solo con codice 0000000"><Input id="recipientPec" name="recipientPec" type="email" defaultValue={c?.recipientPec ?? ''} /></Field>
         </>
       )}
       <Field label="Valuta" htmlFor="currency"><Input id="currency" name="currency" defaultValue={c?.currency ?? 'EUR'} maxLength={3} /></Field>

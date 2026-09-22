@@ -17,8 +17,8 @@ Emissione e XML sono pronti; manca la trasmissione.
 - Invio del file a `sdi01@pec.fatturapa.it` e poi all'indirizzo PEC assegnato dallo SDI (Specifiche tecniche 1.9.1 §1.5 "servizio PEC"); lettura delle ricevute RC/NS/MC/DT e aggiornamento di `SdiTransmission`/`SdiNotification`.
 - Conservazione: le fatture emesse vanno conservate (DPR 633/72 art. 39; DM 17/06/2014): valutare l'adesione al servizio di conservazione gratuito dell'AdE (Fatture e Corrispettivi) come indicazione all'utente.
 
-### Fatture con firma digitale (.p7m)
-- **Da verificare** sulle Specifiche tecniche 1.9.1 e sul sito fatturapa.gov.it: per le fatture verso la PA la firma è richiesta; per B2B/B2C non lo è. Documentare prima, poi implementare la firma CAdES-BES (`.xml.p7m`) con certificato dell'utente.
+### Fatture con firma digitale (.p7m) — priorità bassa
+- Non prioritaria: serve solo quando è richiesta (caso reale: fatturazione verso una pubblica amministrazione). **Da verificare** sulle Specifiche tecniche 1.9.1 e su fatturapa.gov.it quali casi la richiedono; poi firma CAdES-BES (`.xml.p7m`) con certificato dell'utente.
 
 ### Dichiarazione dei redditi: prospetto LM/RR
 - Produrre il prospetto dei righi LM (sez. III) e RR (sez. II) con i valori calcolati, per il contribuente o il suo intermediario; segnare la dichiarazione come presentata (`TaxReturn`) e registrare i crediti risultanti (LM47, RR8) nel modulo Crediti.
