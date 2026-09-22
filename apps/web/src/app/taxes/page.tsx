@@ -116,7 +116,7 @@ export default async function TaxesPage({ searchParams }: PageProps<'/taxes'>) {
           <Card>
             <CardHeader>
               <CardTitle>Dati dell&apos;anno inseriti a mano</CardTitle>
-              <CardDescription>Importi dai tuoi F24 pagati per il {year} (il collegamento automatico con le deleghe registrate in &quot;F24 e rate&quot; è in programma).</CardDescription>
+              <CardDescription>Le deleghe segnate come pagate in &quot;F24 e rate&quot; vengono contate automaticamente; qui vanno solo i versamenti fatti fuori dal tool (es. tramite il commercialista prima di usarlo).</CardDescription>
             </CardHeader>
             <CardContent><YearDataForm year={year} input={s.input} /></CardContent>
           </Card>

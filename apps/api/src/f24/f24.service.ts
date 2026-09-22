@@ -155,6 +155,7 @@ export class F24Service {
             lines: {
               create: f.lines.map((l) => ({
                 section: l.section,
+                role: l.role,
                 code: l.code,
                 officeCode: l.officeCode ?? null,
                 installmentCode: l.installmentCode ?? null,
@@ -221,6 +222,7 @@ export class F24Service {
         code: l.code,
         officeCode: l.officeCode,
         installmentCode: l.installmentCode,
+        localCode: l.localCode,
         periodFrom: l.periodFrom,
         periodTo: l.periodTo,
         referenceYear: l.referenceYear,

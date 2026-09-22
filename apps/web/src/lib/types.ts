@@ -146,6 +146,10 @@ export interface TaxSummary {
     taxCredits: number;
     inpsRatePct: number;
     nextYearInpsRatePct: number;
+    /** Entered by hand (payments made outside the tool). */
+    manual: { contributionsPaid: number; taxAdvancesPaid: number; inpsAdvancesPaid: number };
+    /** From F24 forms marked as paid here. */
+    fromF24: { contributionsPaid: number; taxAdvancesPaid: number; inpsAdvancesPaid: number };
   };
   result: {
     coefficientPct: number;

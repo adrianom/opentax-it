@@ -639,6 +639,18 @@ model F24 {
 enum F24Section {
   TREASURY // Erario
   INPS
+  REGIONAL // Regioni
+  LOCAL // IMU e altri tributi locali
+}
+
+/// What a line pays, so that paid forms can feed the tax return rows (advances paid, contributions paid).
+enum F24LineRole {
+  BALANCE
+  FIRST_ADVANCE
+  SECOND_ADVANCE
+  INTEREST
+  CREDIT
+  OTHER
 }
 
 model F24Line {
@@ -646,11 +658,14 @@ model F24Line {
   f24Id           String
   f24             F24        @relation(fields: [f24Id], references: [id], onDelete: Cascade)
   section         F24Section
+  role            F24LineRole @default(OTHER)
   /// Treasury: tax code (1790/1791/1792/1668/2521…); INPS: reason (PXX/PXXR/DPPI) + office code.
   code            String
   officeCode      String?
   /// Treasury "rateazione/regione/prov." column: NNRR, 0101 for a single payment, null when not required.
   installmentCode String?
+  /// Regional/local sections: region code or municipality cadastral code (e.g. D567).
+  localCode       String?
   /// INPS period MM/YYYY.
   periodFrom      String?
   periodTo        String?

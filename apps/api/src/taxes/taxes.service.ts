@@ -1,5 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { computeTaxes, inpsAdvance, roundEuro, substituteTaxAdvance, thresholdStatus } from '@opentax-it/fiscal-rules';
+
+const roundCents = (n: number) => Math.round((n + Number.EPSILON) * 100) / 100;
 import { FiscalRulesService } from '../fiscal-rules/fiscal-rules.service.js';
 import { PaymentsService } from '../payments/payments.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
@@ -62,13 +64,43 @@ export class TaxesService {
     };
   }
 
+  /**
+   * Amounts already paid with F24 forms recorded here (status PAID), from the role of each line:
+   * - advances for `year`: FIRST/SECOND_ADVANCE lines with reference year = `year` (LM45; RR5 col. 16);
+   * - contributions paid in `year` (cash basis, LM35 col. 1: "versati nel presente periodo d'imposta"):
+   *   INPS balance/advance lines of forms paid in `year`, interest excluded.
+   * Amounts entered by hand in TaxYearData are added to these (payments made outside the tool).
+   */
+  async paidFromF24(tenantId: string, year: number) {
+    const [advances, contributions] = await Promise.all([
+      this.prisma.f24Line.findMany({
+        where: { f24: { tenantId, status: 'PAID' }, role: { in: ['FIRST_ADVANCE', 'SECOND_ADVANCE'] }, referenceYear: year },
+        select: { section: true, debitAmount: true },
+      }),
+      this.prisma.f24Line.findMany({
+        where: { f24: { tenantId, status: 'PAID', paidOn: { gte: new Date(Date.UTC(year, 0, 1)), lt: new Date(Date.UTC(year + 1, 0, 1)) } }, section: 'INPS', role: { in: ['BALANCE', 'FIRST_ADVANCE', 'SECOND_ADVANCE'] } },
+        select: { debitAmount: true },
+      }),
+    ]);
+    const sum = (rows: Array<{ debitAmount: unknown }>) => roundCents(rows.reduce((t, r) => t + Number(r.debitAmount), 0));
+    return {
+      taxAdvancesPaid: sum(advances.filter((a) => a.section === 'TREASURY')),
+      inpsAdvancesPaid: sum(advances.filter((a) => a.section === 'INPS')),
+      contributionsPaid: sum(contributions),
+    };
+  }
+
   async summary(tenantId: string, year: number) {
     const { profile } = await this.tenants.getWithProfile(tenantId);
-    const [data, collectedRevenue, { incomeRules: rules, incomeRulesYear, paymentRules, paymentRulesYear, warnings }] = await Promise.all([
+    const [data, collectedRevenue, { incomeRules: rules, incomeRulesYear, paymentRules, paymentRulesYear, warnings }, fromF24] = await Promise.all([
       this.yearData(tenantId, year),
       this.payments.collectedRevenue(tenantId, year),
       this.rulesForTaxYear(year),
+      this.paidFromF24(tenantId, year),
     ]);
+    const contributionsPaid = roundCents(Number(data.contributionsPaid) + fromF24.contributionsPaid);
+    const taxAdvancesPaid = roundCents(Number(data.taxAdvancesPaid) + fromF24.taxAdvancesPaid);
+    const inpsAdvancesPaid = roundCents(Number(data.inpsAdvancesPaid) + fromF24.inpsAdvancesPaid);
     const inpsRatePct = data.inpsReducedRate ? rules.inps.reducedRatePct : rules.inps.fullRatePct;
     const nextYearInpsRatePct = data.inpsReducedRate ? paymentRules.inps.reducedRatePct : paymentRules.inps.fullRatePct;
     const result = computeTaxes(rules, {
@@ -77,13 +109,13 @@ export class TaxesService {
       atecoCode: profile.atecoCode,
       activityStartYear: profile.activityStartYear,
       reducedRateEligible: profile.reducedRate,
-      contributionsPaid: Number(data.contributionsPaid),
+      contributionsPaid,
       inpsRatePct,
       taxCredits: Number(data.taxCredits),
     });
     // Return rows are whole euro (Redditi PF instructions, "Modalità di arrotondamento").
-    const taxBalance = roundEuro(result.taxNetOfCredits - roundEuro(Number(data.taxAdvancesPaid))); // LM46 (>0) / LM47 (<0)
-    const inpsBalance = roundEuro(result.inpsContribution - roundEuro(Number(data.inpsAdvancesPaid))); // RR7 / RR8
+    const taxBalance = roundEuro(result.taxNetOfCredits - roundEuro(taxAdvancesPaid)); // LM46 (>0) / LM47 (<0)
+    const inpsBalance = roundCents(result.inpsContribution - inpsAdvancesPaid); // RR7 / RR8
     return {
       year,
       rulesYear: incomeRulesYear,
@@ -96,10 +128,12 @@ export class TaxesService {
         activityStartYear: profile.activityStartYear,
         reducedRateEligible: profile.reducedRate,
         isaSubject: profile.isaSubject,
-        contributionsPaid: Number(data.contributionsPaid),
-        taxAdvancesPaid: Number(data.taxAdvancesPaid),
-        inpsAdvancesPaid: Number(data.inpsAdvancesPaid),
+        contributionsPaid,
+        taxAdvancesPaid,
+        inpsAdvancesPaid,
         taxCredits: Number(data.taxCredits),
+        manual: { contributionsPaid: Number(data.contributionsPaid), taxAdvancesPaid: Number(data.taxAdvancesPaid), inpsAdvancesPaid: Number(data.inpsAdvancesPaid) },
+        fromF24,
         inpsRatePct,
         nextYearInpsRatePct,
       },

@@ -34,10 +34,12 @@ import type { FiscalRuleSet } from './rule-set.js';
  * "in un unico rigo", which is not possible when two reference years are involved.
  */
 
-export type F24Section = 'TREASURY' | 'INPS';
+export type F24Section = 'TREASURY' | 'INPS' | 'REGIONAL' | 'LOCAL';
+export type F24LineRole = 'BALANCE' | 'FIRST_ADVANCE' | 'SECOND_ADVANCE' | 'INTEREST' | 'CREDIT' | 'OTHER';
 
 export interface F24LineDraft {
   section: F24Section;
+  role: F24LineRole;
   /** Treasury tax code or INPS reason. */
   code: string;
   /** INPS office code (Treasury lines: undefined). */
@@ -121,6 +123,7 @@ export function i24CancelBy(paymentDate: Date): Date {
 interface Component {
   key: keyof PaymentScheduleAmounts;
   section: F24Section;
+  role: F24LineRole;
   code: string;
   referenceYear: number;
   description: string;
@@ -147,10 +150,10 @@ export function buildPaymentSchedule(rules: FiscalRuleSet, input: PaymentSchedul
     });
 
   const candidates: Array<Omit<Component, 'plan'>> = [
-    { key: 'taxBalance', section: 'TREASURY', code: tc.substituteTaxBalance, referenceYear: taxYear, description: `Substitute tax balance ${taxYear}` },
-    { key: 'taxFirstAdvance', section: 'TREASURY', code: tc.substituteTaxFirstAdvance, referenceYear: taxYear + 1, description: `Substitute tax first advance ${taxYear + 1}` },
-    { key: 'inpsBalance', section: 'INPS', code: inpsReason, referenceYear: taxYear, description: `INPS Gestione Separata balance ${taxYear}` },
-    { key: 'inpsFirstAdvance', section: 'INPS', code: inpsReason, referenceYear: taxYear + 1, description: `INPS Gestione Separata first advance ${taxYear + 1}` },
+    { key: 'taxBalance', section: 'TREASURY', role: 'BALANCE', code: tc.substituteTaxBalance, referenceYear: taxYear, description: `Substitute tax balance ${taxYear}` },
+    { key: 'taxFirstAdvance', section: 'TREASURY', role: 'FIRST_ADVANCE', code: tc.substituteTaxFirstAdvance, referenceYear: taxYear + 1, description: `Substitute tax first advance ${taxYear + 1}` },
+    { key: 'inpsBalance', section: 'INPS', role: 'BALANCE', code: inpsReason, referenceYear: taxYear, description: `INPS Gestione Separata balance ${taxYear}` },
+    { key: 'inpsFirstAdvance', section: 'INPS', role: 'FIRST_ADVANCE', code: inpsReason, referenceYear: taxYear + 1, description: `INPS Gestione Separata first advance ${taxYear + 1}` },
   ];
   const components: Component[] = candidates.filter((c) => amounts[c.key] > 0).map((c) => ({ ...c, plan: planFor(amounts[c.key]) }));
 
@@ -162,7 +165,7 @@ export function buildPaymentSchedule(rules: FiscalRuleSet, input: PaymentSchedul
       const interestByYear = new Map<string, { section: F24Section; referenceYear: number; amount: number }>();
       for (const c of components) {
         const r = c.plan[i];
-        lines.push(line(c.section, c.code, c.referenceYear, r.principal, c.description, {
+        lines.push(line(c.section, c.role, c.code, c.referenceYear, r.principal, c.description, {
           installmentCode: c.section === 'TREASURY' ? (single ? SINGLE_PAYMENT_INSTALLMENT_CODE : installmentCode(i + 1, installments)) : undefined,
           officeCode: c.section === 'INPS' ? input.inpsOfficeCode : undefined,
         }));
@@ -175,7 +178,7 @@ export function buildPaymentSchedule(rules: FiscalRuleSet, input: PaymentSchedul
       }
       for (const it of interestByYear.values()) {
         const treasury = it.section === 'TREASURY';
-        lines.push(line(it.section, treasury ? tc.installmentInterest : ir.interest, it.referenceYear, it.amount, `Installment interest ${it.referenceYear} (${rules.installments.annualInterestPct}% per year)`, {
+        lines.push(line(it.section, 'INTEREST', treasury ? tc.installmentInterest : ir.interest, it.referenceYear, it.amount, `Installment interest ${it.referenceYear} (${rules.installments.annualInterestPct}% per year)`, {
           officeCode: treasury ? undefined : input.inpsOfficeCode,
         }));
       }
@@ -184,9 +187,9 @@ export function buildPaymentSchedule(rules: FiscalRuleSet, input: PaymentSchedul
   }
 
   const second: F24LineDraft[] = [];
-  if (amounts.taxSecondAdvance > 0) second.push(line('TREASURY', tc.substituteTaxSecondAdvance, taxYear + 1, amounts.taxSecondAdvance, `Substitute tax second/single advance ${taxYear + 1}`, {}));
+  if (amounts.taxSecondAdvance > 0) second.push(line('TREASURY', 'SECOND_ADVANCE', tc.substituteTaxSecondAdvance, taxYear + 1, amounts.taxSecondAdvance, `Substitute tax second/single advance ${taxYear + 1}`, {}));
   if (amounts.inpsSecondAdvance > 0) {
-    second.push(line('INPS', input.inpsReducedRate ? ir.contributionReducedRate : ir.contribution, taxYear + 1, amounts.inpsSecondAdvance, `INPS Gestione Separata second advance ${taxYear + 1}`, { officeCode: input.inpsOfficeCode }));
+    second.push(line('INPS', 'SECOND_ADVANCE', input.inpsReducedRate ? ir.contributionReducedRate : ir.contribution, taxYear + 1, amounts.inpsSecondAdvance, `INPS Gestione Separata second advance ${taxYear + 1}`, { officeCode: input.inpsOfficeCode }));
   }
   if (second.length > 0) forms.push(form('SECOND_ADVANCE', input.secondAdvanceDate, second));
 
@@ -198,9 +201,10 @@ export function buildPaymentSchedule(rules: FiscalRuleSet, input: PaymentSchedul
   return { forms, warnings };
 }
 
-function line(section: F24Section, code: string, referenceYear: number, amount: number, description: string, extra: { installmentCode?: string; officeCode?: string }): F24LineDraft {
+function line(section: F24Section, role: F24LineRole, code: string, referenceYear: number, amount: number, description: string, extra: { installmentCode?: string; officeCode?: string }): F24LineDraft {
   return {
     section,
+    role,
     code,
     officeCode: extra.officeCode,
     installmentCode: extra.installmentCode,

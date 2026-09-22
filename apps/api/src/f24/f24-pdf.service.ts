@@ -62,6 +62,28 @@ const LAYOUT = {
     installment: [221, 265] as Box,
     year: [272, 314] as Box,
   },
+  /** "Regioni": region code, tax code, installment/month, year. */
+  regional: {
+    rows: 4,
+    firstBaseline: y(442.2),
+    rowStep: 12,
+    totalBaseline: y(490.2),
+    localCode: [20.6, 48] as Box,
+    code: [157, 213.6] as Box,
+    installment: [221, 265] as Box,
+    year: [272, 314] as Box,
+  },
+  /** "IMU e altri tributi locali": municipality code, tax code, installment/month, year (flags left blank). */
+  local: {
+    rows: 4,
+    firstBaseline: y(526.2),
+    rowStep: 12,
+    totalBaseline: y(574.2),
+    localCode: [20.6, 62.4] as Box,
+    code: [157, 213.6] as Box,
+    installment: [221, 265] as Box,
+    year: [272, 314] as Box,
+  },
   inps: {
     rows: 4,
     firstBaseline: y(358.5),
@@ -84,10 +106,11 @@ const LAYOUT = {
 type Box = [number, number];
 
 export interface F24PrintLine {
-  section: 'TREASURY' | 'INPS';
+  section: 'TREASURY' | 'INPS' | 'REGIONAL' | 'LOCAL';
   code: string;
   officeCode?: string | null;
   installmentCode?: string | null;
+  localCode?: string | null;
   periodFrom?: string | null;
   periodTo?: string | null;
   referenceYear: number;
@@ -143,18 +166,22 @@ export class F24PdfService {
   async render(data: F24PrintData): Promise<Uint8Array> {
     const treasury = data.lines.filter((l) => l.section === 'TREASURY');
     const inps = data.lines.filter((l) => l.section === 'INPS');
-    if (treasury.length > LAYOUT.treasury.rows) throw new UnprocessableEntityException(`The form has ${LAYOUT.treasury.rows} Treasury rows, ${treasury.length} needed`);
-    if (inps.length > LAYOUT.inps.rows) throw new UnprocessableEntityException(`The form has ${LAYOUT.inps.rows} INPS rows, ${inps.length} needed`);
+    const regional = data.lines.filter((l) => l.section === 'REGIONAL');
+    const local = data.lines.filter((l) => l.section === 'LOCAL');
+    for (const [name, rows, max] of [['Treasury', treasury.length, LAYOUT.treasury.rows], ['INPS', inps.length, LAYOUT.inps.rows], ['Regional', regional.length, LAYOUT.regional.rows], ['Local', local.length, LAYOUT.local.rows]] as const) {
+      if (rows > max) throw new UnprocessableEntityException(`The form has ${max} ${name} rows, ${rows} needed`);
+    }
 
     const doc = await PDFDocument.load(await this.model());
     const font = await doc.embedFont(StandardFonts.Courier);
     // The model carries three copies (two for the bank, one for the taxpayer); a telematic payment needs one.
     while (doc.getPageCount() > 1) doc.removePage(doc.getPageCount() - 1);
-    this.fillPage(doc.getPage(0), font, data, treasury, inps);
+    this.fillPage(doc.getPage(0), font, data, { treasury, inps, regional, local });
     return doc.save();
   }
 
-  private fillPage(page: PDFPage, font: PDFFont, data: F24PrintData, treasury: F24PrintLine[], inps: F24PrintLine[]) {
+  private fillPage(page: PDFPage, font: PDFFont, data: F24PrintData, lines: { treasury: F24PrintLine[]; inps: F24PrintLine[]; regional: F24PrintLine[]; local: F24PrintLine[] }) {
+    const { treasury, inps, regional, local } = lines;
     const size = LAYOUT.fontSize;
     const text = (s: string, x: number, baseline: number) => page.drawText(s, { x, y: baseline, size, font, color: rgb(0, 0, 0) });
     const width = (s: string) => font.widthOfTextAtSize(s, size);
@@ -233,6 +260,28 @@ export class F24PdfService {
     });
     if (inps.length > 0) this.totals(debitC, creditD, n.totalBaseline, amount, text, rightAligned, centered);
 
+    // Regional and local sections (credits from the return, e.g. 3844 with the municipality code)
+    let regionalBalance = 0;
+    let localBalance = 0;
+    for (const [rows, l] of [[regional, LAYOUT.regional], [local, LAYOUT.local]] as const) {
+      let debit = 0;
+      let credit = 0;
+      rows.forEach((line, i) => {
+        const b = l.firstBaseline - i * l.rowStep;
+        if (line.localCode) centered(line.localCode, l.localCode, b);
+        centered(line.code, l.code, b);
+        if (line.installmentCode) centered(line.installmentCode, l.installment, b);
+        centered(String(line.referenceYear), l.year, b);
+        amount(line.debitAmount, LAYOUT.amounts.debit, b);
+        amount(line.creditAmount, LAYOUT.amounts.credit, b);
+        debit += line.debitAmount;
+        credit += line.creditAmount;
+      });
+      if (rows.length > 0) this.totals(debit, credit, l.totalBaseline, amount, text, rightAligned, centered);
+      if (l === LAYOUT.regional) regionalBalance = debit - credit;
+      else localBalance = debit - credit;
+    }
+
     // Payment date
     const d = data.paymentDate?.match(/^(\d{4})-(\d{2})-(\d{2})$/);
     if (d) {
@@ -243,7 +292,7 @@ export class F24PdfService {
     }
 
     // Final balance (EURO)
-    const final = round2(debitA - creditB + (debitC - creditD));
+    const final = round2(debitA - creditB + (debitC - creditD) + regionalBalance + localBalance);
     const f = LAYOUT.finalBalance;
     const [int, dec] = Math.abs(final).toFixed(2).split('.');
     rightAligned(int, f.intRight, f.baseline);
