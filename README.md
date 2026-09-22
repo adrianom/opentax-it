@@ -45,7 +45,11 @@ Al primo avvio apri http://localhost:3001/setup: crea la partita IVA (profilo fi
 
 ## Contribuire
 
-Leggi [CONTRIBUTING.md](CONTRIBUTING.md). Ogni regola fiscale deve citare la fonte ufficiale (norma, provvedimento, circolare) nel codice e nei test.
+Leggi [CONTRIBUTING.md](CONTRIBUTING.md): si lavora solo su fonti ufficiali verificate, nessuna assunzione. Ogni regola fiscale deve citare la fonte ufficiale (norma, provvedimento, circolare) nel codice e nei test.
+
+## Cosa manca
+
+La lista dei lavori aperti, per epiche e con le fonti da cui partire, è in [TODO.md](TODO.md). I punti verificabili ma ancora senza fonte sono in [docs/compliance.md](docs/compliance.md), sezione "Non verificato / aperto".
 
 ## Licenza
 
