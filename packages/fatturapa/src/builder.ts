@@ -36,11 +36,21 @@ export function sanitizeText(input: string): string {
     '\u2013': '-', '\u2014': '-', '\u2018': "'", '\u2019': "'", '\u201A': "'",
     '\u201C': '"', '\u201D': '"', '\u201E': '"', '\u2026': '...', '\u00A0': ' ', '\u20AC': 'EUR',
   };
+  const normalized = input.replace(/\r\n|\r|\n/g, ' ');
   let out = '';
-  for (const ch of input) {
-    const code = ch.codePointAt(0)!;
-    if (code >= 0x20 && code <= 0xff) out += ch;
-    else if (replacements[ch] !== undefined) out += replacements[ch];
+  for (const ch of normalized) {
+    if (replacements[ch] !== undefined) {
+      out += replacements[ch];
+    } else if (ch === '\t') {
+      out += ' ';
+    } else {
+      const code = ch.codePointAt(0)!;
+      // Accept printable Basic Latin (0x20–0x7E) and printable Latin-1 Supplement (0xA1–0xFF).
+      // Discard DEL (0x7F), C1 controls (0x80–0x9F), and any character > 0xFF not in replacements.
+      if ((code >= 0x20 && code <= 0x7E) || (code >= 0xA1 && code <= 0xFF)) {
+        out += ch;
+      }
+    }
   }
   return out;
 }
@@ -94,10 +104,10 @@ export function validateInvoice(inv: FlatRateInvoice): string[] {
   if (!/^[A-Z0-9]{7}$/.test(inv.recipientCode)) errors.push('recipientCode must be 7 characters');
   if (inv.recipientCode === 'XXXXXXX' && inv.customer.countryCode === 'IT') errors.push('recipientCode XXXXXXX requires a non-IT customer (error 00313)');
   if (inv.number.length > 20) errors.push('number exceeds 20 characters');
-  if (inv.legalReference.length > 100) errors.push('legalReference exceeds 100 characters');
-  for (const n of inv.notes) if (n.length > 200) errors.push('each note (Causale) must be at most 200 characters');
+  if (sanitizeText(inv.legalReference).length > 100) errors.push('legalReference exceeds 100 characters');
+  for (const n of inv.notes) if (sanitizeText(n).length > 200) errors.push('each note (Causale) must be at most 200 characters');
   if (inv.lines.length === 0) errors.push('at least one line is required');
-  for (const l of inv.lines) if (l.description.length > 1000) errors.push('line description exceeds 1000 characters');
+  for (const l of inv.lines) if (sanitizeText(l.description).length > 1000) errors.push('line description exceeds 1000 characters');
   if (!inv.supplier.vatNumber) errors.push('supplier VAT number is required');
   if (!inv.customer.businessName && !(inv.customer.firstName && inv.customer.lastName)) errors.push('customer needs a business name or first and last name');
   if (inv.customer.countryCode === 'IT' && !inv.customer.vatNumber && !inv.customer.fiscalCode) errors.push('Italian customer needs a VAT number or fiscal code');

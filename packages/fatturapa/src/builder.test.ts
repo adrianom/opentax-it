@@ -77,6 +77,18 @@ describe('sanitizeText', () => {
     expect(sanitizeText('Sviluppo — “test” … Hauptstraße €')).toBe('Sviluppo - "test" ... Hauptstraße EUR');
     expect(sanitizeText('emoji 🚀 dropped')).toBe('emoji  dropped');
   });
+
+  it('normalizes NBSP to regular space', () => {
+    expect(sanitizeText('non\u00A0breaking')).toBe('non breaking');
+  });
+
+  it('converts newlines and tabs to spaces without concatenating words (collapsing CRLF)', () => {
+    expect(sanitizeText('riga1\nriga2\r\nriga3\ttab')).toBe('riga1 riga2 riga3 tab');
+  });
+
+  it('discards C0 control characters, DEL (0x7F) and C1 controls (0x80–0x9F)', () => {
+    expect(sanitizeText('test\x07with\x7Fcontrols\x85and\x9Fmore')).toBe('testwithcontrolsandmore');
+  });
 });
 
 describe('formatting', () => {
@@ -96,6 +108,10 @@ describe('validateInvoice', () => {
   it('rejects XXXXXXX for an Italian customer and credit notes without reference', () => {
     expect(validateInvoice({ ...domestic, recipientCode: 'XXXXXXX' })).toContain('recipientCode XXXXXXX requires a non-IT customer (error 00313)');
     expect(validateInvoice({ ...domestic, documentType: 'TD04' })).toContain('credit/debit notes must reference the corrected invoice');
+  });
+
+  it('rejects notes that exceed 200 characters after sanitization (199 chars + € expanding to 202)', () => {
+    expect(validateInvoice({ ...domestic, notes: ['a'.repeat(199) + '€'] })).toContain('each note (Causale) must be at most 200 characters');
   });
 });
 
