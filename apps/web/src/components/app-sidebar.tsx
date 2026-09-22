@@ -33,7 +33,7 @@ const CONFIG_NAV = [
 export function AppSidebar({ tenantName }: { tenantName: string | null }) {
   const pathname = usePathname();
   return (
-    <Sidebar collapsible="icon">
+    <Sidebar collapsible="icon" className="print:hidden">
       <SidebarHeader>
         <SidebarMenu>
           <SidebarMenuItem>

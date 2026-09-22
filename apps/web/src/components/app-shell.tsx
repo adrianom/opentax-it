@@ -13,14 +13,14 @@ export async function AppShell({ children }: { children: ReactNode }) {
     <SidebarProvider>
       <AppSidebar tenantName={tenant?.name ?? null} />
       <SidebarInset>
-        <header className="flex h-12 items-center gap-2 border-b px-4">
+        <header className="flex h-12 items-center gap-2 border-b px-4 print:hidden">
           <SidebarTrigger />
           <Separator orientation="vertical" className="h-4" />
           <span className="text-sm text-muted-foreground">{tenant ? tenant.name : 'Seleziona una partita IVA'}</span>
           <div className="ml-auto"><Clock /></div>
         </header>
         <div className="flex-1">{children}</div>
-        <footer className="border-t px-6 py-3 text-xs text-muted-foreground">
+        <footer className="border-t px-6 py-3 text-xs text-muted-foreground print:hidden">
           OpenTax IT è uno strumento di supporto, non consulenza fiscale. Nessuna garanzia sulla correttezza di dati e calcoli: la responsabilità del loro uso è esclusivamente dell&apos;utilizzatore (AGPL-3.0 sez. 15-16).
         </footer>
       </SidebarInset>

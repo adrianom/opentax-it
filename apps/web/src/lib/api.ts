@@ -88,6 +88,7 @@ export const api = {
   taxYearData: (year: number) => tenantRequest<TaxYearData>(`/taxes/${year}/data`),
   updateTaxYearData: (year: number, data: unknown) => tenantRequest<TaxYearData>(`/taxes/${year}/data`, { method: 'PUT', body: JSON.stringify(data) }),
   f24s: (year: number) => tenantRequest<F24[]>(`/f24?year=${year}`),
+  f24: (id: string) => tenantRequest<F24>(`/f24/${id}`),
   planOptions: (taxYear: number) => tenantRequest<PlanOptions>(`/f24/plans/${taxYear}/options`),
   plan: (taxYear: number) => tenantRequest<InstallmentPlan>(`/f24/plans/${taxYear}`),
   previewPlan: (taxYear: number, data: unknown) => tenantRequest<PlanPreview>(`/f24/plans/${taxYear}/preview`, { method: 'POST', body: JSON.stringify(data) }),
@@ -95,6 +96,12 @@ export const api = {
   deletePlan: (taxYear: number) => tenantRequest<void>(`/f24/plans/${taxYear}`, { method: 'DELETE' }),
   updateF24Status: (id: string, data: unknown) => tenantRequest<F24>(`/f24/${id}/status`, { method: 'PATCH', body: JSON.stringify(data) }),
   importInvoices: (files: Array<{ name: string; xml: string }>) => tenantRequest<ImportResult[]>('/invoices/import', { method: 'POST', body: JSON.stringify({ files }) }),
+  f24Pdf: async (id: string) => {
+    const tenantId = await currentTenantId();
+    const res = await fetch(`${API_URL}/f24/${id}/pdf`, { headers: tenantId ? { 'x-tenant-id': tenantId } : {}, cache: 'no-store' });
+    if (!res.ok) throw new ApiError(res.status, 'PDF non disponibile');
+    return { fileName: res.headers.get('content-disposition')?.match(/filename="([^"]+)"/)?.[1] ?? 'f24.pdf', content: await res.arrayBuffer() };
+  },
   invoiceXml: async (id: string) => {
     const tenantId = await currentTenantId();
     const res = await fetch(`${API_URL}/invoices/${id}/xml`, { headers: tenantId ? { 'x-tenant-id': tenantId } : {}, cache: 'no-store' });

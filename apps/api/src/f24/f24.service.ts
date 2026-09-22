@@ -15,6 +15,7 @@ import type { F24Kind, F24Status } from '../generated/prisma/enums.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { TaxesService } from '../taxes/taxes.service.js';
 import { TenantsService } from '../tenants/tenants.service.js';
+import { F24PdfService } from './f24-pdf.service.js';
 import { type PlanOptionsDto, type PlanStart, type UpdateF24StatusDto } from './f24.dto.js';
 
 /**
@@ -42,6 +43,7 @@ export class F24Service {
     private readonly prisma: PrismaService,
     private readonly taxes: TaxesService,
     private readonly tenants: TenantsService,
+    private readonly pdf24: F24PdfService,
   ) {}
 
   /** The four possible first due dates (ordinary, yearly extension, 30-day deferrals) offered by the payment year's rule set. */
@@ -192,6 +194,39 @@ export class F24Service {
     const locked = plan.f24s.filter((f) => f.status === 'PAID' || f.status === 'SCHEDULED_I24');
     if (locked.length > 0) throw new ConflictException(`${locked.length} form(s) are paid or scheduled: set them back to planned before deleting the plan`);
     await this.prisma.installmentPlan.delete({ where: { id: plan.id } });
+  }
+
+  async get(tenantId: string, id: string) {
+    const f24 = await this.prisma.f24.findFirst({ where: { id, tenantId }, include: { lines: true, plan: { select: { taxYear: true, installments: true } } } });
+    if (!f24) throw new NotFoundException('F24 not found');
+    return f24;
+  }
+
+  async pdf(tenantId: string, id: string) {
+    const [f24, { profile }] = await Promise.all([this.get(tenantId, id), this.tenants.getWithProfile(tenantId)]);
+    const content = await this.pdf24.render({
+      paymentDate: toIsoDate(f24.paymentDate),
+      fiscalCode: profile.fiscalCode,
+      name: profile.businessName ?? profile.lastName,
+      firstName: profile.businessName ? null : profile.firstName,
+      city: profile.city,
+      province: profile.province,
+      address: profile.address,
+      lines: f24.lines.map((l) => ({
+        section: l.section,
+        code: l.code,
+        officeCode: l.officeCode,
+        installmentCode: l.installmentCode,
+        periodFrom: l.periodFrom,
+        periodTo: l.periodTo,
+        referenceYear: l.referenceYear,
+        debitAmount: Number(l.debitAmount),
+        creditAmount: Number(l.creditAmount),
+      })),
+    });
+    const date = toIsoDate(f24.paymentDate);
+    const label = f24.installmentNumber ? `rata-${f24.installmentNumber}-di-${f24.installmentsTotal}` : f24.kind.toLowerCase().replace(/_/g, '-');
+    return { fileName: `F24_${date}_${label}.pdf`, content };
   }
 
   async updateStatus(tenantId: string, id: string, dto: UpdateF24StatusDto) {

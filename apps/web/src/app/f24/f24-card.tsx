@@ -130,6 +130,7 @@ export function F24Card({ f, taxYear, highlight }: { f: F24Draft | F24; taxYear:
         <LinesTable lines={f.lines} section="INPS" taxYear={taxYear} />
         {saved && saved.status !== 'CANCELLED' && (
           <div className="flex flex-wrap items-end gap-2 border-t pt-3">
+            <Button size="sm" variant="outline" render={<a href={`/f24/${saved.id}/pdf`} />}>Scarica PDF (Mod. F24)</Button>
             {saved.status !== 'PAID' && (
               <form action={setF24Status} className="flex items-end gap-2">
                 <input type="hidden" name="id" value={saved.id} />

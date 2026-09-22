@@ -1,4 +1,5 @@
-import { Body, Controller, Delete, Get, HttpCode, Param, ParseIntPipe, Patch, Post, Query } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Header, HttpCode, Param, ParseIntPipe, Patch, Post, Query, Res, StreamableFile } from '@nestjs/common';
+import type { Response } from 'express';
 import { TenantId } from '../common/tenant.decorator.js';
 import { PlanOptionsDto, UpdateF24StatusDto } from './f24.dto.js';
 import { F24Service } from './f24.service.js';
@@ -34,6 +35,18 @@ export class F24Controller {
   /** Delete the plan and its forms (only when no form is paid or scheduled). */
   @Delete('plans/:taxYear') @HttpCode(204)
   remove(@TenantId() tenantId: string, @Param('taxYear', ParseIntPipe) taxYear: number) { return this.service.deletePlan(tenantId, taxYear); }
+
+  @Get(':id')
+  one(@TenantId() tenantId: string, @Param('id') id: string) { return this.service.get(tenantId, id); }
+
+  /** The form printed on the official AdE model (three copies). */
+  @Get(':id/pdf')
+  @Header('Content-Type', 'application/pdf')
+  async pdf(@TenantId() tenantId: string, @Param('id') id: string, @Res({ passthrough: true }) res: Response) {
+    const { fileName, content } = await this.service.pdf(tenantId, id);
+    res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
+    return new StreamableFile(Buffer.from(content));
+  }
 
   @Patch(':id/status')
   status(@TenantId() tenantId: string, @Param('id') id: string, @Body() dto: UpdateF24StatusDto) { return this.service.updateStatus(tenantId, id, dto); }
