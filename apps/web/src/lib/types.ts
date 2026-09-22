@@ -105,7 +105,7 @@ export interface Invoice {
   paymentTermsId: string | null;
   bankAccountId: string | null;
   xmlFileName: string | null;
-  customer: Pick<Customer, 'id' | 'businessName' | 'firstName' | 'lastName' | 'kind'>;
+  customer: Customer;
   lines?: InvoiceLine[];
 }
 

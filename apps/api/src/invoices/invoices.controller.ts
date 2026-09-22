@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, Header, HttpCode, Param, Post, Put, Query, Res } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Header, HttpCode, Param, Post, Put, Query, Res, StreamableFile } from '@nestjs/common';
 import type { Response } from 'express';
 import { TenantId } from '../common/tenant.decorator.js';
 import { CreateInvoiceDto, ImportInvoicesDto, IssueInvoiceDto, ListInvoicesQuery, UpdateInvoiceDto } from './invoices.dto.js';
@@ -30,5 +30,13 @@ export class InvoicesController {
     const { fileName, content } = await this.service.xml(tenantId, id);
     res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
     return content;
+  }
+
+  @Get(':id/pdf')
+  @Header('Content-Type', 'application/pdf')
+  async pdf(@TenantId() tenantId: string, @Param('id') id: string, @Res({ passthrough: true }) res: Response) {
+    const { fileName, content } = await this.service.pdf(tenantId, id);
+    res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
+    return new StreamableFile(Buffer.from(content));
   }
 }

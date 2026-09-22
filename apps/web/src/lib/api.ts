@@ -108,6 +108,12 @@ export const api = {
     if (!res.ok) throw new ApiError(res.status, 'PDF non disponibile');
     return { fileName: res.headers.get('content-disposition')?.match(/filename="([^"]+)"/)?.[1] ?? 'f24.pdf', content: await res.arrayBuffer() };
   },
+  invoicePdf: async (id: string) => {
+    const tenantId = await currentTenantId();
+    const res = await fetch(`${API_URL}/invoices/${id}/pdf`, { headers: tenantId ? { 'x-tenant-id': tenantId } : {}, cache: 'no-store' });
+    if (!res.ok) throw new ApiError(res.status, 'PDF non disponibile');
+    return { fileName: res.headers.get('content-disposition')?.match(/filename="([^"]+)"/)?.[1] ?? 'fattura.pdf', content: await res.arrayBuffer() };
+  },
   invoiceXml: async (id: string) => {
     const tenantId = await currentTenantId();
     const res = await fetch(`${API_URL}/invoices/${id}/xml`, { headers: tenantId ? { 'x-tenant-id': tenantId } : {}, cache: 'no-store' });

@@ -27,6 +27,8 @@ import type { CreateInvoiceDto, ListInvoicesQuery, UpdateInvoiceDto } from './in
 
 const round2 = (n: number) => Math.round((n + Number.EPSILON) * 100) / 100;
 
+import { InvoicesPdfService } from './invoices-pdf.service.js';
+
 type InvoiceWithRelations = Invoice & { lines: InvoiceLine[]; customer: Customer };
 
 @Injectable()
@@ -36,6 +38,7 @@ export class InvoicesService {
     private readonly rules: FiscalRulesService,
     private readonly tenants: TenantsService,
     private readonly storage: StorageService,
+    private readonly pdfService: InvoicesPdfService,
   ) {}
 
   list(tenantId: string, q: ListInvoicesQuery) {
@@ -205,6 +208,17 @@ export class InvoicesService {
     const inv = await this.get(tenantId, id);
     if (!inv.xmlPath || !inv.xmlFileName) throw new NotFoundException('Invoice has no XML yet (not issued)');
     return { fileName: inv.xmlFileName, content: (await this.storage.read(inv.xmlPath)).toString('utf8') };
+  }
+
+  /** Generates a readable PDF courtesy copy of the invoice using pdf-lib. */
+  async pdf(tenantId: string, id: string): Promise<{ fileName: string; content: Uint8Array }> {
+    const inv = await this.get(tenantId, id);
+    const { profile } = await this.tenants.getWithProfile(tenantId);
+    const payment = await this.paymentFromTerms(tenantId, inv);
+    const content = await this.pdfService.generate({ invoice: inv, profile, payment });
+    const cleanNumber = inv.number ? inv.number.replace(/[\/\\]/g, '_') : `bozza_${inv.id.slice(-6)}`;
+    const fileName = `Fattura_${cleanNumber}.pdf`;
+    return { fileName, content };
   }
 
   private toFatturaPa(
