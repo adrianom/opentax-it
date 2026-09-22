@@ -65,5 +65,8 @@ Emissione e XML sono pronti; manca la trasmissione.
 - Dipendenze: l'audit segnala vulnerabilità solo in dipendenze transitive del CLI Prisma (`mysql2`, `deepmerge-ts`), non usate a runtime con PostgreSQL; da rivalutare a ogni aggiornamento di Prisma.
 - Deploy: immagine Docker per api + web, backup del database e della cartella `storage/`.
 
+### Roadmap su GitHub
+- Portare le epiche di questo file in **Issues** (una per epica, etichette per area, priorità e "da verificare") e in un **Project** board del repository, così che la community possa prenderle in carico; questo file resta l'indice. Richiede accesso al repo con `gh auth login` (o token) da parte di un maintainer.
+
 ## Punti aperti verificabili
 Elencati con la fonte che manca in [docs/compliance.md](docs/compliance.md), sezione "Non verificato / aperto" (es. contributo INPS al centesimo vs quadro RR in euro interi; abbinamento ATECO → ISA; Istr. Redditi PF 2025 non lette per il set 2025).
