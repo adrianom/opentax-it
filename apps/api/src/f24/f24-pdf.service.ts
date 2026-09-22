@@ -33,44 +33,55 @@ const PAGE_HEIGHT = 841.89;
 /** y from the top of the page → PDF y. */
 const y = (top: number) => PAGE_HEIGHT - top;
 
+/** Boxes as [left, right] in PDF points; text is centered in them. */
 const LAYOUT = {
   fontSize: 8,
   contributor: {
     fiscalCode: { x0: 113.8, x1: 343, baseline: y(118.5), boxes: 16 },
     name: { x: 116, baseline: y(140.5) },
     firstName: { x: 418, baseline: y(140.5) },
+    birth: {
+      baseline: y(165),
+      day: [121, 135.5],
+      month: [151, 165.5],
+      year: [181, 195.4, 209.8, 224.2],
+      sex: 250.5,
+      place: { x: 274 },
+      province: 552,
+    },
     city: { x: 116, baseline: y(189.5) },
     province: { x: 332, baseline: y(189.5) },
     address: { x: 368, baseline: y(189.5) },
   },
   treasury: {
     rows: 6,
-    firstBaseline: y(250.6),
+    firstBaseline: y(250.2),
     rowStep: 12,
-    totalBaseline: y(322.6),
-    code: { x: 159 },
-    installment: { x: 223 },
-    year: { x: 275 },
+    totalBaseline: y(322.2),
+    code: [157, 213.6] as Box,
+    installment: [221, 265] as Box,
+    year: [272, 314] as Box,
   },
   inps: {
     rows: 4,
-    firstBaseline: y(359),
+    firstBaseline: y(358.5),
     rowStep: 12,
-    totalBaseline: y(407),
-    office: { x: 23 },
-    reason: { x: 58 },
-    periodFrom: { month: 228, year: 250 },
-    periodTo: { month: 280, year: 300 },
+    totalBaseline: y(406.5),
+    office: [20.6, 48] as Box,
+    reason: [55.7, 84.5] as Box,
+    periodFrom: { month: [221, 235] as Box, year: [236, 265] as Box },
+    periodTo: { month: [272, 288] as Box, year: [289, 314] as Box },
   },
   amounts: {
-    debit: { intRight: 383, decLeft: 388.5 },
-    credit: { intRight: 469.4, decLeft: 474.9 },
-    balance: { intRight: 555.8, decLeft: 561.3, signX: 489 },
+    debit: { intRight: 383, decimals: [388, 401] as Box },
+    credit: { intRight: 469.4, decimals: [474.4, 487] as Box },
+    balance: { intRight: 555.8, decimals: [560.8, 573.7] as Box, signX: 489 },
   },
-  finalBalance: { baseline: y(718.6), intRight: 555.8, decLeft: 561.3 },
+  finalBalance: { baseline: y(718.2), intRight: 555.8, decimals: [560.8, 573.7] as Box },
   /** "Estremi del versamento" date boxes (DD MM YYYY); filled with the planned payment date as intermediaries' software does. */
   paymentDate: { baseline: y(788), day: [36, 50], month: [65, 79], year: [95, 109, 123, 137] },
 };
+type Box = [number, number];
 
 export interface F24PrintLine {
   section: 'TREASURY' | 'INPS';
@@ -91,6 +102,11 @@ export interface F24PrintData {
   /** Surname or business name. */
   name: string;
   firstName?: string | null;
+  /** ISO date. */
+  birthDate?: string | null;
+  sex?: string | null;
+  birthPlace?: string | null;
+  birthProvince?: string | null;
   city: string;
   province: string;
   address: string;
@@ -132,19 +148,26 @@ export class F24PdfService {
 
     const doc = await PDFDocument.load(await this.model());
     const font = await doc.embedFont(StandardFonts.Courier);
-    for (const page of doc.getPages()) this.fillPage(page, font, data, treasury, inps);
+    // The model carries three copies (two for the bank, one for the taxpayer); a telematic payment needs one.
+    while (doc.getPageCount() > 1) doc.removePage(doc.getPageCount() - 1);
+    this.fillPage(doc.getPage(0), font, data, treasury, inps);
     return doc.save();
   }
 
   private fillPage(page: PDFPage, font: PDFFont, data: F24PrintData, treasury: F24PrintLine[], inps: F24PrintLine[]) {
     const size = LAYOUT.fontSize;
     const text = (s: string, x: number, baseline: number) => page.drawText(s, { x, y: baseline, size, font, color: rgb(0, 0, 0) });
-    const rightAligned = (s: string, xRight: number, baseline: number) => text(s, xRight - font.widthOfTextAtSize(s, size), baseline);
-    const amount = (value: number, col: { intRight: number; decLeft: number }, baseline: number) => {
+    const width = (s: string) => font.widthOfTextAtSize(s, size);
+    const rightAligned = (s: string, xRight: number, baseline: number) => text(s, xRight - width(s), baseline);
+    const centered = (s: string, box: Box | number, baseline: number) => {
+      const cx = typeof box === 'number' ? box : (box[0] + box[1]) / 2;
+      text(s, cx - width(s) / 2, baseline);
+    };
+    const amount = (value: number, col: { intRight: number; decimals: Box }, baseline: number) => {
       if (!(value > 0)) return;
       const [int, dec] = value.toFixed(2).split('.');
       rightAligned(int, col.intRight, baseline);
-      text(dec, col.decLeft, baseline);
+      centered(dec, col.decimals, baseline);
     };
 
     // Contributor
@@ -156,6 +179,15 @@ export class F24PdfService {
     });
     text(data.name.toUpperCase(), c.name.x, c.name.baseline);
     if (data.firstName) text(data.firstName.toUpperCase(), c.firstName.x, c.firstName.baseline);
+    const bd = data.birthDate?.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if (bd) {
+      [...bd[3]].forEach((ch, i) => centered(ch, c.birth.day[i], c.birth.baseline));
+      [...bd[2]].forEach((ch, i) => centered(ch, c.birth.month[i], c.birth.baseline));
+      [...bd[1]].forEach((ch, i) => centered(ch, c.birth.year[i], c.birth.baseline));
+    }
+    if (data.sex) centered(data.sex.toUpperCase(), c.birth.sex, c.birth.baseline);
+    if (data.birthPlace) text(data.birthPlace.toUpperCase(), c.birth.place.x, c.birth.baseline);
+    if (data.birthProvince) centered(data.birthProvince.toUpperCase(), c.birth.province, c.birth.baseline);
     text(data.city.toUpperCase(), c.city.x, c.city.baseline);
     text(data.province.toUpperCase(), c.province.x, c.province.baseline);
     text(data.address.toUpperCase(), c.address.x, c.address.baseline);
@@ -166,15 +198,15 @@ export class F24PdfService {
     let creditB = 0;
     treasury.forEach((l, i) => {
       const b = t.firstBaseline - i * t.rowStep;
-      text(l.code, t.code.x, b);
-      if (l.installmentCode) text(l.installmentCode, t.installment.x, b);
-      text(String(l.referenceYear), t.year.x, b);
+      centered(l.code, t.code, b);
+      if (l.installmentCode) centered(l.installmentCode, t.installment, b);
+      centered(String(l.referenceYear), t.year, b);
       amount(l.debitAmount, LAYOUT.amounts.debit, b);
       amount(l.creditAmount, LAYOUT.amounts.credit, b);
       debitA += l.debitAmount;
       creditB += l.creditAmount;
     });
-    if (treasury.length > 0) this.totals(page, font, debitA, creditB, t.totalBaseline, amount, text);
+    if (treasury.length > 0) this.totals(debitA, creditB, t.totalBaseline, amount, text, rightAligned, centered);
 
     // INPS section
     const n = LAYOUT.inps;
@@ -182,29 +214,28 @@ export class F24PdfService {
     let creditD = 0;
     inps.forEach((l, i) => {
       const b = n.firstBaseline - i * n.rowStep;
-      if (l.officeCode) text(l.officeCode, n.office.x, b);
-      text(l.code, n.reason.x, b);
+      if (l.officeCode) centered(l.officeCode, n.office, b);
+      centered(l.code, n.reason, b);
       const from = splitPeriod(l.periodFrom);
       const to = splitPeriod(l.periodTo);
       if (from) {
-        text(from.month, n.periodFrom.month, b);
-        text(from.year, n.periodFrom.year, b);
+        centered(from.month, n.periodFrom.month, b);
+        centered(from.year, n.periodFrom.year, b);
       }
       if (to) {
-        text(to.month, n.periodTo.month, b);
-        text(to.year, n.periodTo.year, b);
+        centered(to.month, n.periodTo.month, b);
+        centered(to.year, n.periodTo.year, b);
       }
       amount(l.debitAmount, LAYOUT.amounts.debit, b);
       amount(l.creditAmount, LAYOUT.amounts.credit, b);
       debitC += l.debitAmount;
       creditD += l.creditAmount;
     });
-    if (inps.length > 0) this.totals(page, font, debitC, creditD, n.totalBaseline, amount, text);
+    if (inps.length > 0) this.totals(debitC, creditD, n.totalBaseline, amount, text, rightAligned, centered);
 
     // Payment date
     const d = data.paymentDate?.match(/^(\d{4})-(\d{2})-(\d{2})$/);
     if (d) {
-      const centered = (ch: string, cx: number, b: number) => text(ch, cx - font.widthOfTextAtSize(ch, size) / 2, b);
       const pd = LAYOUT.paymentDate;
       [...d[3]].forEach((ch, i) => centered(ch, pd.day[i], pd.baseline));
       [...d[2]].forEach((ch, i) => centered(ch, pd.month[i], pd.baseline));
@@ -216,25 +247,25 @@ export class F24PdfService {
     const f = LAYOUT.finalBalance;
     const [int, dec] = Math.abs(final).toFixed(2).split('.');
     rightAligned(int, f.intRight, f.baseline);
-    text(dec, f.decLeft, f.baseline);
+    centered(dec, f.decimals, f.baseline);
   }
 
   private totals(
-    page: PDFPage,
-    font: PDFFont,
     debit: number,
     credit: number,
     baseline: number,
-    amount: (v: number, col: { intRight: number; decLeft: number }, b: number) => void,
+    amount: (v: number, col: { intRight: number; decimals: Box }, b: number) => void,
     text: (s: string, x: number, b: number) => void,
+    rightAligned: (s: string, xRight: number, b: number) => void,
+    centered: (s: string, box: Box | number, b: number) => void,
   ) {
     amount(round2(debit), LAYOUT.amounts.debit, baseline);
     amount(round2(credit), LAYOUT.amounts.credit, baseline);
     const balance = round2(debit - credit);
     text(balance < 0 ? '-' : '+', LAYOUT.amounts.balance.signX, baseline);
     const [int, dec] = Math.abs(balance).toFixed(2).split('.');
-    page.drawText(int, { x: LAYOUT.amounts.balance.intRight - font.widthOfTextAtSize(int, LAYOUT.fontSize), y: baseline, size: LAYOUT.fontSize, font });
-    text(dec, LAYOUT.amounts.balance.decLeft, baseline);
+    rightAligned(int, LAYOUT.amounts.balance.intRight, baseline);
+    centered(dec, LAYOUT.amounts.balance.decimals, baseline);
   }
 }
 

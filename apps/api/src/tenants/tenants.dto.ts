@@ -19,6 +19,10 @@ export class CreateTenantDto {
   @IsOptional() @IsBoolean() isaSubject?: boolean;
   @IsOptional() @IsBoolean() viesRegistered?: boolean;
   @IsOptional() @IsString() @Matches(/^\d{4}-[a-z0-9-]+$/) inpsOfficeId?: string;
+  @IsOptional() @IsString() @Matches(/^(\d{4}-\d{2}-\d{2})?$/) birthDate?: string;
+  @IsOptional() @IsString() @Matches(/^[MF]?$/) sex?: string;
+  @IsOptional() @IsString() @Length(0, 60) birthPlace?: string;
+  @IsOptional() @IsString() @Matches(/^([A-Z]{2})?$/) birthProvince?: string;
   @IsOptional() @IsString() pecAddress?: string;
 }
 
@@ -39,6 +43,10 @@ export class UpdateTenantProfileDto {
   @IsOptional() @IsBoolean() applyInpsSurcharge?: boolean;
   @IsOptional() @IsBoolean() isaSubject?: boolean;
   @IsOptional() @IsBoolean() viesRegistered?: boolean;
+  @IsOptional() @IsString() @Matches(/^(\d{4}-\d{2}-\d{2})?$/) birthDate?: string;
+  @IsOptional() @IsString() @Matches(/^[MF]?$/) sex?: string;
+  @IsOptional() @IsString() @Length(0, 60) birthPlace?: string;
+  @IsOptional() @IsString() @Matches(/^([A-Z]{2})?$/) birthProvince?: string;
   @IsOptional() @IsString() pecAddress?: string;
   @IsOptional() @IsString() @Matches(/^\d{4}-[a-z0-9-]+$/) inpsOfficeId?: string;
 }

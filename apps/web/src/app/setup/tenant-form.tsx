@@ -29,6 +29,16 @@ export function TenantForm({ offices, current }: Props) {
       <Field label="Denominazione (opzionale)" htmlFor="businessName"><Input id="businessName" name="businessName" defaultValue={p?.businessName ?? ''} /></Field>
       <Field label="Nome" htmlFor="firstName"><Input id="firstName" name="firstName" required defaultValue={p?.firstName ?? ''} /></Field>
       <Field label="Cognome" htmlFor="lastName"><Input id="lastName" name="lastName" required defaultValue={p?.lastName ?? ''} /></Field>
+      <Field label="Data di nascita" htmlFor="birthDate" hint="Per il modello F24 (dati anagrafici)"><Input id="birthDate" name="birthDate" type="date" defaultValue={p?.birthDate?.slice(0, 10) ?? ''} /></Field>
+      <Field label="Sesso" htmlFor="sex">
+        <NativeSelect id="sex" name="sex" defaultValue={p?.sex ?? ''}>
+          <option value="">—</option>
+          <option value="M">M</option>
+          <option value="F">F</option>
+        </NativeSelect>
+      </Field>
+      <Field label="Comune (o Stato estero) di nascita" htmlFor="birthPlace"><Input id="birthPlace" name="birthPlace" defaultValue={p?.birthPlace ?? ''} /></Field>
+      <Field label="Provincia di nascita" htmlFor="birthProvince"><Input id="birthProvince" name="birthProvince" minLength={2} maxLength={2} defaultValue={p?.birthProvince ?? ''} /></Field>
       <Field label="Codice fiscale" htmlFor="fiscalCode"><Input id="fiscalCode" name="fiscalCode" required minLength={16} maxLength={16} defaultValue={p?.fiscalCode ?? ''} /></Field>
       <Field label="Partita IVA" htmlFor="vatNumber"><Input id="vatNumber" name="vatNumber" required pattern="\d{11}" defaultValue={p?.vatNumber ?? ''} /></Field>
       <Field

@@ -13,7 +13,7 @@ export class TenantsService {
       throw new BadRequestException('Unknown INPS office (see the AdE "Tabella codici sede INPS")');
     }
     return this.prisma.tenant.create({
-      data: { name, profile: { create: profile } },
+      data: { name, profile: { create: { ...profile, ...personalData(profile) } } },
       include: { profile: true },
     });
   }
@@ -31,6 +31,7 @@ export class TenantsService {
         profile: {
           update: {
             ...profile,
+            ...personalData(profile),
             inpsOfficeId: profile.inpsOfficeId === '' ? null : profile.inpsOfficeId,
           },
         },
@@ -103,4 +104,14 @@ export class TenantsService {
   list() {
     return this.prisma.tenant.findMany({ select: { id: true, name: true, createdAt: true }, orderBy: { createdAt: 'asc' } });
   }
+}
+
+/** Birth data as stored: empty strings become null, the date becomes a Date (UTC midnight). */
+function personalData(p: { birthDate?: string; sex?: string; birthPlace?: string; birthProvince?: string }) {
+  const out: { birthDate?: Date | null; sex?: string | null; birthPlace?: string | null; birthProvince?: string | null } = {};
+  if (p.birthDate !== undefined) out.birthDate = p.birthDate ? new Date(`${p.birthDate}T00:00:00Z`) : null;
+  if (p.sex !== undefined) out.sex = p.sex || null;
+  if (p.birthPlace !== undefined) out.birthPlace = p.birthPlace || null;
+  if (p.birthProvince !== undefined) out.birthProvince = p.birthProvince || null;
+  return out;
 }

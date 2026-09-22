@@ -89,6 +89,11 @@ model TenantProfile {
   applyInpsSurcharge Boolean  @default(false)
   /// Activity with an approved ISA within its revenue limit: advances 50% + 50% (DL 124/2019 art. 58; AdE res. 93/E/2019).
   isaSubject         Boolean  @default(false)
+  /// Personal data printed on the F24 form ("Dati anagrafici"): date of birth, sex (M/F), municipality and province of birth.
+  birthDate          DateTime? @db.Date
+  sex                String?
+  birthPlace         String?
+  birthProvince      String?
   /// Registered in VIES (required for EU B2B services, Circ. 10/E/2016).
   viesRegistered     Boolean  @default(false)
   /// INPS office ("codice sede") for the F24 INPS section, by residence (INPS sheet "F24 per professionisti iscritti alla GS").

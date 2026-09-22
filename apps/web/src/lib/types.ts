@@ -39,6 +39,10 @@ export interface TenantProfile {
   activityStartYear: number;
   reducedRate: boolean;
   isaSubject: boolean;
+  birthDate: string | null;
+  sex: string | null;
+  birthPlace: string | null;
+  birthProvince: string | null;
   applyInpsSurcharge: boolean;
   viesRegistered: boolean;
   pecAddress: string | null;
