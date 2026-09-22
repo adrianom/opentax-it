@@ -2,7 +2,17 @@
 
 Grazie per l'interesse. Contribuendo accetti che il software è distribuito senza garanzia e senza alcuna assunzione di responsabilità da parte di autori e contributori ([DISCLAIMER.md](DISCLAIMER.md), AGPL-3.0 sez. 15-16): il progetto non fornisce consulenza fiscale.
 
-Alcune regole che rendono il progetto affidabile:
+## La regola che viene prima di tutte: niente ipotesi
+
+In questo settore un errore costa sanzioni a chi usa il software. Per questo:
+
+- Si lavora **solo su elementi verificati**: testo di legge vigente (Normattiva/Gazzetta Ufficiale), provvedimenti, circolari, risoluzioni e istruzioni ufficiali (Agenzia delle Entrate, INPS, ADM), con **esempi ufficiali** quando esistono (prospetti delle istruzioni, modelli pubblicati, FAQ ufficiali).
+- **Nessuna assunzione**: se un dato non è scritto in una fonte ufficiale, non va codificato come regola. Va dichiarato aperto in `docs/compliance.md` (sezione "Non verificato / aperto") e, se serve, chiesto in una issue.
+- Ricordi, prassi "di solito si fa così", articoli di blog, risposte di un modello linguistico: possono suggerire dove cercare, non sono mai la fonte. Una PR che cita una di queste cose come fonte non viene accettata.
+- Quando due fonti ufficiali sembrano dire cose diverse, si riportano entrambe con la citazione testuale e si lascia il punto aperto: non si sceglie "la più probabile".
+- Ogni valore, formula o scadenza nel codice porta con sé: fonte (URL ufficiale), titolo dell'atto, citazione testuale, data di verifica (vedi `sourceRefs` nei set di regole) e un test costruito su un esempio ufficiale o su un documento reale anonimizzato.
+
+Lo stesso vale per la documentazione e per `TODO.md`: una feature non verificata resta "da verificare", non "da fare".
 
 ## Regole fiscali
 - **Solo fonti ufficiali**: Agenzia delle Entrate, INPS, Gazzetta Ufficiale/Normattiva, ADM, fatturapa.gov.it. Blog e portali fiscali possono orientare, ma non sono una fonte accettabile in una PR.
