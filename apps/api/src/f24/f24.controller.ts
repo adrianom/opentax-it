@@ -1,5 +1,6 @@
 import { Body, Controller, Delete, Get, Header, HttpCode, Param, ParseIntPipe, Patch, Post, Query, Res, StreamableFile } from '@nestjs/common';
 import type { Response } from 'express';
+import { attachment } from '../common/content-disposition.js';
 import { TenantId } from '../common/tenant.decorator.js';
 import { PlanOptionsDto, UpdateF24StatusDto } from './f24.dto.js';
 import { F24Service } from './f24.service.js';
@@ -44,7 +45,7 @@ export class F24Controller {
   @Header('Content-Type', 'application/pdf')
   async pdf(@TenantId() tenantId: string, @Param('id') id: string, @Res({ passthrough: true }) res: Response) {
     const { fileName, content } = await this.service.pdf(tenantId, id);
-    res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
+    res.setHeader('Content-Disposition', attachment(fileName));
     return new StreamableFile(Buffer.from(content));
   }
 

@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable, NotFoundException, UnprocessableEntityException } from '@nestjs/common';
+import { BadRequestException, Injectable, Logger, NotFoundException, UnprocessableEntityException } from '@nestjs/common';
 import { buildInvoiceXml, invoiceFileName, parseInvoiceXml, type FlatRateInvoice } from '@opentax-it/fatturapa';
 import type { FiscalRuleSet } from '@opentax-it/fiscal-rules';
 import { FiscalRulesService } from '../fiscal-rules/fiscal-rules.service.js';
@@ -33,6 +33,8 @@ type InvoiceWithRelations = Invoice & { lines: InvoiceLine[]; customer: Customer
 
 @Injectable()
 export class InvoicesService {
+  private readonly logger = new Logger(InvoicesService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly rules: FiscalRulesService,
@@ -326,7 +328,9 @@ export class InvoicesService {
         };
       } catch (e) {
         if (e instanceof UnprocessableEntityException) throw e;
-        throw new UnprocessableEntityException(`Failed to read XML for invoice ${id}: ${(e as Error).message}`);
+        // The cause (e.g. the absolute storage path of a missing file) is logged, not returned.
+        this.logger.error(`Failed to read XML for invoice ${id}`, e as Error);
+        throw new UnprocessableEntityException(`Failed to read XML for invoice ${id}`);
       }
     }
 

@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import { BadRequestException, HttpException, Injectable, Logger } from '@nestjs/common';
 import { parseInvoiceXml, type ParsedInvoice, type ParsedParty } from '@opentax-it/fatturapa';
 import type { CustomerKind, DocumentType, VatNature } from '../generated/prisma/enums.js';
 import { PrismaService } from '../prisma/prisma.service.js';
@@ -34,6 +34,8 @@ const EU = new Set(['AT', 'BE', 'BG', 'CY', 'CZ', 'DE', 'DK', 'EE', 'EL', 'GR', 
 
 @Injectable()
 export class InvoicesImportService {
+  private readonly logger = new Logger(InvoicesImportService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly tenants: TenantsService,
@@ -47,18 +49,28 @@ export class InvoicesImportService {
       try {
         results.push(await this.importOne(tenantId, profile.vatNumber, f));
       } catch (e) {
-        results.push({ file: f.name, status: 'ERROR', message: (e as Error).message });
+        // Only our own validation messages reach the client; anything else (database, file system) is logged.
+        if (!(e instanceof HttpException)) this.logger.error(`Import of ${f.name} failed`, e as Error);
+        const message = e instanceof HttpException ? e.message : 'Unexpected error while importing this file';
+        results.push({ file: f.name, status: 'ERROR', message });
       }
     }
     return results;
   }
 
   private async importOne(tenantId: string, tenantVat: string, f: ImportFile): Promise<ImportResult> {
-    const p = parseInvoiceXml(f.xml);
+    let p: ParsedInvoice;
+    try {
+      p = parseInvoiceXml(f.xml);
+    } catch (e) {
+      throw new BadRequestException((e as Error).message); // malformed or unsupported file
+    }
     if (p.supplier.vatNumber !== tenantVat) {
       throw new BadRequestException(`CedentePrestatore ${p.supplier.countryCode ?? ''}${p.supplier.vatNumber ?? ''} is not this VAT number (${tenantVat})`);
     }
     if (!ACCEPTED.includes(p.documentType as DocumentType)) throw new BadRequestException(`Document type ${p.documentType} not supported for import`);
+    // Numero: String20Type of the FatturaPA XSD (Basic Latin, 1-20 characters).
+    if (!/^[\x20-\x7E]{1,20}$/.test(p.number)) throw new BadRequestException(`Invalid document number "${p.number.slice(0, 40)}"`);
     if (!/^\d{4}-\d{2}-\d{2}$/.test(p.date)) throw new BadRequestException(`Invalid document date "${p.date}"`);
     const year = Number(p.date.slice(0, 4));
     const type = p.documentType as DocumentType;

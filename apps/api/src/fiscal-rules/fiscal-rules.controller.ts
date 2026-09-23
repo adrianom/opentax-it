@@ -1,4 +1,4 @@
-import { Controller, Get, Param, ParseBoolPipe, ParseIntPipe, Post, Query } from '@nestjs/common';
+import { Controller, Get, HttpException, Param, ParseBoolPipe, ParseIntPipe, Post, Query } from '@nestjs/common';
 import { OptionalTenantId } from '../common/optional-tenant.decorator.js';
 import { FiscalRulesService } from './fiscal-rules.service.js';
 
@@ -45,7 +45,8 @@ export class FiscalRulesController {
       await this.service.getActive(year);
       return { year, ok: true };
     } catch (e) {
-      return { year, ok: false, reason: (e as Error).message };
+      if (!(e instanceof HttpException)) throw e; // unexpected errors stay generic 500s
+      return { year, ok: false, reason: e.message };
     }
   }
 }

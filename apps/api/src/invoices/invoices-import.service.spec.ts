@@ -58,5 +58,18 @@ describe('InvoicesImportService.importFiles', () => {
     storage.write.mockRejectedValueOnce(Object.assign(new Error('EEXIST: file already exists'), { code: 'EEXIST' }));
     const [result] = await service.importFiles('tenant1', [{ name: 'fattura.xml', xml: '1/2025' }]);
     expect(result.status).toBe('ERROR');
+    expect(result.message).toBe('Unexpected error while importing this file'); // no file system details
+  });
+
+  it('rejects a Numero that is not Basic Latin or longer than 20 characters (String20Type)', async () => {
+    const { service, storage } = setup();
+    const results = await service.importFiles('tenant1', [
+      { name: 'a.xml', xml: '1/2025"\r\nX' },
+      { name: 'b.xml', xml: '1/2025-ç' },
+      { name: 'c.xml', xml: '123456789012345678901' },
+    ]);
+    expect(results.map((r) => r.status)).toEqual(['ERROR', 'ERROR', 'ERROR']);
+    expect(results[0].message).toMatch(/^Invalid document number/);
+    expect(storage.write).not.toHaveBeenCalled();
   });
 });
