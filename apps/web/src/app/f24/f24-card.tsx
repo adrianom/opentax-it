@@ -7,11 +7,12 @@ import { HelpTip } from '@/components/help-tip';
 import { setF24Status } from '@/lib/actions';
 import { formatDate, formatMoney, type F24, type F24Draft, type F24Line, type F24Section } from '@/lib/api';
 
-const STATUS: Record<string, { label: string; variant: 'default' | 'secondary' | 'destructive' | 'outline' }> = {
-  PLANNED: { label: 'Pianificato', variant: 'outline' },
-  SCHEDULED_I24: { label: 'I24 programmato', variant: 'secondary' },
-  PAID: { label: 'Pagato', variant: 'default' },
-  CANCELLED: { label: 'Annullato', variant: 'destructive' },
+/** Same palette as the invoice status badge: neutral when planned, blue when scheduled, green when paid. */
+const STATUS: Record<string, { label: string; className: string }> = {
+  PLANNED: { label: 'Pianificato', className: 'border-dashed border-border text-muted-foreground' },
+  SCHEDULED_I24: { label: 'I24 programmato', className: 'border-transparent bg-blue-500/10 text-blue-700 dark:bg-blue-500/20 dark:text-blue-300' },
+  PAID: { label: 'Pagato', className: 'border-transparent bg-green-500/10 text-green-700 dark:bg-green-500/20 dark:text-green-300' },
+  CANCELLED: { label: 'Annullato', className: 'border-transparent bg-muted text-muted-foreground line-through' },
 };
 
 export function f24Title(f: F24Draft): string {
@@ -120,7 +121,7 @@ export function F24Card({ f, taxYear, highlight }: { f: F24Draft | F24; taxYear:
           <div>
             <CardTitle className="flex items-center gap-2">
               {f24Title(f)}
-              {status && <Badge variant={status.variant}>{status.label}</Badge>}
+              {status && <Badge variant="outline" className={status.className}>{status.label}</Badge>}
               {highlight && <Badge>Prossimo</Badge>}
             </CardTitle>
             <CardDescription>
