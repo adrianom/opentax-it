@@ -53,8 +53,8 @@ export class TaxesService {
     const [income, payment] = await Promise.all([this.activeOrNull(year), this.activeOrNull(year + 1)]);
     const warnings: string[] = [];
     if (!income && !payment) throw new NotFoundException(`No active rule set for ${year} or ${year + 1}`);
-    if (!income) warnings.push(`No active rule set for ${year}: rates, coefficient and INPS ceiling taken from ${year + 1}`);
-    if (!payment) warnings.push(`No active rule set for ${year + 1}: advances, deadlines and codes taken from ${year}`);
+    if (!income) warnings.push(`Nessun set di regole attivo per il ${year}: aliquote, coefficiente e massimale INPS presi dal ${year + 1}`);
+    if (!payment) warnings.push(`Nessun set di regole attivo per il ${year + 1}: acconti, scadenze e codici tributo presi dal ${year}`);
     return {
       incomeRules: (income ?? payment)!,
       incomeRulesYear: income ? year : year + 1,

@@ -112,8 +112,8 @@ export class F24Service {
     const creditsUsed = round2(compensation.usages.reduce((s, u) => s + u.amount, 0));
     const compensationWarnings: string[] = [];
     if (compensation.form) {
-      compensationWarnings.push('Form with compensation: file it only through the AdE telematic services (F24 web/online), even with a zero balance (Istr. Redditi PF §8; art. 37 par. 49-bis DL 223/2006)');
-      if (creditsUsed > 5000) compensationWarnings.push('Credits above EUR 5,000 in the year: usable from the 10th day after filing the return and with the compliance visa (art. 3 D.Lgs. 33/2025; L. 147/2013 art. 1 par. 574)');
+      compensationWarnings.push('Modello con compensazione: va presentato solo con i servizi telematici dell\'Agenzia delle Entrate (F24 web/online), anche a saldo zero (Istr. Redditi PF §8; art. 37 c. 49-bis DL 223/2006)');
+      if (creditsUsed > 5000) compensationWarnings.push('Crediti oltre 5.000 € nell\'anno: utilizzabili dal decimo giorno successivo alla presentazione della dichiarazione e con il visto di conformità (art. 3 D.Lgs. 33/2025; L. 147/2013 art. 1 c. 574)');
     }
     return {
       taxYear,

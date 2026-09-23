@@ -199,7 +199,7 @@ export function buildPaymentSchedule(rules: FiscalRuleSet, input: PaymentSchedul
 
   for (const f of forms) {
     for (const l of f.lines) {
-      if (l.debitAmount < F24_MIN_LINE_AMOUNT) warnings.push(`${toIsoDate(f.paymentDate)} ${l.code} ${l.referenceYear}: amount ${l.debitAmount.toFixed(2)} is below the F24 minimum of ${F24_MIN_LINE_AMOUNT}`);
+      if (l.debitAmount < F24_MIN_LINE_AMOUNT) warnings.push(`${toIsoDate(f.paymentDate).split('-').reverse().join('/')} ${l.code} ${l.referenceYear}: importo ${l.debitAmount.toFixed(2).replace('.', ',')} € inferiore al minimo F24 di ${F24_MIN_LINE_AMOUNT.toFixed(2).replace('.', ',')} € per codice tributo`);
     }
   }
   return { forms, warnings };

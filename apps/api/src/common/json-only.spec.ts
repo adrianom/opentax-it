@@ -4,10 +4,11 @@ import { jsonOnly } from './json-only.js';
 
 const run = (method: string, contentType?: string) => {
   const next = vi.fn() as NextFunction;
-  const res = { status: vi.fn().mockReturnValue({ json: vi.fn() }) } as unknown as Response;
+  const status = vi.fn().mockReturnValue({ json: vi.fn() });
+  const res = { status } as unknown as Response;
   const req = { method, headers: contentType ? { 'content-type': contentType } : {} } as unknown as Request;
   jsonOnly()(req, res, next);
-  return { next, res };
+  return { next, status };
 };
 
 describe('jsonOnly', () => {
@@ -23,9 +24,9 @@ describe('jsonOnly', () => {
 
   it('rejects a cross-site form POST or a request without content type with 415', () => {
     for (const ct of ['application/x-www-form-urlencoded', 'text/plain', undefined]) {
-      const { next, res } = run('POST', ct);
+      const { next, status } = run('POST', ct);
       expect(next).not.toHaveBeenCalled();
-      expect(res.status).toHaveBeenCalledWith(415);
+      expect(status).toHaveBeenCalledWith(415);
     }
   });
 });
