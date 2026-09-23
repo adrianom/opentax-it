@@ -21,7 +21,7 @@ function Action({ label, render, children }: { label: string; render?: ReactElem
   );
 }
 
-/** Row actions of the invoice list: edit and delete for drafts; preview, PDF and XML for issued documents. */
+/** Row actions of the invoice list: edit and delete for drafts; open (PDF in a new tab), download PDF and XML for issued documents. */
 export function InvoiceRowActions({ id, status, hasXml }: { id: string; status: InvoiceStatus; hasXml: boolean }) {
   if (status === 'DRAFT') {
     return (
@@ -36,7 +36,7 @@ export function InvoiceRowActions({ id, status, hasXml }: { id: string; status: 
   }
   return (
     <div className="flex justify-end gap-1">
-      <Action label="Anteprima" render={<Link href={`/invoices/${id}/preview`} />}><Eye /></Action>
+      <Action label="Apri PDF" render={<a href={`/invoices/${id}/pdf?inline=1`} target="_blank" rel="noreferrer" />}><Eye /></Action>
       <Action label="Scarica PDF" render={<a href={`/invoices/${id}/pdf`} />}><FileDown /></Action>
       {hasXml && <Action label="Scarica XML" render={<a href={`/invoices/${id}/xml`} />}><FileCode /></Action>}
     </div>
