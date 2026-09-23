@@ -7,7 +7,6 @@ import { ErrorAlert } from '@/components/error-alert';
 import { NoTenant } from '@/components/no-tenant';
 import { deleteTaxCredit } from '@/lib/actions';
 import { api, currentTenantId, fetchOrNull, formatDate, formatMoney } from '@/lib/api';
-import { CreditForm } from './credit-form';
 
 const SECTION: Record<string, string> = { TREASURY: 'Erario', INPS: 'INPS', REGIONAL: 'Regioni', LOCAL: 'IMU e tributi locali' };
 
@@ -19,11 +18,14 @@ export default async function CreditsPage({ searchParams }: PageProps<'/credits'
   const remaining = credits.reduce((s, c) => s + c.remaining, 0);
   return (
     <main className="mx-auto w-full max-w-6xl space-y-6 p-6">
-      <div>
-        <h1 className="text-2xl font-semibold">Crediti da usare in F24</h1>
-        <p className="text-sm text-muted-foreground">
-          Crediti risultanti dalla dichiarazione (imposta sostitutiva LM47, INPS RR8, IRPEF, addizionali) compensabili con i debiti in F24 (art. 17 D.Lgs. 241/97; Istr. Redditi PF 2026 Fasc. 1 §8). Vengono proposti quando generi un piano in <Link href="/f24" className="underline">F24 e rate</Link>: il modello a saldo zero va trasmesso solo con i servizi telematici AdE.
-        </p>
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-semibold">Crediti da usare in F24</h1>
+          <p className="text-sm text-muted-foreground">
+            Crediti risultanti dalla dichiarazione (imposta sostitutiva LM47, INPS RR8, IRPEF, addizionali) compensabili con i debiti in F24 (art. 17 D.Lgs. 241/97; Istr. Redditi PF 2026 Fasc. 1 §8). Vengono proposti quando generi un piano in <Link href="/f24" className="underline">F24 e rate</Link>: il modello a saldo zero va trasmesso solo con i servizi telematici AdE.
+          </p>
+        </div>
+        <Button render={<Link href="/credits/new" />}>Nuovo credito</Button>
       </div>
       <ErrorAlert message={error} />
 
@@ -51,7 +53,7 @@ export default async function CreditsPage({ searchParams }: PageProps<'/credits'
               {credits.map((c) => (
                 <TableRow key={c.id}>
                   <TableCell>{SECTION[c.section]}</TableCell>
-                  <TableCell className="font-mono">{c.code}{c.installmentCode && <span className="ml-2 text-xs text-muted-foreground">{c.installmentCode}</span>}</TableCell>
+                  <TableCell className="font-mono"><Link href={`/credits/${c.id}`} className="font-medium hover:underline">{c.code}</Link>{c.installmentCode && <span className="ml-2 text-xs text-muted-foreground">{c.installmentCode}</span>}</TableCell>
                   <TableCell className="font-mono">{c.localCode ?? '—'}</TableCell>
                   <TableCell className="font-mono">{c.referenceYear}</TableCell>
                   <TableCell className="text-sm">{c.description ?? '—'}{c.usableFrom && <span className="block text-xs text-muted-foreground">dal {formatDate(c.usableFrom)}</span>}</TableCell>
@@ -74,13 +76,6 @@ export default async function CreditsPage({ searchParams }: PageProps<'/credits'
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Nuovo credito</CardTitle>
-          <CardDescription>Riporta i dati come risultano dalla dichiarazione (righi LM47, RR8 col. 2, RN, RV) o dal prospetto del commercialista.</CardDescription>
-        </CardHeader>
-        <CardContent><CreditForm defaultYear={new Date().getFullYear() - 1} /></CardContent>
-      </Card>
     </main>
   );
 }

@@ -254,7 +254,7 @@ export async function saveBankAccount(_prev: ActionState, formData: FormData): P
     return { error: errorMessage(e) };
   }
   revalidatePath('/banks');
-  return undefined;
+  redirect('/banks');
 }
 
 export async function deleteBankAccount(formData: FormData) {
@@ -270,7 +270,7 @@ export async function savePaymentTerms(_prev: ActionState, formData: FormData): 
     return { error: errorMessage(e) };
   }
   revalidatePath('/payment-terms');
-  return undefined;
+  redirect('/payment-terms');
 }
 
 export async function deletePaymentTerms(formData: FormData) {
@@ -324,7 +324,7 @@ export async function setF24Status(formData: FormData) {
 export async function saveTaxCredit(_prev: ActionState, formData: FormData): Promise<ActionState> {
   const f = (k: string) => String(formData.get(k) ?? '').trim();
   try {
-    await api.createTaxCredit({
+    await api.saveTaxCredit({
       section: f('section'),
       code: f('code').toUpperCase(),
       referenceYear: Number(f('referenceYear')),
@@ -333,13 +333,13 @@ export async function saveTaxCredit(_prev: ActionState, formData: FormData): Pro
       installmentCode: f('installmentCode') || undefined,
       usableFrom: f('usableFrom') || undefined,
       description: f('description') || undefined,
-    });
+    }, f('id') || undefined);
   } catch (e) {
     return { error: errorMessage(e) };
   }
   revalidatePath('/credits');
   revalidatePath('/f24');
-  return undefined;
+  redirect('/credits');
 }
 
 export async function deleteTaxCredit(formData: FormData) {
