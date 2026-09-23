@@ -5,7 +5,7 @@ import type { BankAccount, Customer, Deadline, F24, ImportResult, InstallmentPla
 export * from './types';
 export * from './format';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3000/api';
+const API_URL = process.env.API_URL ?? 'http://localhost:3000/api';
 
 export const TENANT_COOKIE = 'opentax_tenant';
 
