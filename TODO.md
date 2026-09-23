@@ -24,7 +24,7 @@ Emissione e XML sono pronti; manca la trasmissione.
 ## Fatturazione
 
 ### Anteprima e stampa della fattura
-- Fatto: anteprima HTML e PDF della copia di cortesia con layout proprio, stampa dal browser; per le fatture emesse i dati sono letti dall'XML salvato (PR #10).
+- Fatto: copia di cortesia in PDF con layout proprio, aperta in una nuova scheda (anteprima, stampa e download dal browser); per le fatture emesse i dati sono letti dall'XML salvato (PR #10).
 - Da fare: invio della fattura via email al cliente (copia di cortesia: l'originale è l'XML consegnato dallo SDI).
 
 ### Fatture con firma digitale (.p7m) — priorità bassa

@@ -122,64 +122,6 @@ export interface InvoiceDetail extends Omit<Invoice, 'customer'> {
   lines: InvoiceLine[];
 }
 
-export interface CourtesyParty {
-  name: string;
-  taxRegime?: string;
-  vatNumber?: string;
-  fiscalCode?: string;
-  address: string;
-  postalCode?: string;
-  city: string;
-  province?: string;
-  country: string;
-  pec?: string;
-}
-
-export interface CourtesySupplier extends CourtesyParty {
-  taxRegime: string;
-}
-
-export interface CourtesyLine {
-  lineNumber: number;
-  description: string;
-  quantity?: number;
-  unit?: string;
-  unitPrice: number;
-  totalPrice: number;
-  vatRatePct: number;
-  vatNature: string;
-}
-
-export interface CourtesyPayment {
-  method?: string;
-  dueDate?: string;
-  iban?: string;
-  bic?: string;
-}
-
-export interface CourtesyInvoice {
-  id: string;
-  documentType: string;
-  number: string;
-  date: string;
-  currency: string;
-  isDraft: boolean;
-  status: InvoiceStatus;
-  supplier: CourtesySupplier;
-  customer: CourtesyParty & { recipientCode: string };
-  lines: CourtesyLine[];
-  taxableAmount: number;
-  inpsSurcharge: number;
-  inpsRatePct?: number;
-  vatAmount: number;
-  virtualStamp: boolean;
-  stampAmount: number;
-  total: number;
-  payment?: CourtesyPayment;
-  notes: string[];
-}
-
-
 export interface Payment {
   id: string;
   invoiceId: string;

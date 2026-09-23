@@ -31,7 +31,7 @@ export default async function InvoicePage({ params }: PageProps<'/invoices/[id]'
         </div>
         <div className="flex items-center gap-2">
           {isDraft && <Button variant="outline" size="sm" render={<Link href={`/invoices/${inv.id}/edit`} />}>Modifica</Button>}
-          <Button variant="outline" size="sm" render={<a href={`/invoices/${inv.id}/pdf?inline=1`} target="_blank" rel="noreferrer" />}>Apri PDF</Button>
+          <Button variant="outline" size="sm" render={<a href={`/invoices/${inv.id}/pdf?inline=1`} target="_blank" rel="noreferrer" />}>Anteprima</Button>
           <Button variant="outline" size="sm" render={<a href={`/invoices/${inv.id}/pdf`} />}>Scarica PDF</Button>
           <Badge variant={isDraft ? 'outline' : 'secondary'}>{STATUS_LABELS[inv.status]}</Badge>
         </div>
@@ -99,7 +99,7 @@ export default async function InvoicePage({ params }: PageProps<'/invoices/[id]'
             <CardDescription>{inv.xmlFileName ? `XML: ${inv.xmlFileName}` : 'Documento emesso'}</CardDescription>
           </CardHeader>
           <CardContent className="flex flex-wrap gap-2">
-            <Button render={<a href={`/invoices/${inv.id}/pdf?inline=1`} target="_blank" rel="noreferrer" />}>Apri PDF</Button>
+            <Button render={<a href={`/invoices/${inv.id}/pdf?inline=1`} target="_blank" rel="noreferrer" />}>Anteprima</Button>
             <Button variant="outline" render={<a href={`/invoices/${inv.id}/pdf`} />}>Scarica PDF</Button>
             {inv.xmlFileName && <Button variant="outline" render={<a href={`/invoices/${inv.id}/xml`} />}>Scarica XML</Button>}
             <Button variant="ghost" render={<Link href="/invoices" />}>Torna all&apos;elenco</Button>
