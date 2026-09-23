@@ -63,6 +63,17 @@ Emissione e XML sono pronti; manca la trasmissione.
 ### Avvisi bonari e CIVIS
 - Registro delle comunicazioni (numero atto a 13 cifre), scadenze a 60 giorni, sanzione ridotta a 1/3, piano fino a 20 rate (D.Lgs. 462/97 art. 2-3-bis), collegamento agli F24 con codice atto. Design in `docs/normativa-2026.md` §5-bis.
 
+## Analisi
+
+### Pagina Analytics — contenuti da definire
+Una pagina di analisi dei dati già presenti (fatture, incassi, imposte, F24), separata dalla dashboard che resta un riepilogo dell'anno. **Cosa mostrare è ancora da decidere**: le voci qui sotto sono proposte da valutare, non lavoro già definito. Le grandezze fiscali (reddito, imposte, soglia) vanno calcolate con le stesse regole di `/taxes`, senza formule nuove non verificate.
+- Incassato ed emesso per mese, con confronto con l'anno precedente.
+- Andamento dell'incassato rispetto alla soglia degli 85.000 € (L. 190/2014 c. 54) e proiezione a fine anno sul ritmo attuale, dichiarata come stima.
+- Ripartizione per cliente (concentrazione del fatturato) e per tipo di cliente (Italia, UE, extra UE).
+- Tempi di incasso: giorni medi tra data fattura e incasso; fatture scadute non incassate.
+- Quanto accantonare: imposta sostitutiva e INPS stimate sull'incassato dell'anno, rispetto a quanto già versato con gli F24.
+- Calendario di cassa: uscite previste (rate F24, bollo) nei prossimi mesi.
+
 ## Piattaforma
 
 ### MCP server per assistenti AI
