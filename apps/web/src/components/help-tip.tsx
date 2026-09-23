@@ -13,7 +13,7 @@ export function HelpTip({ children, label = 'Informazioni', className }: { child
         <Info className="size-3.5" />
       </TooltipTrigger>
       {/* Block layout: the base tooltip is a flex row, which would put paragraphs side by side as columns. */}
-      <TooltipContent className="block max-w-[min(32rem,calc(100vw-2rem))] space-y-1.5 text-xs leading-relaxed">{children}</TooltipContent>
+      <TooltipContent className="block max-w-[min(24rem,calc(100vw-2rem))] space-y-1.5 text-xs leading-relaxed">{children}</TooltipContent>
     </Tooltip>
   );
 }
