@@ -221,8 +221,9 @@ model Invoice {
   customer      Customer      @relation(fields: [customerId], references: [id])
   type          DocumentType  @default(TD01)
   year          Int
-  /// Sequence per year; the displayed number is e.g. "12/2026".
-  sequence      Int
+  /// Sequence per year; the displayed number is e.g. "12/2026". Null for drafts: the number
+  /// is assigned at issue, and NULLs never clash in the unique index, so drafts are unlimited.
+  sequence      Int?
   number        String
   date          DateTime      @db.Date
   currency      String        @default("EUR")

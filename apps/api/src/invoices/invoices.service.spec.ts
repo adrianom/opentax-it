@@ -81,7 +81,7 @@ describe('InvoicesService.preview', () => {
       customerId: 'cust1',
       type: 'TD01' as const,
       year: 2026,
-      sequence: 0,
+      sequence: null,
       number: '',
       date: new Date('2026-09-22T00:00:00Z'),
       currency: 'EUR',

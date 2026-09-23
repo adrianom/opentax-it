@@ -136,7 +136,7 @@ export class InvoicesService {
   async create(tenantId: string, dto: CreateInvoiceDto) {
     const p = await this.prepare(tenantId, dto);
     return this.prisma.invoice.create({
-      data: { tenantId, ...p.data, sequence: 0, number: '', status: 'DRAFT', lines: { create: p.lines } },
+      data: { tenantId, ...p.data, number: '', status: 'DRAFT', lines: { create: p.lines } },
       include: { lines: true, customer: true },
     });
   }
