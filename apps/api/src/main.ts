@@ -2,11 +2,13 @@ import { NestFactory } from '@nestjs/core';
 import type { NestExpressApplication } from '@nestjs/platform-express';
 import { AppModule } from './app.module.js';
 import { hostAllowlist } from './common/host-allowlist.js';
+import { jsonOnly } from './common/json-only.js';
 import { validationPipe } from './common/validation.pipe.js';
 
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
   app.use(hostAllowlist());
+  app.use(jsonOnly());
   app.useBodyParser('json', { limit: '50mb' }); // XML imports
   app.setGlobalPrefix('api');
   app.useGlobalPipes(validationPipe);

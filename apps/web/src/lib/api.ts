@@ -9,6 +9,9 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3000/api';
 
 export const TENANT_COOKIE = 'opentax_tenant';
 
+/** Encodes an id for a URL path, so that a crafted id cannot reach another API route. */
+const seg = (id: string) => encodeURIComponent(id);
+
 export class ApiError extends Error {
   constructor(public readonly status: number, message: string) {
     super(message);
@@ -22,7 +25,8 @@ export async function currentTenantId(): Promise<string | null> {
 
 async function request<T>(path: string, init: RequestInit = {}, tenantId?: string | null): Promise<T> {
   const headers: Record<string, string> = { ...(init.headers as Record<string, string>) };
-  if (init.body) headers['content-type'] = 'application/json';
+  // The API accepts state-changing requests only as JSON (CSRF protection), with or without a body.
+  if (init.method && init.method !== 'GET') headers['content-type'] = 'application/json';
   if (tenantId) headers['x-tenant-id'] = tenantId;
   const res = await fetch(`${API_URL}${path}`, { ...init, headers, cache: 'no-store' });
   if (res.status === 204) return undefined as T;
@@ -55,12 +59,12 @@ export const api = {
   me: () => tenantRequest<TenantWithProfile>('/tenants/me'),
   updateMe: (data: unknown) => tenantRequest<TenantWithProfile>('/tenants/me', { method: 'PUT', body: JSON.stringify(data) }),
   bankAccounts: () => tenantRequest<BankAccount[]>('/tenants/me/bank-accounts'),
-  saveBankAccount: (data: unknown, id?: string) => tenantRequest<BankAccount>(id ? `/tenants/me/bank-accounts/${id}` : '/tenants/me/bank-accounts', { method: id ? 'PUT' : 'POST', body: JSON.stringify(data) }),
-  deleteBankAccount: (id: string) => tenantRequest<void>(`/tenants/me/bank-accounts/${id}`, { method: 'DELETE' }),
+  saveBankAccount: (data: unknown, id?: string) => tenantRequest<BankAccount>(id ? `/tenants/me/bank-accounts/${seg(id)}` : '/tenants/me/bank-accounts', { method: id ? 'PUT' : 'POST', body: JSON.stringify(data) }),
+  deleteBankAccount: (id: string) => tenantRequest<void>(`/tenants/me/bank-accounts/${seg(id)}`, { method: 'DELETE' }),
   paymentTerms: () => tenantRequest<PaymentTerms[]>('/tenants/me/payment-terms'),
-  savePaymentTerms: (data: unknown, id?: string) => tenantRequest<PaymentTerms>(id ? `/tenants/me/payment-terms/${id}` : '/tenants/me/payment-terms', { method: id ? 'PUT' : 'POST', body: JSON.stringify(data) }),
-  deletePaymentTerms: (id: string) => tenantRequest<void>(`/tenants/me/payment-terms/${id}`, { method: 'DELETE' }),
-  activateRuleSet: (id: string) => request<RuleSetSummary>(`/fiscal-rules/${id}/activate`, { method: 'POST' }),
+  savePaymentTerms: (data: unknown, id?: string) => tenantRequest<PaymentTerms>(id ? `/tenants/me/payment-terms/${seg(id)}` : '/tenants/me/payment-terms', { method: id ? 'PUT' : 'POST', body: JSON.stringify(data) }),
+  deletePaymentTerms: (id: string) => tenantRequest<void>(`/tenants/me/payment-terms/${seg(id)}`, { method: 'DELETE' }),
+  activateRuleSet: (id: string) => request<RuleSetSummary>(`/fiscal-rules/${seg(id)}/activate`, { method: 'POST' }),
   seedRuleSets: () => request<{ inserted: Array<{ year: number; version: number }> }>('/fiscal-rules/seed', { method: 'POST' }),
   inpsOffices: () => request<Array<{ id: string; code: string; name: string }>>('/tenants/inps-offices'),
   createTenant: (data: unknown) => request<Tenant>('/tenants', { method: 'POST', body: JSON.stringify(data) }),
@@ -74,50 +78,50 @@ export const api = {
     return request<Deadline[]>(`/fiscal-rules/${year}/deadlines?extension=true`, {}, tenantId);
   },
   customers: () => tenantRequest<Customer[]>('/customers'),
-  customer: (id: string) => tenantRequest<Customer>(`/customers/${id}`),
+  customer: (id: string) => tenantRequest<Customer>(`/customers/${seg(id)}`),
   createCustomer: (data: unknown) => tenantRequest<Customer>('/customers', { method: 'POST', body: JSON.stringify(data) }),
-  updateCustomer: (id: string, data: unknown) => tenantRequest<Customer>(`/customers/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
-  deleteCustomer: (id: string) => tenantRequest<void>(`/customers/${id}`, { method: 'DELETE' }),
+  updateCustomer: (id: string, data: unknown) => tenantRequest<Customer>(`/customers/${seg(id)}`, { method: 'PUT', body: JSON.stringify(data) }),
+  deleteCustomer: (id: string) => tenantRequest<void>(`/customers/${seg(id)}`, { method: 'DELETE' }),
   invoices: (year?: number) => tenantRequest<Invoice[]>(`/invoices${year ? `?year=${year}` : ''}`),
   invoiceYears: () => tenantRequest<number[]>('/invoices/years'),
-  invoice: (id: string) => tenantRequest<InvoiceDetail>(`/invoices/${id}`),
+  invoice: (id: string) => tenantRequest<InvoiceDetail>(`/invoices/${seg(id)}`),
   createInvoice: (data: unknown) => tenantRequest<Invoice>('/invoices', { method: 'POST', body: JSON.stringify(data) }),
-  updateInvoice: (id: string, data: unknown) => tenantRequest<Invoice>(`/invoices/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
-  deleteInvoice: (id: string) => tenantRequest<void>(`/invoices/${id}`, { method: 'DELETE' }),
-  issueInvoice: (id: string, data: unknown) => tenantRequest<Invoice>(`/invoices/${id}/issue`, { method: 'POST', body: JSON.stringify(data) }),
-  payments: (invoiceId: string) => tenantRequest<Payment[]>(`/invoices/${invoiceId}/payments`),
-  createPayment: (invoiceId: string, data: unknown) => tenantRequest<Payment>(`/invoices/${invoiceId}/payments`, { method: 'POST', body: JSON.stringify(data) }),
-  deletePayment: (id: string) => tenantRequest<void>(`/payments/${id}`, { method: 'DELETE' }),
+  updateInvoice: (id: string, data: unknown) => tenantRequest<Invoice>(`/invoices/${seg(id)}`, { method: 'PUT', body: JSON.stringify(data) }),
+  deleteInvoice: (id: string) => tenantRequest<void>(`/invoices/${seg(id)}`, { method: 'DELETE' }),
+  issueInvoice: (id: string, data: unknown) => tenantRequest<Invoice>(`/invoices/${seg(id)}/issue`, { method: 'POST', body: JSON.stringify(data) }),
+  payments: (invoiceId: string) => tenantRequest<Payment[]>(`/invoices/${seg(invoiceId)}/payments`),
+  createPayment: (invoiceId: string, data: unknown) => tenantRequest<Payment>(`/invoices/${seg(invoiceId)}/payments`, { method: 'POST', body: JSON.stringify(data) }),
+  deletePayment: (id: string) => tenantRequest<void>(`/payments/${seg(id)}`, { method: 'DELETE' }),
   taxSummary: (year: number) => tenantRequest<TaxSummary>(`/taxes/${year}/summary`),
   taxYearData: (year: number) => tenantRequest<TaxYearData>(`/taxes/${year}/data`),
   updateTaxYearData: (year: number, data: unknown) => tenantRequest<TaxYearData>(`/taxes/${year}/data`, { method: 'PUT', body: JSON.stringify(data) }),
   taxCredits: () => tenantRequest<TaxCredit[]>('/taxes/credits'),
   createTaxCredit: (data: unknown) => tenantRequest<TaxCredit>('/taxes/credits', { method: 'POST', body: JSON.stringify(data) }),
-  deleteTaxCredit: (id: string) => tenantRequest<void>(`/taxes/credits/${id}`, { method: 'DELETE' }),
+  deleteTaxCredit: (id: string) => tenantRequest<void>(`/taxes/credits/${seg(id)}`, { method: 'DELETE' }),
   f24s: (year: number) => tenantRequest<F24[]>(`/f24?year=${year}`),
-  f24: (id: string) => tenantRequest<F24>(`/f24/${id}`),
+  f24: (id: string) => tenantRequest<F24>(`/f24/${seg(id)}`),
   planOptions: (taxYear: number) => tenantRequest<PlanOptions>(`/f24/plans/${taxYear}/options`),
   plan: (taxYear: number) => tenantRequest<InstallmentPlan>(`/f24/plans/${taxYear}`),
   previewPlan: (taxYear: number, data: unknown) => tenantRequest<PlanPreview>(`/f24/plans/${taxYear}/preview`, { method: 'POST', body: JSON.stringify(data) }),
   createPlan: (taxYear: number, data: unknown) => tenantRequest<InstallmentPlan>(`/f24/plans/${taxYear}`, { method: 'POST', body: JSON.stringify(data) }),
   deletePlan: (taxYear: number) => tenantRequest<void>(`/f24/plans/${taxYear}`, { method: 'DELETE' }),
-  updateF24Status: (id: string, data: unknown) => tenantRequest<F24>(`/f24/${id}/status`, { method: 'PATCH', body: JSON.stringify(data) }),
+  updateF24Status: (id: string, data: unknown) => tenantRequest<F24>(`/f24/${seg(id)}/status`, { method: 'PATCH', body: JSON.stringify(data) }),
   importInvoices: (files: Array<{ name: string; xml: string }>) => tenantRequest<ImportResult[]>('/invoices/import', { method: 'POST', body: JSON.stringify({ files }) }),
   f24Pdf: async (id: string) => {
     const tenantId = await currentTenantId();
-    const res = await fetch(`${API_URL}/f24/${id}/pdf`, { headers: tenantId ? { 'x-tenant-id': tenantId } : {}, cache: 'no-store' });
+    const res = await fetch(`${API_URL}/f24/${seg(id)}/pdf`, { headers: tenantId ? { 'x-tenant-id': tenantId } : {}, cache: 'no-store' });
     if (!res.ok) throw new ApiError(res.status, 'PDF non disponibile');
     return { fileName: res.headers.get('content-disposition')?.match(/filename="([^"]+)"/)?.[1] ?? 'f24.pdf', content: await res.arrayBuffer() };
   },
   invoicePdf: async (id: string) => {
     const tenantId = await currentTenantId();
-    const res = await fetch(`${API_URL}/invoices/${id}/pdf`, { headers: tenantId ? { 'x-tenant-id': tenantId } : {}, cache: 'no-store' });
+    const res = await fetch(`${API_URL}/invoices/${seg(id)}/pdf`, { headers: tenantId ? { 'x-tenant-id': tenantId } : {}, cache: 'no-store' });
     if (!res.ok) throw new ApiError(res.status, 'PDF non disponibile');
     return { fileName: res.headers.get('content-disposition')?.match(/filename="([^"]+)"/)?.[1] ?? 'fattura.pdf', content: await res.arrayBuffer() };
   },
   invoiceXml: async (id: string) => {
     const tenantId = await currentTenantId();
-    const res = await fetch(`${API_URL}/invoices/${id}/xml`, { headers: tenantId ? { 'x-tenant-id': tenantId } : {}, cache: 'no-store' });
+    const res = await fetch(`${API_URL}/invoices/${seg(id)}/xml`, { headers: tenantId ? { 'x-tenant-id': tenantId } : {}, cache: 'no-store' });
     if (!res.ok) throw new ApiError(res.status, 'XML non disponibile');
     return { fileName: res.headers.get('content-disposition')?.match(/filename="([^"]+)"/)?.[1] ?? 'invoice.xml', content: await res.text() };
   },
