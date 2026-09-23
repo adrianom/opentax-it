@@ -15,8 +15,14 @@ export class TaxesController {
   @Get('credits')
   credits_(@TenantId() tenantId: string) { return this.credits.list(tenantId); }
 
+  @Get('credits/:id')
+  credit(@TenantId() tenantId: string, @Param('id') id: string) { return this.credits.get(tenantId, id); }
+
   @Post('credits')
   createCredit(@TenantId() tenantId: string, @Body() dto: CreateTaxCreditDto) { return this.credits.create(tenantId, dto); }
+
+  @Put('credits/:id')
+  updateCredit(@TenantId() tenantId: string, @Param('id') id: string, @Body() dto: CreateTaxCreditDto) { return this.credits.update(tenantId, id, dto); }
 
   @Delete('credits/:id') @HttpCode(204)
   removeCredit(@TenantId() tenantId: string, @Param('id') id: string) { return this.credits.remove(tenantId, id); }

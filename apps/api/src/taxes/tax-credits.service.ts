@@ -29,29 +29,46 @@ export class TaxCreditsService {
       .map((c) => ({ id: c.id, section: c.section, code: c.code, referenceYear: c.referenceYear, amount: c.remaining, localCode: c.localCode ?? undefined, installmentCode: c.installmentCode ?? undefined, description: c.description ?? undefined }));
   }
 
+  async get(tenantId: string, id: string) {
+    const credit = (await this.list(tenantId)).find((c) => c.id === id);
+    if (!credit) throw new NotFoundException('Credit not found');
+    return credit;
+  }
+
   create(tenantId: string, dto: CreateTaxCreditDto) {
-    return this.prisma.taxCredit.create({
-      data: {
-        tenantId,
-        section: dto.section,
-        code: dto.code,
-        referenceYear: dto.referenceYear,
-        amount: dto.amount,
-        localCode: dto.localCode || null,
-        installmentCode: dto.installmentCode || null,
-        usableFrom: dto.usableFrom ? new Date(`${dto.usableFrom}T00:00:00Z`) : null,
-        description: dto.description || null,
-        notes: dto.notes || null,
-      },
-    });
+    return this.prisma.taxCredit.create({ data: { tenantId, ...fields(dto) } });
+  }
+
+  /** Like deletion, allowed only while no F24 uses the credit: its rows would no longer match. */
+  async update(tenantId: string, id: string, dto: CreateTaxCreditDto) {
+    await this.unused(tenantId, id);
+    return this.prisma.taxCredit.update({ where: { id }, data: fields(dto) });
   }
 
   async remove(tenantId: string, id: string) {
+    await this.unused(tenantId, id);
+    await this.prisma.taxCredit.delete({ where: { id } });
+  }
+
+  private async unused(tenantId: string, id: string) {
     const credit = await this.prisma.taxCredit.findFirst({ where: { id, tenantId }, include: { usages: true } });
     if (!credit) throw new NotFoundException('Credit not found');
     if (credit.usages.length > 0) throw new ConflictException('The credit is used in an F24: delete that plan first');
-    await this.prisma.taxCredit.delete({ where: { id } });
   }
 }
 
 const round2 = (n: number) => Math.round((n + Number.EPSILON) * 100) / 100;
+
+function fields(dto: CreateTaxCreditDto) {
+  return {
+    section: dto.section,
+    code: dto.code,
+    referenceYear: dto.referenceYear,
+    amount: dto.amount,
+    localCode: dto.localCode || null,
+    installmentCode: dto.installmentCode || null,
+    usableFrom: dto.usableFrom ? new Date(`${dto.usableFrom}T00:00:00Z`) : null,
+    description: dto.description || null,
+    notes: dto.notes || null,
+  };
+}
