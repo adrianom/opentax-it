@@ -218,6 +218,22 @@ Fonte: Guida operativa AdE "Servizio CIVIS" (PDF, letta integralmente nell'indic
 
 ---
 
+## 5-ter. Revisione di conformità del 23/09/2026 — fonti verificate
+Fonti lette integralmente durante la review (citazioni testuali ricontrollate sui documenti scaricati). Le correzioni al codice che ne derivano sono nel [TODO](../TODO.md), epica "Conformità".
+- **Circ. INPS n. 62 del 27/05/2026** (istruzioni quadro RR, [PDF](https://www.inps.it/content/dam/inps-site/it/scorporati/circolari-e-messaggi/2026/05/Circolare_15271/Allegati/16793_Circolare-numero-62-del-27-05-2026.pdf)):
+  - §2.2, base del forfettario: "la somma degli importi indicati nel rigo LM34, colonna 2 (reddito lordo, Gestione separata autonomi …) meno gli importi indicati nel rigo LM37, colonna 2 (perdite pregresse …)". LM34 è un importo della dichiarazione, quindi in euro interi (Istr. Fasc. 1: "Tutti gli importi indicati nella dichiarazione devono essere arrotondati all'unità di euro").
+  - §3-4, differimento e rateazione: "La somma dell'interesse corrispettivo deve essere versata separatamente dai contributi"; "per il pagamento degli interessi comprensivi anche della maggiorazione devono essere utilizzate le causali … DPPI (Gestione separata)". Per l'INPS la maggiorazione 0,40%/0,80% va quindi nella riga DPPI, non nel contributo (per l'Erario va invece sommata al tributo, Fasc. 1 §7).
+- **Istr. Redditi PF 2026 Fasc. 3, rigo LM45**: "Se gli acconti sono stati pagati usufruendo del differimento dei termini o della rateazione, non devono essere considerate le maggiorazioni dell'importo o gli interessi versati".
+- **Istr. Redditi PF 2026 Fasc. 3, decadenza**: il "contribuente decaduto dal regime in corso d'anno è tenuto a determinare il reddito con le modalità ordinarie per l'intero anno d'imposta"; L. 190/2014 c. 71: sopra 100.000 € il regime cessa dall'anno stesso ed "è dovuta l'imposta sul valore aggiunto a partire dalle operazioni effettuate che comportano il superamento".
+- **DPR 633/72 art. 7-ter c. 1 lett. b)**: i servizi "rese a committenti non soggetti passivi da soggetti passivi stabiliti nel territorio dello Stato" si considerano effettuati in Italia (cliente UE privato → N2.2, non N2.1). Per i privati extra UE la non territorialità vale solo per i servizi dell'art. 7-septies (es. lett. c: consulenza e assistenza tecnica, elaborazione e fornitura di dati).
+- **TUIR art. 9 c. 2**: i corrispettivi in valuta estera "sono valutati secondo il cambio del giorno in cui sono stati percepiti o del giorno antecedente più prossimo".
+- **Spec. FatturaPA 1.9.1**: errore 00427 (CodiceDestinatario di 6 caratteri con FPA12, 7 con FPR12); §1.2.2 ed errore 00002 (nome file uguale a uno già trasmesso → scarto). Spec. 1.9.1 confermata versione in uso ("utilizzabili dal 15 maggio 2026").
+- **Guida AdE imposta di bollo sulle FE (giugno 2026)**: il trimestre del bollo dipende dalla "data di consegna, contenuta nella 'ricevuta di consegna'" (fattura del 30/3 consegnata l'1/4 → 2° trimestre).
+- **L. 8 ottobre 2025 n. 151** ([GU n. 236 del 10/10/2025](https://www.gazzettaufficiale.it/eli/id/2025/10/10/25G00153/sg)): aggiunge il 4 ottobre (San Francesco d'Assisi) alle festività nazionali dell'art. 2 L. 260/1949, dal 2026.
+- **Scadenzario AdE 2026**: il termine con maggiorazione 0,80% per i forfettari è il **20 agosto** 2026 (il 19/8 slitta per l'art. 11 D.Lgs. 33/2025).
+- **Scheda INPS "F24 per professionisti GS"**: la riga DPPI si compila con "tutti i campi previsti per il versamento dei contributi a cui gli interessi si riferiscono" → una riga DPPI per periodo di riferimento.
+- **Esempi ufficiali di F24 compilati** cercati (AdE pagina codice 1668, Avvertenze F24, Istr. Fasc. 1 §7, scadenzario AdE, Circ. INPS 62/2026, scheda INPS GS): nessuno mostra due righe 1668 o DPPI con anni diversi.
+
 ## 6. Valori corretti rispetto a versioni precedenti di questo documento
 - Rateazione: 7 rate è la regola attuale (da 30/6); con proroga a luglio sono 6; 2° acconto mai rateizzabile.
 - Riferimento normativo rateazione: D.Lgs. 241/97 art. 20 → riorganizzato nel **D.Lgs. 33/2025** (testo unico versamenti), citato dalle istruzioni 2026.

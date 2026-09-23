@@ -6,6 +6,22 @@ Stato aggiornato al 23/09/2026. Cosa è già fatto e con quale riferimento norma
 
 ## Priorità alta
 
+### Conformità (review del 23/09/2026)
+Esito della review dell'intero codice contro le fonti ufficiali; fonti e citazioni in [docs/normativa-2026.md](docs/normativa-2026.md) §5-ter. In ordine di priorità:
+1. **Maggiorazione INPS nella riga DPPI** (differimento 0,40%/0,80%): oggi è sommata al contributo PXX/PXXR in `f24-schedule.ts`; per l'INPS va versata con DPPI insieme agli interessi (Circ. INPS 62/2026 §3-4). Per l'Erario resta dentro il tributo (Fasc. 1 §7). Test INPS con differimento.
+2. **Escludere le maggiorazioni** dagli acconti e contributi ripresi in dichiarazione (LM45, RR5 col. 16, LM35) in `taxes.service.ts` → `paidFromF24` (Fasc. 3 LM45: "non devono essere considerate le maggiorazioni").
+3. **Festività e date**: 4 ottobre festa nazionale dal 2026 (L. 151/2025) in `calendar.ts`, con la data di inizio validità; proroga 2026 con +0,80% al **20/8** (non 19/8) nel set di regole 2026 (seconda rata 0,30%).
+4. **Base e saldo INPS in euro interi**: base = LM34 arrotondato (Circ. INPS 62/2026 §2.2), contributo RR5 col. 15 e saldo in euro interi, acconti al 40% al centesimo.
+5. **Soglie 85.000 / 100.000 €** (L. 190/2014 c. 54 e 71): badge di avvicinamento in dashboard e in emissione (es. dall'80% di ciascuna soglia, sugli incassi dell'anno più il totale della fattura); sopra 85.000 € avviso che il regime cessa dall'anno successivo; sopra 100.000 € avviso bloccante all'emissione (il regime cessa dall'anno stesso e l'IVA è dovuta dalla fattura che fa superare la soglia) e niente calcolo forfettario né piano F24 per quell'anno. **Limite personale configurabile** nel profilo: cifra oltre la quale l'emissione viene bloccata (es. per restare sotto 85.000 €), con conferma esplicita per superarlo.
+6. **Clienti esteri azienda o privato**: UE privato → N2.2 senza "inversione contabile", INVCONT né Intrastat (art. 7-ter c. 1 lett. b); extra UE privato → N2.1 solo per i servizi dell'art. 7-septies.
+7. **Fatture in valuta**: cambio del giorno dell'incasso (TUIR art. 9 c. 2), obbligatorio all'incasso se la valuta non è EUR; niente emissione in valuta senza cambio; soglia del bollo sul controvalore in EUR (fonte per i 2 € nel totale in valuta **da verificare**).
+8. **Fatture alla PA**: CodiceDestinatario di 6 caratteri con FPA12 (errore 00427); dati obbligatori FPA **da verificare**.
+9. **Maggiorazione anche sui debiti compensati** con partenza differita (Fasc. 1 §7, inferenza dalla regola generale: **da verificare**).
+10. **Crediti**: non proporre in F24 i crediti con `usableFrom` successivo alla data del modello; soglia 5.000 € per tipo di credito e anno.
+11. **Nome file SDI univoco**: controllare il progressivo contro tutti i file già trasmessi, anche importati o inviati con altri software (errore 00002); progressivo iniziale configurabile.
+12. **Bollo per data di consegna**: il trimestre dipende dalla data della ricevuta di consegna SDI (Guida AdE bollo giugno 2026); fino all'invio SDI il conteggio è una stima e va dichiarato.
+13. Minori: suggerimento "12 giorni" nel form fattura da adattare per le fatture estere (15 del mese successivo, art. 21 c. 4 lett. c-d); blocco fatture UE B2B senza iscrizione VIES (**da verificare**, art. 35 DPR 633/72); base della soglia del bollo con la rivalsa INPS (**da verificare**); rateazione avvisi bonari da rivedere per il set 2027 (art. 3-bis D.Lgs. 462/97 cambia dal 2027).
+
 ### Sicurezza di base (prima dell'autenticazione)
 Finché non c'è il login, l'applicazione va usata **solo in locale**: chi raggiunge l'API può leggere e modificare i dati di qualunque partita IVA (OWASP A01). Esito della security review del 23/09/2026 (intero codebase, OWASP Top 10; `pnpm audit` senza vulnerabilità note; parser e builder XML verificati contro XXE, billion laughs e prototype pollution).
 - Fatto: API, web e Postgres su `127.0.0.1`; allowlist dell'header Host contro il DNS rebinding (`ALLOWED_HOSTS`); password di Postgres da `.env`; richieste che modificano dati solo JSON (CSRF); id codificati negli URL verso l'API; set di regole attivabili solo da bozza/proposta; import XML con nomi univoci e senza sovrascrittura; SECURITY.md allineato allo stato reale; lock per tenant nell'emissione (`pg_advisory_xact_lock`) contro numeri e nomi file duplicati con emissioni concorrenti.
