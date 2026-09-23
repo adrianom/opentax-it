@@ -1,6 +1,6 @@
 import 'server-only';
 import { cookies } from 'next/headers';
-import type { BankAccount, Customer, Deadline, F24, ImportResult, InstallmentPlan, Invoice, Payment, PaymentTerms, PlanOptions, PlanPreview, RuleSetSummary, TaxCredit, TaxSummary, TaxYearData, Tenant, TenantWithProfile } from './types';
+import type { BankAccount, CourtesyInvoice, Customer, Deadline, F24, ImportResult, InstallmentPlan, Invoice, InvoiceDetail, Payment, PaymentTerms, PlanOptions, PlanPreview, RuleSetSummary, TaxCredit, TaxSummary, TaxYearData, Tenant, TenantWithProfile } from './types';
 
 export * from './types';
 export * from './format';
@@ -79,7 +79,8 @@ export const api = {
   updateCustomer: (id: string, data: unknown) => tenantRequest<Customer>(`/customers/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
   deleteCustomer: (id: string) => tenantRequest<void>(`/customers/${id}`, { method: 'DELETE' }),
   invoices: (year?: number) => tenantRequest<Invoice[]>(`/invoices${year ? `?year=${year}` : ''}`),
-  invoice: (id: string) => tenantRequest<Invoice>(`/invoices/${id}`),
+  invoice: (id: string) => tenantRequest<InvoiceDetail>(`/invoices/${id}`),
+  invoicePreview: (id: string) => tenantRequest<CourtesyInvoice>(`/invoices/${id}/preview`),
   createInvoice: (data: unknown) => tenantRequest<Invoice>('/invoices', { method: 'POST', body: JSON.stringify(data) }),
   updateInvoice: (id: string, data: unknown) => tenantRequest<Invoice>(`/invoices/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
   deleteInvoice: (id: string) => tenantRequest<void>(`/invoices/${id}`, { method: 'DELETE' }),
@@ -107,6 +108,12 @@ export const api = {
     const res = await fetch(`${API_URL}/f24/${id}/pdf`, { headers: tenantId ? { 'x-tenant-id': tenantId } : {}, cache: 'no-store' });
     if (!res.ok) throw new ApiError(res.status, 'PDF non disponibile');
     return { fileName: res.headers.get('content-disposition')?.match(/filename="([^"]+)"/)?.[1] ?? 'f24.pdf', content: await res.arrayBuffer() };
+  },
+  invoicePdf: async (id: string) => {
+    const tenantId = await currentTenantId();
+    const res = await fetch(`${API_URL}/invoices/${id}/pdf`, { headers: tenantId ? { 'x-tenant-id': tenantId } : {}, cache: 'no-store' });
+    if (!res.ok) throw new ApiError(res.status, 'PDF non disponibile');
+    return { fileName: res.headers.get('content-disposition')?.match(/filename="([^"]+)"/)?.[1] ?? 'fattura.pdf', content: await res.arrayBuffer() };
   },
   invoiceXml: async (id: string) => {
     const tenantId = await currentTenantId();
