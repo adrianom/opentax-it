@@ -37,11 +37,13 @@ Requisiti: Node 24 (vedi `.nvmrc`), pnpm 10, Docker.
 
 ```bash
 pnpm install
-cp .env.example .env
+cp .env.example .env   # poi scegli POSTGRES_PASSWORD e riportala in DATABASE_URL
 pnpm db:up          # PostgreSQL in Docker
 pnpm db:migrate     # schema Prisma
 pnpm dev            # api (http://localhost:3000/api) + web (http://localhost:3001)
 ```
+
+> **Solo uso locale.** L'autenticazione non c'è ancora ([TODO.md](TODO.md)): chi raggiunge l'API può leggere e modificare i dati di qualunque partita IVA. Per questo API, web e database ascoltano solo su `127.0.0.1` e rifiutano le richieste con un host diverso da quelli in `ALLOWED_HOSTS` (protezione contro il DNS rebinding). Non esporli in rete, nemmeno su un NAS, finché l'autenticazione non è pronta.
 
 Al primo avvio apri http://localhost:3001/setup/new e crea la partita IVA (profilo fiscale). Poi in **Impostazioni** (`/setup`), sezione **Regole fiscali**, carica il set fornito con l'applicazione e attivalo; conti bancari e profili di scadenza si aggiungono nelle pagine **Banche** (`/banks`) e **Profili di scadenza** (`/payment-terms`). Lo stesso vale ogni volta che un aggiornamento del codice porta un nuovo set: viene proposto come nuova versione in bozza e non è mai attivato automaticamente.
 
