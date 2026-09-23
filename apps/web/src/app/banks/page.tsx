@@ -12,13 +12,11 @@ export default async function BanksPage() {
   const banks = (await fetchOrNull(() => api.bankAccounts())) ?? [];
   return (
     <main className="mx-auto w-full max-w-6xl space-y-6 p-6">
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-semibold">Banche</h1>
-          <p className="text-sm text-muted-foreground">Conti su cui ricevere i pagamenti. La banca si sceglie su ogni fattura (quella predefinita è proposta) e finisce nel blocco DatiPagamento dell&apos;XML (IBAN/BIC).</p>
-        </div>
-        <Button render={<Link href="/banks/new" />}>Nuova banca</Button>
+      <div>
+        <h1 className="text-2xl font-semibold">Banche</h1>
+        <p className="text-sm text-muted-foreground">Conti su cui ricevere i pagamenti. La banca si sceglie su ogni fattura (quella predefinita è proposta) e finisce nel blocco DatiPagamento dell&apos;XML (IBAN/BIC).</p>
       </div>
+      <div className="flex justify-end gap-2"><Button render={<Link href="/banks/new" />}>Nuova banca</Button></div>
       <Card>
         <CardHeader><CardTitle>{banks.length} conti correnti</CardTitle></CardHeader>
         <CardContent>

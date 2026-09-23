@@ -18,16 +18,14 @@ export default async function CreditsPage({ searchParams }: PageProps<'/credits'
   const remaining = credits.reduce((s, c) => s + c.remaining, 0);
   return (
     <main className="mx-auto w-full max-w-6xl space-y-6 p-6">
-      <div className="flex items-start justify-between gap-4">
-        <div>
+      <div>
           <h1 className="text-2xl font-semibold">Crediti da usare in F24</h1>
           <p className="text-sm text-muted-foreground">
             Crediti risultanti dalla dichiarazione (imposta sostitutiva LM47, INPS RR8, IRPEF, addizionali) compensabili con i debiti in F24 (art. 17 D.Lgs. 241/97; Istr. Redditi PF 2026 Fasc. 1 §8). Vengono proposti quando generi un piano in <Link href="/f24" className="underline">F24 e rate</Link>: il modello a saldo zero va trasmesso solo con i servizi telematici AdE.
           </p>
-        </div>
-        <Button render={<Link href="/credits/new" />}>Nuovo credito</Button>
       </div>
       <ErrorAlert message={error} />
+      <div className="flex justify-end gap-2"><Button render={<Link href="/credits/new" />}>Nuovo credito</Button></div>
 
       <Card>
         <CardHeader>

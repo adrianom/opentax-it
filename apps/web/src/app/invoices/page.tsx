@@ -26,21 +26,21 @@ export default async function InvoicesPage({ searchParams }: PageProps<'/invoice
   const total = collected.reduce((s, i) => s + Number(i.total), 0);
   return (
     <main className="mx-auto w-full max-w-6xl space-y-6 p-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold">Fatture {year}</h1>
-          <p className="text-sm text-muted-foreground">Emesso (totali documento, escluse note di credito): {formatMoney(total)}</p>
-        </div>
+      <div>
+        <h1 className="text-2xl font-semibold">Fatture {year}</h1>
+        <p className="text-sm text-muted-foreground">Emesso (totali documento, escluse note di credito): {formatMoney(total)}</p>
+      </div>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <nav className="flex flex-wrap gap-2" aria-label="Anno">
+          {years.map((y) => (
+            <Button key={y} size="sm" variant={y === year ? 'default' : 'outline'} aria-current={y === year ? 'page' : undefined} render={<Link href={`/invoices?year=${y}`} />}>{y}</Button>
+          ))}
+        </nav>
         <div className="flex gap-2">
           <Button variant="outline" render={<Link href="/invoices/import" />}>Importa XML</Button>
           <Button render={<Link href="/invoices/new" />}>Nuova fattura</Button>
         </div>
       </div>
-      <nav className="flex flex-wrap gap-2" aria-label="Anno">
-        {years.map((y) => (
-          <Button key={y} size="sm" variant={y === year ? 'default' : 'outline'} aria-current={y === year ? 'page' : undefined} render={<Link href={`/invoices?year=${y}`} />}>{y}</Button>
-        ))}
-      </nav>
       <Card>
         <CardHeader><CardTitle>{invoices.length} documenti</CardTitle></CardHeader>
         <CardContent>

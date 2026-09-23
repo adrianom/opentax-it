@@ -23,10 +23,8 @@ export default async function SetupPage() {
   const list = tenants ?? [];
   return (
     <main className="mx-auto w-full max-w-6xl space-y-6 p-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold">Impostazioni</h1>
-        <Button render={<Link href="/setup/new" />}>Nuova partita IVA</Button>
-      </div>
+      <h1 className="text-2xl font-semibold">Impostazioni</h1>
+      <div className="flex justify-end gap-2"><Button render={<Link href="/setup/new" />}>Nuova partita IVA</Button></div>
 
       <Card>
         <CardHeader>

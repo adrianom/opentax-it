@@ -14,10 +14,8 @@ export default async function CustomersPage() {
   const customers = (await fetchOrNull(() => api.customers())) ?? [];
   return (
     <main className="mx-auto w-full max-w-6xl space-y-6 p-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold">Clienti</h1>
-        <Button render={<Link href="/customers/new" />}>Nuovo cliente</Button>
-      </div>
+      <h1 className="text-2xl font-semibold">Clienti</h1>
+      <div className="flex justify-end gap-2"><Button render={<Link href="/customers/new" />}>Nuovo cliente</Button></div>
       <Card>
         <CardHeader><CardTitle>{customers.length} clienti</CardTitle></CardHeader>
         <CardContent>

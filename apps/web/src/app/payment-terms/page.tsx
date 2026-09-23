@@ -12,13 +12,11 @@ export default async function PaymentTermsPage() {
   const terms = (await fetchOrNull(() => api.paymentTerms())) ?? [];
   return (
     <main className="mx-auto w-full max-w-6xl space-y-6 p-6">
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-semibold">Profili di scadenza</h1>
-          <p className="text-sm text-muted-foreground">Selezionabili su ogni fattura: la scadenza è data fattura + giorni (DataScadenzaPagamento) con la modalità indicata (ModalitaPagamento, spec. FatturaPA 1.9.1).</p>
-        </div>
-        <Button render={<Link href="/payment-terms/new" />}>Nuovo profilo</Button>
+      <div>
+        <h1 className="text-2xl font-semibold">Profili di scadenza</h1>
+        <p className="text-sm text-muted-foreground">Selezionabili su ogni fattura: la scadenza è data fattura + giorni (DataScadenzaPagamento) con la modalità indicata (ModalitaPagamento, spec. FatturaPA 1.9.1).</p>
       </div>
+      <div className="flex justify-end gap-2"><Button render={<Link href="/payment-terms/new" />}>Nuovo profilo</Button></div>
       <Card>
         <CardHeader><CardTitle>{terms.length} condizioni di pagamento</CardTitle></CardHeader>
         <CardContent>
