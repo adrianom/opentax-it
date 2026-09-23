@@ -1,4 +1,4 @@
-import { IsEnum, IsOptional, IsString, Length, Matches } from 'class-validator';
+import { IsEmail, IsEnum, IsOptional, IsString, Length, Matches, MaxLength } from 'class-validator';
 import { CustomerKind } from '../generated/prisma/enums.js';
 
 export class CreateCustomerDto {
@@ -15,9 +15,10 @@ export class CreateCustomerDto {
   @IsOptional() @IsString() @Length(2, 2) province?: string;
   @IsOptional() @IsString() @Matches(/^[A-Z]{2}$/) country?: string;
   @IsOptional() @IsString() @Matches(/^[A-Z0-9]{6,7}$/) recipientCode?: string;
-  @IsOptional() @IsString() recipientPec?: string;
+  /** PECDestinatario: EmailType of the FatturaPA XSD, max 256 characters. */
+  @IsOptional() @IsEmail() @MaxLength(256) recipientPec?: string;
   @IsOptional() @IsString() @Length(3, 3) currency?: string;
-  @IsOptional() @IsString() notes?: string;
+  @IsOptional() @IsString() @MaxLength(2000) notes?: string;
 }
 
 export class UpdateCustomerDto extends CreateCustomerDto {}

@@ -1,12 +1,13 @@
 import { Type } from 'class-transformer';
-import { ArrayMaxSize, ArrayMinSize, IsBoolean, IsEnum, IsIn, IsNumber, IsOptional, IsString, Length, Matches, MaxLength, Min, ValidateNested } from 'class-validator';
+import { ArrayMaxSize, ArrayMinSize, IsBoolean, IsEnum, IsIn, IsNumber, IsOptional, IsString, Length, Matches, Max, MaxLength, Min, ValidateNested } from 'class-validator';
 import { DocumentType } from '../generated/prisma/enums.js';
 
 export class InvoiceLineDto {
   @IsString() @Length(1, 1000) description!: string;
-  @IsOptional() @IsNumber() @Min(0) quantity?: number;
+  @IsOptional() @IsNumber() @Min(0) @Max(100_000) quantity?: number;
   @IsOptional() @IsString() @Length(1, 10) unit?: string;
-  @IsNumber() unitPrice!: number;
+  /** Bounded so that quantity × price fits the Decimal(14,2) line total. */
+  @IsNumber() @Min(-1_000_000) @Max(1_000_000) unitPrice!: number;
 }
 
 export class InvoicePaymentDto {
@@ -23,7 +24,7 @@ export class CreateInvoiceDto {
   @IsString() @Matches(/^\d{4}-\d{2}-\d{2}$/) date!: string;
   @IsOptional() @IsString() @Length(3, 3) currency?: string;
   @IsOptional() @IsNumber() @Min(0) exchangeRate?: number;
-  @ValidateNested({ each: true }) @Type(() => InvoiceLineDto) @ArrayMinSize(1) lines!: InvoiceLineDto[];
+  @ValidateNested({ each: true }) @Type(() => InvoiceLineDto) @ArrayMinSize(1) @ArrayMaxSize(1000) lines!: InvoiceLineDto[];
   /** Override the tenant default for the 4% INPS surcharge on this invoice. */
   @IsOptional() @IsBoolean() applyInpsSurcharge?: boolean;
   @IsOptional() @ValidateNested() @Type(() => InvoicePaymentDto) payment?: InvoicePaymentDto;
@@ -33,7 +34,7 @@ export class CreateInvoiceDto {
   @IsOptional() @IsString() paymentTermsId?: string;
   /** Bank account for DatiPagamento; defaults to the tenant default bank. */
   @IsOptional() @IsString() bankAccountId?: string;
-  @IsOptional() @IsString() internalNotes?: string;
+  @IsOptional() @IsString() @MaxLength(2000) internalNotes?: string;
 }
 
 export class UpdateInvoiceDto extends CreateInvoiceDto {}

@@ -1,4 +1,4 @@
-import { IsBoolean, IsInt, IsOptional, IsString, Length, Matches, Min } from 'class-validator';
+import { IsBoolean, IsEmail, IsInt, IsOptional, IsString, Length, Matches, Max, MaxLength, Min } from 'class-validator';
 
 export class CreateTenantDto {
   @IsString() @Length(1, 120) name!: string;
@@ -23,7 +23,7 @@ export class CreateTenantDto {
   @IsOptional() @IsString() @Matches(/^[MF]?$/) sex?: string;
   @IsOptional() @IsString() @Length(0, 60) birthPlace?: string;
   @IsOptional() @IsString() @Matches(/^([A-Z]{2})?$/) birthProvince?: string;
-  @IsOptional() @IsString() pecAddress?: string;
+  @IsOptional() @IsEmail() @MaxLength(256) pecAddress?: string;
 }
 
 export class UpdateTenantProfileDto {
@@ -47,7 +47,7 @@ export class UpdateTenantProfileDto {
   @IsOptional() @IsString() @Matches(/^[MF]?$/) sex?: string;
   @IsOptional() @IsString() @Length(0, 60) birthPlace?: string;
   @IsOptional() @IsString() @Matches(/^([A-Z]{2})?$/) birthProvince?: string;
-  @IsOptional() @IsString() pecAddress?: string;
+  @IsOptional() @IsEmail() @MaxLength(256) pecAddress?: string;
   @IsOptional() @IsString() @Matches(/^\d{4}-[a-z0-9-]+$/) inpsOfficeId?: string;
 }
 
@@ -61,7 +61,7 @@ export class BankAccountDto {
 
 export class PaymentTermsDto {
   @IsString() @Length(1, 60) name!: string;
-  @IsInt() @Min(0) days!: number;
+  @IsInt() @Min(0) @Max(365) days!: number;
   @IsOptional() @IsString() @Matches(/^MP\d{2}$/) method?: string;
   @IsOptional() @IsBoolean() isDefault?: boolean;
 }
