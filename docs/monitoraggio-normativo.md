@@ -35,7 +35,7 @@ Le sorgenti stanno in una tabella (non in codice) così l'admin può aggiungerne
 5. **Crea `RuleChangeProposal`** con i valori estratti mappati sui campi del `FiscalRuleSet` dell'anno target (se il set non esiste, ne crea uno `draft` clonando l'anno precedente).
 6. **Notifica l'admin** (email/PEC interna/in-app) con riepilogo: sorgente, cosa è cambiato, valori proposti, confidenza.
 7. **Revisione**: schermata "Proposte" con diff affiancato (vecchio/nuovo), citazioni, link; l'admin approva campo per campo o rifiuta con nota. Approvazione → scrive nel `FiscalRuleSet` `draft/proposed`.
-8. **Attivazione**: azione esplicita "Attiva set {anno}" che porta a `active` e mette il precedente in `superseded`. Il motore di calcolo usa solo set `active`; se manca il set dell'anno, blocca i calcoli con avviso (non fa fallback silenzioso).
+8. **Attivazione**: azione esplicita "Attiva set {anno}" che porta a `active` e mette il precedente in `superseded`. Si attivano solo set `draft`/`proposed`: un set `superseded` non torna attivo, una correzione esce come nuova versione (implementato in `fiscal-rules.service.ts` → `activate`). Il motore di calcolo usa solo set `active`; se manca il set dell'anno, blocca i calcoli con avviso (non fa fallback silenzioso).
 
 ## 4. Regole di sicurezza
 

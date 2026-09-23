@@ -135,6 +135,9 @@ Fonte: Circolare INPS n. 8 del 3/2/2026; L. 335/95 art. 2 c. 26; L. 662/96 art. 
 ### 4.1 Obbligo
 - Forfettari obbligati alla FE **dal 1/1/2024** per tutti (dal 1/7/2022 se ricavi 2021 > 25.000 €) — DL 36/2022 art. 18 c. 2-3.
 - Termine emissione: **12 giorni** dall'effettuazione (art. 21 c. 4 DPR 633/72); per servizi a soggetti passivi UE (7-ter) ed extra-UE: **entro il 15 del mese successivo** (c. 4 lett. c-d).
+- Data della fattura mai nel futuro: lo SDI scarta con codice **00403** "La data della fattura non deve essere successiva alla data di emissione" (AdE, *Elenco codici errore SdI*, verificato il 23/09/2026).
+- Software: si può usare qualsiasi software, anche privato, purché l'XML rispetti le specifiche tecniche del provvedimento del 24/11/2022; non esiste un software "certificato" obbligatorio (AdE, *Come si predispone una fattura elettronica*, verificato il 23/09/2026).
+- **Conservazione a norma** obbligatoria per chi emette e chi riceve (art. 39 DPR 633/72): salvare i file sul computer non basta. Servizio gratuito AdE dal portale "Fatture e Corrispettivi" previa adesione: conserva le fatture transitate dallo SDI per **15 anni** (anche dopo la chiusura della partita IVA); senza data retroattiva conserva quelle inviate dal giorno successivo all'adesione, con recupero possibile fino al 1° gennaio del secondo anno precedente (AdE, *Come si conservano le fatture elettroniche*, *Il servizio di conservazione a norma*, FAQ *Registrazione e conservazione delle fatture*, verificati il 23/09/2026).
 
 ### 4.2 Compilazione XML (Specifiche tecniche v. 1.9.1, in uso dal 15/05/2026; Guida AdE FE dicembre 2025)
 - `RegimeFiscale` = **RF19**.
@@ -154,7 +157,7 @@ Fonte: Circolare INPS n. 8 del 3/2/2026; L. 335/95 art. 2 c. 26; L. 662/96 art. 
 - Limiti: messaggio ≤ 30 MB, singolo file fattura ≤ 5 MB.
 - Ricevute: accettazione + consegna dal gestore PEC (attestano la trasmissione, **non** l'emissione); poi le ricevute SDI (scarto / consegna / impossibilità di recapito) via PEC. → il tool deve leggere la casella PEC (IMAP) e correlare le notifiche al file.
 - PEC senza allegato → messaggio di cortesia SDI.
-- Nessun accreditamento né costo AdE per il canale PEC.
+- Nessun accreditamento né costo AdE per il canale PEC: l'accreditamento serve solo per i canali Web Service (SDICoop) e SFTP (fatturapa.gov.it, *Inviare la FatturaPA* e *Cos'è il Sistema di Accreditamento*, verificati il 23/09/2026).
 
 ### 4.4 Imposta di bollo (Guida AdE "L'imposta di bollo sulle fatture elettroniche", giugno 2026)
 - Elenco A (non modificabile) ed Elenco B (modificabile) nel portale Fatture e Corrispettivi; l'AdE calcola l'importo.

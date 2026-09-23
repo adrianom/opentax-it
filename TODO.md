@@ -69,7 +69,7 @@ Emissione e XML sono pronti; manca la trasmissione.
 - Esporre lettura (scadenze, riepilogo imposte, fatture) e azioni sicure (bozza fattura, registrazione incasso) come strumenti MCP, con permessi per tenant. Dipende dall'autenticazione.
 
 ### Qualità
-- Test e2e dell'API (oggi c'è un solo test, e `test/app.e2e-spec.ts` non compila con `tsc`: mancano i tipi di `supertest/types`), test dei componenti web.
+- Test e2e dell'API su database reale (oggi c'è un solo test, e `test/app.e2e-spec.ts` non compila con `tsc`: mancano i tipi di `supertest/types`), in particolare: più bozze dello stesso anno e tipo, emissioni concorrenti con il lock per tenant, import con nomi file uguali; test dei componenti web.
 - Dipendenze: l'audit segnala vulnerabilità solo in dipendenze transitive del CLI Prisma (`mysql2`, `deepmerge-ts`), non usate a runtime con PostgreSQL; da rivalutare a ogni aggiornamento di Prisma.
 - Deploy: immagine Docker per api + web, backup del database e della cartella `storage/`.
 
