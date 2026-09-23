@@ -12,10 +12,14 @@ function errorMessage(e: unknown): string {
   return e instanceof ApiError ? e.message : 'Errore inatteso';
 }
 
+/** The tenant cookie is only read on the server: not readable by page scripts, HTTPS-only in production. */
+const TENANT_COOKIE_OPTIONS = { path: '/', sameSite: 'lax', httpOnly: true, secure: process.env.NODE_ENV === 'production' } as const;
+
 export async function selectTenant(formData: FormData) {
   const id = String(formData.get('tenantId') ?? '');
+  if (!/^[a-z0-9]{20,32}$/.test(id)) redirect('/setup'); // tenant ids are cuids
   const store = await cookies();
-  store.set(TENANT_COOKIE, id, { path: '/', sameSite: 'lax' });
+  store.set(TENANT_COOKIE, id, TENANT_COOKIE_OPTIONS);
   redirect('/invoices');
 }
 
@@ -47,7 +51,7 @@ export async function createTenant(_prev: ActionState, formData: FormData): Prom
       pecAddress: f('pecAddress') || undefined,
     });
     const store = await cookies();
-    store.set(TENANT_COOKIE, tenant.id, { path: '/', sameSite: 'lax' });
+    store.set(TENANT_COOKIE, tenant.id, TENANT_COOKIE_OPTIONS);
   } catch (e) {
     return { error: errorMessage(e) };
   }
