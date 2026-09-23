@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { NoTenant } from '@/components/no-tenant';
 import { YearDataForm } from './year-data-form';
+import { TriangleAlert } from 'lucide-react';
 
 function Row({ label, value, code, strong }: { label: string; value: string; code?: string; strong?: boolean }) {
   return (
@@ -37,7 +38,8 @@ export default async function TaxesPage({ searchParams }: PageProps<'/taxes'>) {
       ) : (
         <>
           {s.warnings.length > 0 && (
-            <Alert>
+            <Alert variant="warning">
+              <TriangleAlert />
               <AlertTitle>Regole mancanti</AlertTitle>
               <AlertDescription><ul className="list-disc pl-4">{s.warnings.map((w) => <li key={w}>{w}</li>)}</ul></AlertDescription>
             </Alert>

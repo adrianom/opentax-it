@@ -11,6 +11,7 @@ import { NoTenant } from '@/components/no-tenant';
 import { createPlan, deletePlan } from '@/lib/actions';
 import { api, ApiError, currentTenantId, fetchOrNull, formatDate, formatMoney, formatPct, type PlanOptions, type PlanPreview, type PlanStart } from '@/lib/api';
 import { F24Card } from './f24-card';
+import { TriangleAlert } from 'lucide-react';
 
 const START_LABELS: Record<PlanStart, string> = {
   ORDINARY: 'Scadenza ordinaria',
@@ -76,7 +77,8 @@ export default async function F24Page({ searchParams }: PageProps<'/f24'>) {
 
       <ErrorAlert message={error ?? previewError} />
       {(plan ? [] : (preview?.warnings ?? options?.warnings ?? [])).length > 0 && (
-        <Alert>
+        <Alert variant="warning">
+          <TriangleAlert />
           <AlertTitle>Attenzione</AlertTitle>
           <AlertDescription>
             <ul className="list-disc pl-4">{(preview?.warnings ?? options?.warnings ?? []).map((w) => <li key={w}>{w}</li>)}</ul>
