@@ -47,10 +47,10 @@ const LAYOUT = {
       year: [181, 195.4, 209.8, 224.2],
       sex: 250.5,
       place: { x: 274 },
-      province: 552,
+      province: [[538, 552.6], [552.6, 566.8]] as Cells,
     },
     city: { x: 116, baseline: y(189.5) },
-    province: { x: 332, baseline: y(189.5) },
+    province: { cells: [[329.4, 343.8], [343.8, 358.2]] as Cells, baseline: y(189.5) },
     address: { x: 368, baseline: y(189.5) },
   },
   treasury: {
@@ -95,15 +95,17 @@ const LAYOUT = {
     periodTo: { month: [272, 288] as Box, year: [289, 314] as Box },
   },
   amounts: {
-    debit: { intRight: 383, decimals: [388, 401] as Box },
-    credit: { intRight: 469.4, decimals: [474.4, 487] as Box },
-    balance: { intRight: 555.8, decimals: [560.8, 573.7] as Box, signX: 489 },
+    debit: { intRight: 383, decimals: [[387.1, 394.2], [394.2, 401.3]] as Cells },
+    credit: { intRight: 469.4, decimals: [[473.5, 480.6], [480.6, 487.7]] as Cells },
+    balance: { intRight: 555.8, decimals: [[559.9, 567], [567, 574]] as Cells, signX: 489 },
   },
-  finalBalance: { baseline: y(718.2), intRight: 555.8, decimals: [560.8, 573.7] as Box },
+  finalBalance: { baseline: y(718.2), intRight: 555.8, decimals: [[559.9, 567], [567, 574]] as Cells },
   /** "Estremi del versamento" date boxes (DD MM YYYY); filled with the planned payment date as intermediaries' software does. */
   paymentDate: { baseline: y(788), day: [36, 50], month: [65, 79], year: [95, 109, 123, 137] },
 };
 type Box = [number, number];
+/** Two-character fields split by a tick mark into two cells (cents after the printed comma, province); measured on the model's vector lines. */
+type Cells = [Box, Box];
 
 export interface F24PrintLine {
   section: 'TREASURY' | 'INPS' | 'REGIONAL' | 'LOCAL';
@@ -190,15 +192,16 @@ export class F24PdfService {
       const cx = typeof box === 'number' ? box : (box[0] + box[1]) / 2;
       text(s, cx - width(s) / 2, baseline);
     };
+    const inCells = (s: string, cells: Cells, baseline: number) => [...s].forEach((ch, i) => centered(ch, cells[i], baseline));
     const boxed = (s: string, box: Box, baseline: number) => {
       const w = (box[1] - box[0]) / s.length;
       [...s].forEach((ch, i) => text(ch, box[0] + w * i + (w - width(ch)) / 2, baseline));
     };
-    const amount = (value: number, col: { intRight: number; decimals: Box }, baseline: number) => {
+    const amount = (value: number, col: { intRight: number; decimals: Cells }, baseline: number) => {
       if (!(value > 0)) return;
       const [int, dec] = value.toFixed(2).split('.');
       rightAligned(int, col.intRight, baseline);
-      centered(dec, col.decimals, baseline);
+      inCells(dec, col.decimals, baseline);
     };
 
     // Contributor
@@ -218,9 +221,9 @@ export class F24PdfService {
     }
     if (data.sex) centered(data.sex.toUpperCase(), c.birth.sex, c.birth.baseline);
     if (data.birthPlace) text(data.birthPlace.toUpperCase(), c.birth.place.x, c.birth.baseline);
-    if (data.birthProvince) centered(data.birthProvince.toUpperCase(), c.birth.province, c.birth.baseline);
+    if (data.birthProvince) inCells(data.birthProvince.toUpperCase(), c.birth.province, c.birth.baseline);
     text(data.city.toUpperCase(), c.city.x, c.city.baseline);
-    text(data.province.toUpperCase(), c.province.x, c.province.baseline);
+    inCells(data.province.toUpperCase(), c.province.cells, c.province.baseline);
     text(data.address.toUpperCase(), c.address.x, c.address.baseline);
 
     // Treasury section
@@ -237,7 +240,7 @@ export class F24PdfService {
       debitA += l.debitAmount;
       creditB += l.creditAmount;
     });
-    if (treasury.length > 0) this.totals(debitA, creditB, t.totalBaseline, amount, text, rightAligned, centered);
+    if (treasury.length > 0) this.totals(debitA, creditB, t.totalBaseline, amount, text, rightAligned, inCells);
 
     // INPS section
     const n = LAYOUT.inps;
@@ -262,7 +265,7 @@ export class F24PdfService {
       debitC += l.debitAmount;
       creditD += l.creditAmount;
     });
-    if (inps.length > 0) this.totals(debitC, creditD, n.totalBaseline, amount, text, rightAligned, centered);
+    if (inps.length > 0) this.totals(debitC, creditD, n.totalBaseline, amount, text, rightAligned, inCells);
 
     // Regional and local sections (credits from the return, e.g. 3844 with the municipality code)
     let regionalBalance = 0;
@@ -281,7 +284,7 @@ export class F24PdfService {
         debit += line.debitAmount;
         credit += line.creditAmount;
       });
-      if (rows.length > 0) this.totals(debit, credit, l.totalBaseline, amount, text, rightAligned, centered);
+      if (rows.length > 0) this.totals(debit, credit, l.totalBaseline, amount, text, rightAligned, inCells);
       if (l === LAYOUT.regional) regionalBalance = debit - credit;
       else localBalance = debit - credit;
     }
@@ -300,17 +303,17 @@ export class F24PdfService {
     const f = LAYOUT.finalBalance;
     const [int, dec] = Math.abs(final).toFixed(2).split('.');
     rightAligned(int, f.intRight, f.baseline);
-    centered(dec, f.decimals, f.baseline);
+    inCells(dec, f.decimals, f.baseline);
   }
 
   private totals(
     debit: number,
     credit: number,
     baseline: number,
-    amount: (v: number, col: { intRight: number; decimals: Box }, b: number) => void,
+    amount: (v: number, col: { intRight: number; decimals: Cells }, b: number) => void,
     text: (s: string, x: number, b: number) => void,
     rightAligned: (s: string, xRight: number, b: number) => void,
-    centered: (s: string, box: Box | number, b: number) => void,
+    inCells: (s: string, cells: Cells, b: number) => void,
   ) {
     amount(round2(debit), LAYOUT.amounts.debit, baseline);
     amount(round2(credit), LAYOUT.amounts.credit, baseline);
@@ -318,7 +321,7 @@ export class F24PdfService {
     text(balance < 0 ? '-' : '+', LAYOUT.amounts.balance.signX, baseline);
     const [int, dec] = Math.abs(balance).toFixed(2).split('.');
     rightAligned(int, LAYOUT.amounts.balance.intRight, baseline);
-    centered(dec, LAYOUT.amounts.balance.decimals, baseline);
+    inCells(dec, LAYOUT.amounts.balance.decimals, baseline);
   }
 }
 
