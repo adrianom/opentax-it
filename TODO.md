@@ -7,11 +7,20 @@ Stato aggiornato al 23/09/2026. Cosa è già fatto e con quale riferimento norma
 ## Priorità alta
 
 ### Sicurezza di base (prima dell'autenticazione)
-Finché non c'è il login, l'applicazione va usata **solo in locale**: chi raggiunge l'API può leggere e modificare i dati di qualunque partita IVA (OWASP A01).
-- API in ascolto solo su `127.0.0.1` per default (oggi su tutte le interfacce), con variabile d'ambiente per cambiarlo; avviso "solo uso locale" nel README.
-- Header di sicurezza (helmet) su API e web; limite del body JSON ridotto (oggi 50 MB per l'import XML) o limitato alla sola rotta di import.
-- Storage: verificare che ogni percorso risolto resti dentro la cartella di storage (difesa in profondità contro path traversal).
-- Esito della security review in corso da riportare qui.
+Finché non c'è il login, l'applicazione va usata **solo in locale**: chi raggiunge l'API può leggere e modificare i dati di qualunque partita IVA (OWASP A01). Esito della security review del 23/09/2026 (intero codebase, OWASP Top 10; `pnpm audit` senza vulnerabilità note; parser e builder XML verificati contro XXE, billion laughs e prototype pollution).
+- Fatto: API, web e Postgres su `127.0.0.1`; allowlist dell'header Host contro il DNS rebinding (`ALLOWED_HOSTS`); password di Postgres da `.env`; richieste che modificano dati solo JSON (CSRF); id codificati negli URL verso l'API; set di regole attivabili solo da bozza/proposta; import XML con nomi univoci e senza sovrascrittura; SECURITY.md allineato allo stato reale.
+- Da fare, sforzo medio: lock nell'emissione (`pg_advisory_xact_lock` per tenant) e scrittura dell'XML dopo il commit, contro numeri/nomi file duplicati con emissioni concorrenti.
+- Da fare, sforzo piccolo:
+  - header di sicurezza (helmet nell'API; CSP con `frame-ancestors 'none'`, `nosniff` in `next.config.ts`); limite del body JSON solo sulla rotta di import (oggi 50 MB su tutto);
+  - `Content-Disposition`: nome file ripulito da caratteri non sicuri (il numero di un XML importato non passa per l'XSD) e validazione di `Numero` all'import (max 20 caratteri, Basic Latin);
+  - messaggi d'errore generici per le eccezioni non HTTP (oggi l'import restituisce `e.message` anche degli errori Prisma); errori in `/f24` e `/credits` passati come codice, non come testo nell'URL;
+  - DTO: `@Max` su `PaymentTermsDto.days`, `ArrayMaxSize` sulle righe, limiti sugli importi (Decimal 14,2), `@MaxLength` sulle note, `@IsEmail` sulle PEC;
+  - modello F24: rifiutare il PDF se lo SHA-256 non coincide (oggi solo warning);
+  - storage: permessi `0700`/`0600`; controllo che il percorso risolto resti dentro la cartella (oggi non sfruttabile, difesa in profondità);
+  - cookie `opentax_tenant` con `httpOnly`/`secure` e id validato;
+  - CI: `permissions: contents: read`;
+  - `tenantId` anche nella lettura della fattura collegata in `issue()`; valutare `updateMany`/`deleteMany` con `tenantId` o un'estensione Prisma che lo inietti;
+  - rinominare `NEXT_PUBLIC_API_URL` in `API_URL` (è usata solo lato server).
 
 ### Autenticazione e permessi
 Oggi la partita IVA attiva è scelta in `/setup` e salvata in un cookie; l'API riceve il tenant da un header. **Obbligatoria prima di qualsiasi uso fuori dal proprio computer.**
