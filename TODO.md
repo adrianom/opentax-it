@@ -6,6 +6,13 @@ Stato aggiornato al 23/09/2026. Cosa è già fatto e con quale riferimento norma
 
 ## Priorità alta
 
+### Sicurezza di base (prima dell'autenticazione)
+Finché non c'è il login, l'applicazione va usata **solo in locale**: chi raggiunge l'API può leggere e modificare i dati di qualunque partita IVA (OWASP A01).
+- API in ascolto solo su `127.0.0.1` per default (oggi su tutte le interfacce), con variabile d'ambiente per cambiarlo; avviso "solo uso locale" nel README.
+- Header di sicurezza (helmet) su API e web; limite del body JSON ridotto (oggi 50 MB per l'import XML) o limitato alla sola rotta di import.
+- Storage: verificare che ogni percorso risolto resti dentro la cartella di storage (difesa in profondità contro path traversal).
+- Esito della security review in corso da riportare qui.
+
 ### Autenticazione e permessi
 Oggi la partita IVA attiva è scelta in `/setup` e salvata in un cookie; l'API riceve il tenant da un header. **Obbligatoria prima di qualsiasi uso fuori dal proprio computer.**
 - Login (email + password o passkey), sessioni, ruoli già previsti nello schema (`UserRole`), tenant multipli per utente.
@@ -15,7 +22,7 @@ Oggi la partita IVA attiva è scelta in `/setup` e salvata in un cookie; l'API r
 ### Invio allo SDI via PEC e ricevute
 Emissione e XML sono pronti; manca la trasmissione.
 - Invio del file a `sdi01@pec.fatturapa.it` e poi all'indirizzo PEC assegnato dallo SDI (Specifiche tecniche 1.9.1 §1.5 "servizio PEC"); lettura delle ricevute RC/NS/MC/DT e aggiornamento di `SdiTransmission`/`SdiNotification`.
-- Conservazione: le fatture emesse vanno conservate (DPR 633/72 art. 39; DM 17/06/2014): valutare l'adesione al servizio di conservazione gratuito dell'AdE (Fatture e Corrispettivi) come indicazione all'utente.
+- Conservazione: le fatture emesse vanno conservate a norma (DPR 633/72 art. 39; DM 17/06/2014). Fatto: avviso nel README con l'indicazione del servizio gratuito dell'AdE (Fatture e Corrispettivi). Da fare: storico delle fatture nell'applicazione e promemoria di adesione nella pagina di setup.
 
 ### Dichiarazione dei redditi: prospetto LM/RR
 - Produrre il prospetto dei righi LM (sez. III) e RR (sez. II) con i valori calcolati, per il contribuente o il suo intermediario; segnare la dichiarazione come presentata (`TaxReturn`) e registrare i crediti risultanti (LM47, RR8) nel modulo Crediti.
@@ -61,7 +68,7 @@ Emissione e XML sono pronti; manca la trasmissione.
 - Esporre lettura (scadenze, riepilogo imposte, fatture) e azioni sicure (bozza fattura, registrazione incasso) come strumenti MCP, con permessi per tenant. Dipende dall'autenticazione.
 
 ### Qualità
-- Test e2e dell'API (oggi c'è un solo test), test dei componenti web.
+- Test e2e dell'API (oggi c'è un solo test, e `test/app.e2e-spec.ts` non compila con `tsc`: mancano i tipi di `supertest/types`), test dei componenti web.
 - Dipendenze: l'audit segnala vulnerabilità solo in dipendenze transitive del CLI Prisma (`mysql2`, `deepmerge-ts`), non usate a runtime con PostgreSQL; da rivalutare a ogni aggiornamento di Prisma.
 - Deploy: immagine Docker per api + web, backup del database e della cartella `storage/`.
 
