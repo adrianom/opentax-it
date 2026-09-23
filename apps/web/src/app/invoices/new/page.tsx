@@ -5,11 +5,12 @@ import { InvoiceForm } from './invoice-form';
 
 export default async function NewInvoicePage() {
   if (!(await currentTenantId())) return <NoTenant />;
-  const [customers, invoices, terms, banks] = await Promise.all([
+  const [customers, invoices, terms, banks, rules] = await Promise.all([
     fetchOrNull(() => api.customers()),
     fetchOrNull(() => api.invoices()),
     fetchOrNull(() => api.paymentTerms()),
     fetchOrNull(() => api.bankAccounts()),
+    fetchOrNull(() => api.activeRules(new Date().getFullYear())),
   ]);
   const issued = (invoices ?? []).filter((i) => i.status !== 'DRAFT' && i.type === 'TD01');
   return (
@@ -22,7 +23,7 @@ export default async function NewInvoicePage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <InvoiceForm customers={customers ?? []} issuedInvoices={issued.map((i) => ({ id: i.id, number: i.number }))} terms={terms ?? []} banks={banks ?? []} />
+          <InvoiceForm customers={customers ?? []} issuedInvoices={issued.map((i) => ({ id: i.id, number: i.number }))} terms={terms ?? []} banks={banks ?? []} surchargePct={rules?.inps.surchargePct} />
         </CardContent>
       </Card>
     </main>

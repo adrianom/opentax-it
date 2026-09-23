@@ -11,10 +11,11 @@ import { TenantForm } from './tenant-form';
 export default async function SetupPage() {
   const year = new Date().getFullYear();
   const ruleYears = [year - 1, year, year + 1];
-  const [tenants, offices, me, ...ruleRows] = await Promise.all([
+  const [tenants, offices, me, rules, ...ruleRows] = await Promise.all([
     fetchOrNull(() => api.tenants()),
     fetchOrNull(() => api.inpsOffices()),
     fetchOrNull(() => api.me()),
+    fetchOrNull(() => api.activeRules(year)),
     ...ruleYears.map((y) => Promise.all([fetchOrNull(() => api.ruleSets(y)), fetchOrNull(() => api.ruleSetStatus(y))])),
   ]);
   const rulesByYear = ruleYears.map((y, i) => ({ year: y, ruleSets: ruleRows[i]?.[0] ?? [], ruleStatus: ruleRows[i]?.[1] ?? null }));
@@ -52,7 +53,7 @@ export default async function SetupPage() {
             <CardTitle>Profilo fiscale — {me.name}</CardTitle>
             <CardDescription>Dati del cedente/prestatore usati nelle fatture elettroniche (FatturaPA, CedentePrestatore) e negli F24.</CardDescription>
           </CardHeader>
-          <CardContent><TenantForm offices={offices ?? []} current={{ name: me.name, profile: me.profile }} /></CardContent>
+          <CardContent><TenantForm offices={offices ?? []} current={{ name: me.name, profile: me.profile }} surchargePct={rules?.inps.surchargePct} /></CardContent>
         </Card>
       ) : null}
 

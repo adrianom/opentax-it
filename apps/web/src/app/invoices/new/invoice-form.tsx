@@ -3,7 +3,7 @@
 import { useRouter } from 'next/navigation';
 import { useState, useTransition } from 'react';
 import { saveInvoice, type InvoiceInput } from '@/lib/actions';
-import { customerLabel } from '@/lib/format';
+import { customerLabel, inpsSurchargeLabel } from '@/lib/format';
 import type { BankAccount, Customer, PaymentTerms } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -28,7 +28,7 @@ export interface InvoiceDraft {
   lines: LineDraft[];
 }
 
-export function InvoiceForm({ customers, issuedInvoices, terms, banks, draft }: { customers: Customer[]; issuedInvoices: Array<{ id: string; number: string }>; terms: PaymentTerms[]; banks: BankAccount[]; draft?: InvoiceDraft }) {
+export function InvoiceForm({ customers, issuedInvoices, terms, banks, draft, surchargePct }: { customers: Customer[]; issuedInvoices: Array<{ id: string; number: string }>; terms: PaymentTerms[]; banks: BankAccount[]; draft?: InvoiceDraft; surchargePct?: number }) {
   const router = useRouter();
   const [pending, start] = useTransition();
   const [error, setError] = useState<string>();
@@ -98,7 +98,7 @@ export function InvoiceForm({ customers, issuedInvoices, terms, banks, draft }: 
             {banks.map((b) => <option key={b.id} value={b.id}>{b.name}{b.bankName ? ` · ${b.bankName}` : ''}</option>)}
           </NativeSelect>
         </Field>
-        <Field label="Rivalsa INPS 4%" htmlFor="surcharge">
+        <Field label={inpsSurchargeLabel(surchargePct)} htmlFor="surcharge">
           <NativeSelect id="surcharge" value={surcharge} onChange={(e) => setSurcharge(e.target.value as 'default' | 'yes' | 'no')}>
             <option value="default">Come da profilo</option>
             <option value="yes">Applica</option>

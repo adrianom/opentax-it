@@ -8,12 +8,13 @@ export default async function EditInvoicePage({ params }: PageProps<'/invoices/[
   const inv = await fetchOrNull(() => api.invoice(id));
   if (!inv) notFound();
   if (inv.status !== 'DRAFT') redirect(`/invoices/${id}`);
-  const [me, customers, invoices, terms, banks] = await Promise.all([
+  const [me, customers, invoices, terms, banks, rules] = await Promise.all([
     fetchOrNull(() => api.me()),
     fetchOrNull(() => api.customers()),
     fetchOrNull(() => api.invoices()),
     fetchOrNull(() => api.paymentTerms()),
     fetchOrNull(() => api.bankAccounts()),
+    fetchOrNull(() => api.activeRules(inv.year)),
   ]);
   const issued = (invoices ?? []).filter((i) => i.status !== 'DRAFT' && i.type === 'TD01');
   // The draft stores the surcharge amount, not the choice: keep "as profile" when they agree.
@@ -37,7 +38,7 @@ export default async function EditInvoicePage({ params }: PageProps<'/invoices/[
           <CardDescription>Bollo, rivalsa INPS, natura IVA e diciture vengono ricalcolati al salvataggio. Il numero viene assegnato all&apos;emissione.</CardDescription>
         </CardHeader>
         <CardContent>
-          <InvoiceForm customers={customers ?? []} issuedInvoices={issued.map((i) => ({ id: i.id, number: i.number }))} terms={terms ?? []} banks={banks ?? []} draft={draft} />
+          <InvoiceForm customers={customers ?? []} issuedInvoices={issued.map((i) => ({ id: i.id, number: i.number }))} terms={terms ?? []} banks={banks ?? []} draft={draft} surchargePct={rules?.inps.surchargePct} />
         </CardContent>
       </Card>
     </main>

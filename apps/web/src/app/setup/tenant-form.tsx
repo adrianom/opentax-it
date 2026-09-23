@@ -2,6 +2,7 @@
 
 import { useActionState } from 'react';
 import { createTenant, updateTenantProfile } from '@/lib/actions';
+import { inpsSurchargeLabel } from '@/lib/format';
 import type { TenantProfile } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -17,9 +18,11 @@ interface Props {
   offices: OfficeOption[];
   /** When set, the form edits the current tenant instead of creating one. */
   current?: { name: string; profile: TenantProfile };
+  /** INPS surcharge rate of the current year's rule set, for the label. */
+  surchargePct?: number;
 }
 
-export function TenantForm({ offices, current }: Props) {
+export function TenantForm({ offices, current, surchargePct }: Props) {
   const [state, action, pending] = useActionState(current ? updateTenantProfile : createTenant, undefined);
   const p = current?.profile;
   return (
@@ -89,7 +92,7 @@ export function TenantForm({ offices, current }: Props) {
       </Field>
       <div className="flex flex-col gap-2 sm:col-span-2">
         <label className="flex items-center gap-2 text-sm"><Checkbox name="reducedRate" defaultChecked={p?.reducedRate} /> Aliquota ridotta 5% (requisiti art. 1 c. 65 L. 190/2014)</label>
-        <label className="flex items-center gap-2 text-sm"><Checkbox name="applyInpsSurcharge" defaultChecked={p?.applyInpsSurcharge} /> Applica rivalsa INPS 4% in fattura</label>
+        <label className="flex items-center gap-2 text-sm"><Checkbox name="applyInpsSurcharge" defaultChecked={p?.applyInpsSurcharge} /> Applica in fattura: {inpsSurchargeLabel(surchargePct)}</label>
         <label className="flex items-center gap-2 text-sm">
           <Checkbox name="isaSubject" defaultChecked={p?.isaSubject} /> Attività con ISA approvato (acconti 50% + 50%)
           <HelpTip>

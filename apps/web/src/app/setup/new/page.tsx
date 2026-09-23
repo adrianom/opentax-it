@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { TenantForm } from '../tenant-form';
 
 export default async function NewTenantPage() {
-  const offices = (await fetchOrNull(() => api.inpsOffices())) ?? [];
+  const [offices, rules] = await Promise.all([fetchOrNull(() => api.inpsOffices()), fetchOrNull(() => api.activeRules(new Date().getFullYear()))]);
   return (
     <main className="mx-auto w-full max-w-4xl space-y-6 p-6">
       <div className="flex items-center justify-between">
@@ -17,7 +17,7 @@ export default async function NewTenantPage() {
           <CardTitle>Profilo fiscale</CardTitle>
           <CardDescription>Dati del cedente/prestatore usati nelle fatture elettroniche (FatturaPA, CedentePrestatore) e negli F24. Dopo la creazione diventa la partita IVA attiva.</CardDescription>
         </CardHeader>
-        <CardContent><TenantForm offices={offices} /></CardContent>
+        <CardContent><TenantForm offices={offices ?? []} surchargePct={rules?.inps.surchargePct} /></CardContent>
       </Card>
     </main>
   );

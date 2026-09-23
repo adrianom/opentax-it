@@ -9,6 +9,11 @@ export function formatDate(iso: string): string {
   return `${d}/${m}/${y}`;
 }
 
+/** "Rivalsa INPS 4%" with the rate of the year's rule set; without the rate when the set is not available. */
+export function inpsSurchargeLabel(ratePct?: number): string {
+  return ratePct == null ? 'Rivalsa INPS' : `Rivalsa INPS ${ratePct.toLocaleString('it-IT')}%`;
+}
+
 export function formatMoney(value: string | number, currency = 'EUR'): string {
   return new Intl.NumberFormat('it-IT', { style: 'currency', currency }).format(Number(value));
 }

@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { api, customerLabel, fetchOrNull, formatDate, formatMoney } from '@/lib/api';
+import { api, customerLabel, fetchOrNull, formatDate, formatMoney, inpsSurchargeLabel } from '@/lib/api';
 import { deleteInvoice } from '@/lib/actions';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -16,6 +16,7 @@ export default async function InvoicePage({ params }: PageProps<'/invoices/[id]'
   const inv = await fetchOrNull(() => api.invoice(id));
   if (!inv) notFound();
   const isDraft = inv.status === 'DRAFT';
+  const rules = Number(inv.inpsSurcharge) > 0 ? await fetchOrNull(() => api.activeRules(inv.year)) : null;
   const payments = isDraft ? [] : ((await fetchOrNull(() => api.payments(id))) ?? []);
   const [terms, banks] = isDraft ? await Promise.all([fetchOrNull(() => api.paymentTerms()), fetchOrNull(() => api.bankAccounts())]) : [null, null];
   const chosenTerms = terms?.find((t) => t.id === inv.paymentTermsId) ?? terms?.find((t) => t.isDefault);
@@ -56,7 +57,7 @@ export default async function InvoicePage({ params }: PageProps<'/invoices/[id]'
           <Separator className="my-4" />
           <dl className="ml-auto grid w-full max-w-sm grid-cols-2 gap-1 text-sm">
             <dt className="text-muted-foreground">Imponibile</dt><dd className="text-right font-mono">{formatMoney(inv.taxableAmount, inv.currency)}</dd>
-            {Number(inv.inpsSurcharge) > 0 && <><dt className="text-muted-foreground">Rivalsa INPS 4%</dt><dd className="text-right font-mono">{formatMoney(inv.inpsSurcharge, inv.currency)}</dd></>}
+            {Number(inv.inpsSurcharge) > 0 && <><dt className="text-muted-foreground">{inpsSurchargeLabel(rules?.inps.surchargePct)}</dt><dd className="text-right font-mono">{formatMoney(inv.inpsSurcharge, inv.currency)}</dd></>}
             <dt className="text-muted-foreground">IVA</dt><dd className="text-right font-mono">— ({inv.vatNature.replace('_', '.')})</dd>
             {inv.virtualStamp && <><dt className="text-muted-foreground">Bollo virtuale</dt><dd className="text-right font-mono">{formatMoney(inv.stampAmount, inv.currency)}</dd></>}
             <dt className="font-medium">Totale documento</dt><dd className="text-right font-mono font-medium">{formatMoney(inv.total, inv.currency)}</dd>
