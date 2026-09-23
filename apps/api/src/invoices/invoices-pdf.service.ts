@@ -155,9 +155,7 @@ export class InvoicesPdfService {
     page.drawText(cleanPdfText(data.supplier.name), { x: MARGIN_LEFT, y, size: 13, font: fontBold, color: rgb(0.1, 0.1, 0.1) });
 
     let sy = y - 16;
-    const taxRegimeStr = data.supplier.taxRegime
-      ? `Regime Fiscale: ${data.supplier.taxRegime}${data.supplier.taxRegime === 'RF19' ? ' - Regime forfettario' : ''}`
-      : 'Regime Fiscale: RF19 - Regime forfettario';
+    const taxRegimeStr = `Regime Fiscale: ${data.supplier.taxRegime}${data.supplier.taxRegime === 'RF19' ? ' - Regime forfettario' : ''}`;
     page.drawText(cleanPdfText(taxRegimeStr), { x: MARGIN_LEFT, y: sy, size: 8.5, font: fontItalic, color: rgb(0.3, 0.3, 0.3) });
     sy -= 12;
     page.drawText(`P.IVA: ${data.supplier.vatNumber || '-'}   C.F.: ${data.supplier.fiscalCode || '-'}`, { x: MARGIN_LEFT, y: sy, size: 8.5, font, color: rgb(0.2, 0.2, 0.2) });

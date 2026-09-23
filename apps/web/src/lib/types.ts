@@ -135,6 +135,10 @@ export interface CourtesyParty {
   pec?: string;
 }
 
+export interface CourtesySupplier extends CourtesyParty {
+  taxRegime: string;
+}
+
 export interface CourtesyLine {
   lineNumber: number;
   description: string;
@@ -161,7 +165,7 @@ export interface CourtesyInvoice {
   currency: string;
   isDraft: boolean;
   status: InvoiceStatus;
-  supplier: CourtesyParty;
+  supplier: CourtesySupplier;
   customer: CourtesyParty & { recipientCode: string };
   lines: CourtesyLine[];
   taxableAmount: number;

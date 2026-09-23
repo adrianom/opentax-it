@@ -1,5 +1,10 @@
 import { describe, expect, it, vi } from 'vitest';
+import { UnprocessableEntityException } from '@nestjs/common';
 import { Prisma } from '../generated/prisma/client.js';
+import type { FiscalRulesService } from '../fiscal-rules/fiscal-rules.service.js';
+import type { PrismaService } from '../prisma/prisma.service.js';
+import type { StorageService } from '../storage/storage.service.js';
+import type { TenantsService } from '../tenants/tenants.service.js';
 import { InvoicesService } from './invoices.service.js';
 import { InvoicesPdfService } from './invoices-pdf.service.js';
 
@@ -122,20 +127,20 @@ describe('InvoicesService.preview', () => {
       bankAccount: {
         findFirst: vi.fn().mockResolvedValue({ id: 'bank1', iban: 'IT60X0542811101000000123456', bic: 'UNCRITM1XXX' }),
       },
-    } as unknown as any;
+    } as unknown as PrismaService;
 
     const rulesMock = {
       getActive: vi.fn().mockResolvedValue(mockRules),
-    } as unknown as any;
+    } as unknown as FiscalRulesService;
 
     const tenantsMock = {
       getWithProfile: vi.fn().mockResolvedValue({ profile: mockProfile }),
-    } as unknown as any;
+    } as unknown as TenantsService;
 
     const storageMock = {
       read: vi.fn(),
       write: vi.fn(),
-    } as unknown as any;
+    } as unknown as StorageService;
 
     const service = new InvoicesService(prismaMock, rulesMock, tenantsMock, storageMock, new InvoicesPdfService());
 
@@ -272,18 +277,20 @@ describe('InvoicesService.preview', () => {
       invoice: {
         findFirst: vi.fn().mockResolvedValue(issuedInvoice),
       },
-    } as unknown as any;
-
-    const tenantsMock = {
-      getWithProfile: vi.fn().mockResolvedValue({ profile: mockProfile }),
-    } as unknown as any;
+    } as unknown as PrismaService;
 
     const storageMock = {
       read: vi.fn().mockResolvedValue(Buffer.from(xmlContent, 'utf8')),
       write: vi.fn(),
-    } as unknown as any;
+    } as unknown as StorageService;
 
-    const service = new InvoicesService(prismaMock, {} as any, tenantsMock, storageMock, new InvoicesPdfService());
+    const service = new InvoicesService(
+      prismaMock,
+      {} as unknown as FiscalRulesService,
+      {} as unknown as TenantsService,
+      storageMock,
+      new InvoicesPdfService(),
+    );
 
     const preview = await service.preview('tenant1', 'inv-issued-1');
 
@@ -291,6 +298,8 @@ describe('InvoicesService.preview', () => {
     expect(preview.isDraft).toBe(false);
     expect(preview.number).toBe('1/2026');
     expect(preview.supplier.address).toBe('Via Vecchia Sede 5'); // original XML address
+    expect(preview.supplier.taxRegime).toBe('RF19');
+    expect(preview.supplier.pec).toBeUndefined(); // PEC omitted on issued invoice
     expect(preview.payment?.iban).toBe('IT00ORIGINALIBAN00000000'); // original XML IBAN
     expect(preview.notes).toEqual(['Nota dall XML originale']);
     expect(preview.lines[0].description).toBe('Consulenza salvata nell XML');
@@ -298,5 +307,32 @@ describe('InvoicesService.preview', () => {
     expect(preview.inpsRatePct).toBe(4);
     expect(preview.virtualStamp).toBe(true);
     expect(preview.total).toBe(1042);
+  });
+
+  it('throws UnprocessableEntityException when an issued invoice has no XML or reading fails', async () => {
+    const issuedWithoutXml = {
+      id: 'inv-no-xml',
+      tenantId: 'tenant1',
+      status: 'ISSUED' as const,
+      xmlPath: null,
+      lines: [],
+      customer: mockCustomer,
+    };
+
+    const prismaMock = {
+      invoice: {
+        findFirst: vi.fn().mockResolvedValue(issuedWithoutXml),
+      },
+    } as unknown as PrismaService;
+
+    const service = new InvoicesService(
+      prismaMock,
+      {} as unknown as FiscalRulesService,
+      {} as unknown as TenantsService,
+      {} as unknown as StorageService,
+      new InvoicesPdfService(),
+    );
+
+    await expect(service.preview('tenant1', 'inv-no-xml')).rejects.toThrow(UnprocessableEntityException);
   });
 });

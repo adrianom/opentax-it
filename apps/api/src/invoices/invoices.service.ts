@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException, UnprocessableEntityException } from '@nestjs/common';
 import { buildInvoiceXml, invoiceFileName, parseInvoiceXml, type FlatRateInvoice } from '@opentax-it/fatturapa';
 import type { FiscalRuleSet } from '@opentax-it/fiscal-rules';
 import { FiscalRulesService } from '../fiscal-rules/fiscal-rules.service.js';
@@ -219,11 +219,16 @@ export class InvoicesService {
   async preview(tenantId: string, id: string): Promise<CourtesyInvoice> {
     const inv = await this.get(tenantId, id);
 
-    if (inv.status !== 'DRAFT' && inv.xmlPath) {
+    if (inv.status !== 'DRAFT') {
+      if (!inv.xmlPath) {
+        throw new UnprocessableEntityException(`Invoice ${id} is marked ${inv.status} but has no XML file stored`);
+      }
       try {
         const xmlBuffer = await this.storage.read(inv.xmlPath);
         const p = parseInvoiceXml(xmlBuffer.toString('utf8'));
-        const { profile } = await this.tenants.getWithProfile(tenantId).catch(() => ({ profile: null }));
+        if (!p.supplier.taxRegime) {
+          throw new UnprocessableEntityException(`Missing RegimeFiscale in XML for invoice ${id}`);
+        }
 
         const supplierName = p.supplier.businessName || `${p.supplier.firstName ?? ''} ${p.supplier.lastName ?? ''}`.trim();
         const customerName = p.customer.businessName || `${p.customer.firstName ?? ''} ${p.customer.lastName ?? ''}`.trim();
@@ -266,7 +271,7 @@ export class InvoicesService {
           status: inv.status,
           supplier: {
             name: supplierName,
-            taxRegime: p.supplier.taxRegime ?? 'RF19',
+            taxRegime: p.supplier.taxRegime,
             vatNumber: p.supplier.vatNumber,
             fiscalCode: p.supplier.fiscalCode,
             address: p.supplier.address ?? '',
@@ -274,7 +279,7 @@ export class InvoicesService {
             city: p.supplier.city ?? '',
             province: p.supplier.province ?? '',
             country: p.supplier.country ?? 'IT',
-            pec: profile?.pecAddress ?? undefined,
+            pec: undefined,
           },
           customer: {
             name: customerName,
@@ -299,12 +304,13 @@ export class InvoicesService {
           payment,
           notes: p.notes,
         };
-      } catch {
-        // Fall back to database reconstruction below if XML read/parse fails
+      } catch (e) {
+        if (e instanceof UnprocessableEntityException) throw e;
+        throw new UnprocessableEntityException(`Failed to read XML for invoice ${id}: ${(e as Error).message}`);
       }
     }
 
-    // Draft invoice or fallback from DB
+    // Draft invoice from DB
     const { profile } = await this.tenants.getWithProfile(tenantId);
     const rules = await this.rules.getActive(inv.year);
     const payment = await this.paymentFromTerms(tenantId, inv);
