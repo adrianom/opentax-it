@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, UnprocessableEntityException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException, UnprocessableEntityException } from '@nestjs/common';
 import { createHash } from 'node:crypto';
 import { ZodError } from 'zod';
 import {
@@ -84,6 +84,8 @@ export class FiscalRulesService {
   async activate(id: string, userId?: string) {
     const target = await this.prisma.fiscalRuleSet.findUnique({ where: { id } });
     if (!target) throw new NotFoundException(`Rule set ${id} not found`);
+    // One way only: a superseded set is never reactivated; a correction ships as a new version.
+    if (target.status !== 'DRAFT' && target.status !== 'PROPOSED') throw new BadRequestException(`Rule set ${target.year} v${target.version} is ${target.status} and cannot be activated`);
     return this.prisma.$transaction(async (tx) => {
       await tx.fiscalRuleSet.updateMany({ where: { year: target.year, status: 'ACTIVE' }, data: { status: 'SUPERSEDED' } });
       return tx.fiscalRuleSet.update({
