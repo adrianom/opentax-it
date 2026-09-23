@@ -8,9 +8,9 @@ import { StorageService } from '../storage/storage.service.js';
  * versamento unificato - F24 Ordinario" (MOD. F24 – 2013 EURO, three copies), published at
  * https://www.agenziaentrate.gov.it/portale/schede/pagamenti/f24/modello-e-istruzioni-f24.
  * The PDF is not redistributed with the source code: it is downloaded from the AdE site on
- * first use (F24_MODEL_URL) and cached in the storage directory; its SHA-256 is compared
- * with the one this layout was calibrated on, so that a new edition of the model is
- * noticed (F24_MODEL_SHA256).
+ * first use (F24_MODEL_URL) and cached in the storage directory. Its SHA-256 must match the
+ * one this layout was calibrated on (F24_MODEL_SHA256): a new edition, or a file altered on
+ * the way, is refused unless F24_MODEL_ALLOW_UNVERIFIED=true (then only logged).
  *
  * Field positions (PDF points, origin bottom-left) were measured on that file with
  * `pdftotext -bbox` (the printed commas of the amount columns give the row grid: rows
@@ -146,10 +146,15 @@ export class F24PdfService {
 
   /** The official model, downloaded once and cached in the storage directory. */
   private async model(): Promise<Buffer> {
+    let cached: Buffer | undefined;
     try {
-      return await this.storage.read(MODEL_PATH);
+      cached = await this.storage.read(MODEL_PATH);
     } catch {
       // not cached yet
+    }
+    if (cached) {
+      this.verify(cached);
+      return cached;
     }
     let bytes: Buffer;
     try {
@@ -159,10 +164,20 @@ export class F24PdfService {
     } catch (e) {
       throw new ServiceUnavailableException(`Cannot download the official F24 model from the AdE site (${(e as Error).message}); put it at storage/${MODEL_PATH}`);
     }
-    const sha = createHash('sha256').update(bytes).digest('hex');
-    if (sha !== F24_MODEL_SHA256) this.logger.warn(`F24 model SHA-256 ${sha} differs from the calibrated ${F24_MODEL_SHA256}: check the layout`);
+    this.verify(bytes);
     await this.storage.write(MODEL_PATH, bytes);
     return bytes;
+  }
+
+  private verify(bytes: Buffer) {
+    const sha = createHash('sha256').update(bytes).digest('hex');
+    if (sha === F24_MODEL_SHA256) return;
+    const message = `F24 model SHA-256 ${sha} differs from the calibrated ${F24_MODEL_SHA256}`;
+    if (process.env.F24_MODEL_ALLOW_UNVERIFIED === 'true') {
+      this.logger.warn(`${message}: check the layout`);
+      return;
+    }
+    throw new UnprocessableEntityException(`${message}: the layout may not match. Replace storage/${MODEL_PATH} with the calibrated model or set F24_MODEL_ALLOW_UNVERIFIED=true`);
   }
 
   async render(data: F24PrintData): Promise<Uint8Array> {
