@@ -64,7 +64,7 @@ export default async function F24Page({ searchParams }: PageProps<'/f24'>) {
   const next = forms.find((f) => f.status !== 'PAID' && f.status !== 'CANCELLED' && f.paymentDate.slice(0, 10) >= today) ?? forms.find((f) => f.status !== 'PAID' && f.status !== 'CANCELLED');
 
   return (
-    <main className="mx-auto w-full max-w-5xl space-y-6 p-6">
+    <main className="mx-auto w-full max-w-6xl space-y-6 p-6">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div>
           <h1 className="text-2xl font-semibold">F24 e rate — periodo d&apos;imposta {taxYear}</h1>

@@ -6,7 +6,7 @@ import { ImportForm } from './import-form';
 export default async function ImportInvoicesPage() {
   if (!(await currentTenantId())) return <NoTenant />;
   return (
-    <main className="mx-auto w-full max-w-4xl p-6">
+    <main className="mx-auto w-full max-w-6xl p-6">
       <Card>
         <CardHeader>
           <CardTitle>Importa fatture da XML</CardTitle>

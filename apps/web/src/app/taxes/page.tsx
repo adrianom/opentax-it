@@ -22,7 +22,7 @@ export default async function TaxesPage({ searchParams }: PageProps<'/taxes'>) {
   const year = Number(params.year ?? new Date().getFullYear());
   const [s, rules] = await Promise.all([fetchOrNull(() => api.taxSummary(year)), fetchOrNull(() => api.activeRules(year))]);
   return (
-    <main className="mx-auto w-full max-w-5xl space-y-6 p-6">
+    <main className="mx-auto w-full max-w-6xl space-y-6 p-6">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-semibold">Imposte {year}</h1>

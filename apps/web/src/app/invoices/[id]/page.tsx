@@ -23,7 +23,7 @@ export default async function InvoicePage({ params }: PageProps<'/invoices/[id]'
   const chosenBank = banks?.find((b) => b.id === inv.bankAccountId) ?? banks?.find((b) => b.isDefault);
   const defaultDueDate = chosenTerms ? new Date(new Date(inv.date).getTime() + chosenTerms.days * 86_400_000).toISOString().slice(0, 10) : undefined;
   return (
-    <main className="mx-auto w-full max-w-4xl space-y-6 p-6">
+    <main className="mx-auto w-full max-w-6xl space-y-6 p-6">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-semibold">{TYPE_LABELS[inv.type]} {inv.number || '(bozza)'}</h1>

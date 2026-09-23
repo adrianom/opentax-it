@@ -82,7 +82,7 @@ export default async function DeadlinesPage({ searchParams }: PageProps<'/deadli
   const nextDate = deadlines?.find((d) => d.date >= today)?.date;
 
   return (
-    <main className="mx-auto w-full max-w-5xl p-6 space-y-6">
+    <main className="mx-auto w-full max-w-6xl space-y-6 p-6">
       <header className="space-y-1">
         <h1 className="text-2xl font-semibold">Scadenzario {year}</h1>
         <p className="text-sm text-muted-foreground">

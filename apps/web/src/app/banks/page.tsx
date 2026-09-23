@@ -7,7 +7,7 @@ export default async function BanksPage() {
   if (!(await currentTenantId())) return <NoTenant />;
   const banks = (await fetchOrNull(() => api.bankAccounts())) ?? [];
   return (
-    <main className="mx-auto w-full max-w-4xl space-y-6 p-6">
+    <main className="mx-auto w-full max-w-6xl space-y-6 p-6">
       <h1 className="text-2xl font-semibold">Banche</h1>
       <Card>
         <CardHeader>

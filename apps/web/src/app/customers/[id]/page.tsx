@@ -8,7 +8,7 @@ export default async function EditCustomerPage({ params }: PageProps<'/customers
   const customer = await fetchOrNull(() => api.customer(id));
   if (!customer) notFound();
   return (
-    <main className="mx-auto w-full max-w-3xl p-6">
+    <main className="mx-auto w-full max-w-6xl p-6">
       <Card>
         <CardHeader><CardTitle>Modifica cliente</CardTitle></CardHeader>
         <CardContent><CustomerForm customer={customer} /></CardContent>

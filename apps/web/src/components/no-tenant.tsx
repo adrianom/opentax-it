@@ -4,7 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 
 export function NoTenant() {
   return (
-    <main className="mx-auto w-full max-w-3xl p-6">
+    <main className="mx-auto w-full max-w-6xl p-6">
       <Card>
         <CardHeader>
           <CardTitle>Nessuna partita IVA selezionata</CardTitle>

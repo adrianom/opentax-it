@@ -22,7 +22,7 @@ export default async function SetupPage() {
   const current = await currentTenantId();
   const list = tenants ?? [];
   return (
-    <main className="mx-auto w-full max-w-4xl space-y-6 p-6">
+    <main className="mx-auto w-full max-w-6xl space-y-6 p-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold">Impostazioni</h1>
         <Button render={<Link href="/setup/new" />}>Nuova partita IVA</Button>

@@ -7,7 +7,7 @@ export default async function PaymentTermsPage() {
   if (!(await currentTenantId())) return <NoTenant />;
   const terms = (await fetchOrNull(() => api.paymentTerms())) ?? [];
   return (
-    <main className="mx-auto w-full max-w-4xl space-y-6 p-6">
+    <main className="mx-auto w-full max-w-6xl space-y-6 p-6">
       <h1 className="text-2xl font-semibold">Profili di scadenza</h1>
       <Card>
         <CardHeader>

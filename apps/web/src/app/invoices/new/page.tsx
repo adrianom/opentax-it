@@ -14,7 +14,7 @@ export default async function NewInvoicePage() {
   ]);
   const issued = (invoices ?? []).filter((i) => i.status !== 'DRAFT' && i.type === 'TD01');
   return (
-    <main className="mx-auto w-full max-w-4xl p-6">
+    <main className="mx-auto w-full max-w-6xl p-6">
       <Card>
         <CardHeader>
           <CardTitle>Nuovo documento</CardTitle>

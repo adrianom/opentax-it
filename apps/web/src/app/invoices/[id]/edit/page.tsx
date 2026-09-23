@@ -31,7 +31,7 @@ export default async function EditInvoicePage({ params }: PageProps<'/invoices/[
     lines: (inv.lines ?? []).map((l) => ({ description: l.description, quantity: String(Number(l.quantity)), unit: l.unit ?? '', unitPrice: String(Number(l.unitPrice)) })),
   };
   return (
-    <main className="mx-auto w-full max-w-4xl p-6">
+    <main className="mx-auto w-full max-w-6xl p-6">
       <Card>
         <CardHeader>
           <CardTitle>Modifica bozza</CardTitle>

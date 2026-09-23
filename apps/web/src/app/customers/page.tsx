@@ -13,7 +13,7 @@ export default async function CustomersPage() {
   if (!(await currentTenantId())) return <NoTenant />;
   const customers = (await fetchOrNull(() => api.customers())) ?? [];
   return (
-    <main className="mx-auto w-full max-w-5xl space-y-6 p-6">
+    <main className="mx-auto w-full max-w-6xl space-y-6 p-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold">Clienti</h1>
         <Button render={<Link href="/customers/new" />}>Nuovo cliente</Button>

@@ -25,7 +25,7 @@ export default async function InvoicesPage({ searchParams }: PageProps<'/invoice
   const collected = invoices.filter((i) => i.status !== 'DRAFT' && i.status !== 'CANCELLED' && i.type !== 'TD04');
   const total = collected.reduce((s, i) => s + Number(i.total), 0);
   return (
-    <main className="mx-auto w-full max-w-5xl space-y-6 p-6">
+    <main className="mx-auto w-full max-w-6xl space-y-6 p-6">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-semibold">Fatture {year}</h1>
