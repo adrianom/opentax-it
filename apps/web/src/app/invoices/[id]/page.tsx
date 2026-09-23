@@ -1,7 +1,6 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { api, customerLabel, fetchOrNull, formatDate, formatMoney, inpsSurchargeLabel } from '@/lib/api';
-import { deleteInvoice } from '@/lib/actions';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
@@ -81,7 +80,6 @@ export default async function InvoicePage({ params }: PageProps<'/invoices/[id]'
           <CardContent className="space-y-4">
             <p className="text-sm text-muted-foreground">Scadenza: {chosenTerms ? `${chosenTerms.name} (${chosenTerms.days} gg)` : 'nessuna'} · Banca: {chosenBank ? chosenBank.name : 'nessuna'}. Puoi modificare i valori qui sotto prima di emettere.</p>
             <IssueForm id={inv.id} defaultDueDate={defaultDueDate} defaultIban={chosenBank?.iban} />
-            <form action={deleteInvoice}><input type="hidden" name="id" value={inv.id} /><Button variant="ghost" size="sm" type="submit">Elimina bozza</Button></form>
           </CardContent>
         </Card>
       ) : (

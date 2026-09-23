@@ -28,7 +28,7 @@ export default async function PaymentTermsPage() {
                   <TableCell><Link href={`/payment-terms/${t.id}`} className="font-medium hover:underline">{t.name}</Link> {t.isDefault && <Badge variant="secondary">predefinito</Badge>}</TableCell>
                   <TableCell>{t.days} giorni dalla data fattura</TableCell>
                   <TableCell className="font-mono">{t.method}</TableCell>
-                  <TableCell className="text-right"><form action={deletePaymentTerms}><input type="hidden" name="id" value={t.id} /><Button variant="ghost" size="sm" type="submit">Elimina</Button></form></TableCell>
+                  <TableCell className="text-right"><form action={deletePaymentTerms}><input type="hidden" name="id" value={t.id} /><Button variant="destructive" size="sm" type="submit">Elimina</Button></form></TableCell>
                 </TableRow>
               ))}
               {terms.length === 0 && <TableRow><TableCell colSpan={4} className="text-center text-muted-foreground">Nessun profilo. Aggiungine uno per calcolare la scadenza di pagamento in fattura.</TableCell></TableRow>}

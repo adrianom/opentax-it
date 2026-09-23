@@ -1,7 +1,7 @@
 'use client';
 
 import { useActionState } from 'react';
-import { issueInvoice } from '@/lib/actions';
+import { deleteInvoice, issueInvoice } from '@/lib/actions';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Field } from '@/components/field';
@@ -17,7 +17,13 @@ export function IssueForm({ id, defaultDueDate, defaultIban }: { id: string; def
         <Field label="Scadenza pagamento" htmlFor="dueDate" hint="Precompilata dalle condizioni del profilo"><Input id="dueDate" name="dueDate" type="date" defaultValue={defaultDueDate ?? ''} /></Field>
         <Field label="IBAN" htmlFor="iban"><Input id="iban" name="iban" defaultValue={defaultIban ?? ''} /></Field>
       </div>
-      <Button type="submit" disabled={pending}>{pending ? 'Emissione…' : 'Emetti fattura'}</Button>
+      <div className="flex flex-wrap gap-2">
+        <Button type="submit" disabled={pending}>{pending ? 'Emissione…' : 'Emetti fattura'}</Button>
+        {/* Same form (nested forms are invalid): formAction sends the draft id to the delete action instead. */}
+        <Button type="submit" variant="destructive" formAction={deleteInvoice} formNoValidate disabled={pending} onClick={(e) => { if (!window.confirm('Eliminare la bozza?')) e.preventDefault(); }}>
+          Elimina bozza
+        </Button>
+      </div>
     </form>
   );
 }

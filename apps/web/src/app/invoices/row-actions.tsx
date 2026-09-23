@@ -9,10 +9,11 @@ import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 
 /** Icon button with a tooltip: a link when `render` is given, otherwise a native submit button. */
-function Action({ label, render, children }: { label: string; render?: ReactElement; children: ReactElement }) {
+function Action({ label, render, destructive, children }: { label: string; render?: ReactElement; destructive?: boolean; children: ReactElement }) {
+  const variant = destructive ? 'destructive' : 'ghost';
   const button = render
-    ? <Button variant="ghost" size="icon-sm" aria-label={label} render={render} />
-    : <Button variant="ghost" size="icon-sm" aria-label={label} type="submit" />;
+    ? <Button variant={variant} size="icon-sm" aria-label={label} render={render} />
+    : <Button variant={variant} size="icon-sm" aria-label={label} type="submit" />;
   return (
     <Tooltip>
       <TooltipTrigger render={button}>{children}</TooltipTrigger>
@@ -30,7 +31,7 @@ export function InvoiceRowActions({ id, status, hasXml }: { id: string; status: 
         <Action label="Modifica" render={<Link href={`/invoices/${id}/edit`} />}><Pencil /></Action>
         <form action={deleteInvoice} onSubmit={(e) => { if (!window.confirm('Eliminare la bozza?')) e.preventDefault(); }}>
           <input type="hidden" name="id" value={id} />
-          <Action label="Elimina bozza"><Trash2 /></Action>
+          <Action label="Elimina bozza" destructive><Trash2 /></Action>
         </form>
       </div>
     );

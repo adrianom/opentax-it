@@ -103,7 +103,7 @@ export default async function F24Page({ searchParams }: PageProps<'/f24'>) {
               </div>
               <form action={deletePlan}>
                 <input type="hidden" name="taxYear" value={taxYear} />
-                <Button type="submit" variant="outline" size="sm">Elimina piano</Button>
+                <Button type="submit" variant="destructive" size="sm">Elimina piano</Button>
               </form>
             </div>
           </CardHeader>

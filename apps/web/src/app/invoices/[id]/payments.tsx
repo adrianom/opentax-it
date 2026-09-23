@@ -30,7 +30,7 @@ export function Payments({ invoiceId, currency, total, payments }: { invoiceId: 
                 <TableCell className="text-right font-mono">{formatMoney(p.amount, currency)}</TableCell>
                 <TableCell>{p.method ?? '—'}</TableCell>
                 <TableCell className="text-right">
-                  <form action={deletePayment}><input type="hidden" name="id" value={p.id} /><input type="hidden" name="invoiceId" value={invoiceId} /><Button variant="ghost" size="sm" type="submit">Elimina</Button></form>
+                  <form action={deletePayment}><input type="hidden" name="id" value={p.id} /><input type="hidden" name="invoiceId" value={invoiceId} /><Button variant="destructive" size="sm" type="submit">Elimina</Button></form>
                 </TableCell>
               </TableRow>
             ))}

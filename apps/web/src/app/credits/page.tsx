@@ -62,7 +62,7 @@ export default async function CreditsPage({ searchParams }: PageProps<'/credits'
                     {c.used === 0 && (
                       <form action={deleteTaxCredit}>
                         <input type="hidden" name="id" value={c.id} />
-                        <Button type="submit" size="sm" variant="ghost">Elimina</Button>
+                        <Button type="submit" size="sm" variant="destructive">Elimina</Button>
                       </form>
                     )}
                   </TableCell>

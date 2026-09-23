@@ -29,7 +29,7 @@ export default async function BanksPage() {
                   <TableCell>{b.bankName ?? '—'}</TableCell>
                   <TableCell className="font-mono text-xs">{b.iban}</TableCell>
                   <TableCell className="font-mono text-xs">{b.bic ?? '—'}</TableCell>
-                  <TableCell className="text-right"><form action={deleteBankAccount}><input type="hidden" name="id" value={b.id} /><Button variant="ghost" size="sm" type="submit">Elimina</Button></form></TableCell>
+                  <TableCell className="text-right"><form action={deleteBankAccount}><input type="hidden" name="id" value={b.id} /><Button variant="destructive" size="sm" type="submit">Elimina</Button></form></TableCell>
                 </TableRow>
               ))}
               {banks.length === 0 && <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground">Nessuna banca. Aggiungine una per indicare l&apos;IBAN in fattura.</TableCell></TableRow>}

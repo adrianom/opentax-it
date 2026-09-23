@@ -41,7 +41,7 @@ export default async function CustomersPage() {
                   <TableCell className="text-right">
                     <form action={deleteCustomer}>
                       <input type="hidden" name="id" value={c.id} />
-                      <Button variant="ghost" size="sm" type="submit">Elimina</Button>
+                      <Button variant="destructive" size="sm" type="submit">Elimina</Button>
                     </form>
                   </TableCell>
                 </TableRow>
