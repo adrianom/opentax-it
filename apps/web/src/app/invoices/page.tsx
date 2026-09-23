@@ -50,7 +50,7 @@ export default async function InvoicesPage({ searchParams }: PageProps<'/invoice
             <TableBody>
               {invoices.map((i) => (
                 <TableRow key={i.id}>
-                  <TableCell>{i.number && <Link href={`/invoices/${i.id}`} className="font-mono font-medium hover:underline">{i.number}</Link>}</TableCell>
+                  <TableCell className="font-mono font-medium">{i.number}</TableCell>
                   <TableCell>{formatDate(i.date)}</TableCell>
                   <TableCell>{TYPE_LABELS[i.type] ?? i.type}</TableCell>
                   <TableCell>{customerLabel(i.customer)}</TableCell>
