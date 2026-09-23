@@ -1,5 +1,5 @@
 import { api, currentTenantId, fetchOrNull } from '@/lib/api';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { NoTenant } from '@/components/no-tenant';
 import { InvoiceForm } from './invoice-form';
 
@@ -14,14 +14,14 @@ export default async function NewInvoicePage() {
   ]);
   const issued = (invoices ?? []).filter((i) => i.status !== 'DRAFT' && i.type === 'TD01');
   return (
-    <main className="mx-auto w-full max-w-6xl p-6">
+    <main className="mx-auto w-full max-w-6xl space-y-6 p-6">
+      <div>
+        <h1 className="text-2xl font-semibold">Nuova fattura</h1>
+        <p className="text-sm text-muted-foreground">
+          Bollo, rivalsa INPS, natura IVA e diciture vengono calcolati dal set di regole dell&apos;anno. Il numero viene assegnato all&apos;emissione.
+        </p>
+      </div>
       <Card>
-        <CardHeader>
-          <CardTitle>Nuovo documento</CardTitle>
-          <CardDescription>
-            Bollo, rivalsa INPS, natura IVA e diciture vengono calcolati dal set di regole dell&apos;anno. Il numero viene assegnato all&apos;emissione.
-          </CardDescription>
-        </CardHeader>
         <CardContent>
           <InvoiceForm customers={customers ?? []} issuedInvoices={issued.map((i) => ({ id: i.id, number: i.number }))} terms={terms ?? []} banks={banks ?? []} surchargePct={rules?.inps.surchargePct} />
         </CardContent>
