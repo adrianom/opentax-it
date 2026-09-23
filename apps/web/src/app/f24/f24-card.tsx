@@ -129,7 +129,7 @@ export function F24Card({ f, taxYear, highlight }: { f: F24Draft | F24; taxYear:
               {f.i24CancelBy && (
                 <>
                   {' · '}I24 annullabile entro il {formatDate(f.i24CancelBy)}
-                  <HelpTip><p>F24 con addebito a data futura (I24): la delega può essere annullata fino al terzultimo giorno lavorativo antecedente la data di addebito (Provv. AdE 26/07/2024 n. 313945, §5.3).</p></HelpTip>
+                  <HelpTip className="ml-1 -translate-y-px"><p>F24 con addebito a data futura (I24): la delega può essere annullata fino al terzultimo giorno lavorativo antecedente la data di addebito (Provv. AdE 26/07/2024 n. 313945, §5.3).</p></HelpTip>
                 </>
               )}
               {saved?.paidOn && ` · pagato il ${formatDate(saved.paidOn)}`}
@@ -148,33 +148,36 @@ export function F24Card({ f, taxYear, highlight }: { f: F24Draft | F24; taxYear:
         <LinesTable lines={f.lines} section="REGIONAL" taxYear={taxYear} />
         <LinesTable lines={f.lines} section="LOCAL" taxYear={taxYear} />
         {saved && saved.status !== 'CANCELLED' && (
-          <div className="flex flex-wrap items-end gap-2 border-t pt-3">
+          <div className="flex flex-wrap items-center gap-2 border-t pt-3">
+            <Button size="sm" variant="outline" render={<a href={`/f24/${saved.id}/pdf?inline=1`} target="_blank" rel="noreferrer" />}>Apri F24</Button>
             <Button size="sm" variant="outline" render={<a href={`/f24/${saved.id}/pdf`} />}>Scarica PDF (Mod. F24)</Button>
-            {saved.status !== 'PAID' && (
-              <form action={setF24Status} className="flex items-end gap-2">
-                <input type="hidden" name="id" value={saved.id} />
-                <input type="hidden" name="taxYear" value={taxYear} />
-                <input type="hidden" name="status" value="PAID" />
-                <label className="text-xs text-muted-foreground">Data pagamento<Input type="date" name="paidOn" defaultValue={f.paymentDate.slice(0, 10)} className="mt-1 w-40" /></label>
-                <Button type="submit" size="sm">Segna pagato</Button>
-              </form>
-            )}
-            {saved.status === 'PLANNED' && (
-              <form action={setF24Status}>
-                <input type="hidden" name="id" value={saved.id} />
-                <input type="hidden" name="taxYear" value={taxYear} />
-                <input type="hidden" name="status" value="SCHEDULED_I24" />
-                <Button type="submit" size="sm" variant="outline">Programmato con I24</Button>
-              </form>
-            )}
-            {saved.status !== 'PLANNED' && (
-              <form action={setF24Status}>
-                <input type="hidden" name="id" value={saved.id} />
-                <input type="hidden" name="taxYear" value={taxYear} />
-                <input type="hidden" name="status" value="PLANNED" />
-                <Button type="submit" size="sm" variant="ghost">Riporta a pianificato</Button>
-              </form>
-            )}
+            <div className="ml-auto flex flex-wrap items-center justify-end gap-2">
+              {saved.status !== 'PAID' && (
+                <form action={setF24Status} className="flex items-center gap-2">
+                  <input type="hidden" name="id" value={saved.id} />
+                  <input type="hidden" name="taxYear" value={taxYear} />
+                  <input type="hidden" name="status" value="PAID" />
+                  <label className="flex items-center gap-2 text-xs whitespace-nowrap text-muted-foreground">Data pagamento<Input type="date" name="paidOn" defaultValue={f.paymentDate.slice(0, 10)} className="h-7 w-36" /></label>
+                  <Button type="submit" size="sm">Segna pagato</Button>
+                </form>
+              )}
+              {saved.status === 'PLANNED' && (
+                <form action={setF24Status}>
+                  <input type="hidden" name="id" value={saved.id} />
+                  <input type="hidden" name="taxYear" value={taxYear} />
+                  <input type="hidden" name="status" value="SCHEDULED_I24" />
+                  <Button type="submit" size="sm" variant="outline">Programmato con I24</Button>
+                </form>
+              )}
+              {saved.status !== 'PLANNED' && (
+                <form action={setF24Status}>
+                  <input type="hidden" name="id" value={saved.id} />
+                  <input type="hidden" name="taxYear" value={taxYear} />
+                  <input type="hidden" name="status" value="PLANNED" />
+                  <Button type="submit" size="sm" variant="ghost">Riporta a pianificato</Button>
+                </form>
+              )}
+            </div>
           </div>
         )}
       </CardContent>
