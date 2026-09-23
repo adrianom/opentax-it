@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import type { ReactElement } from 'react';
-import { Eye, FileCode, FileDown, Pencil, Trash2 } from 'lucide-react';
+import { Eye, FileCode, FileDown, FileText, Pencil, Trash2 } from 'lucide-react';
 import { deleteInvoice } from '@/lib/actions';
 import type { InvoiceStatus } from '@/lib/types';
 import { Button } from '@/components/ui/button';
@@ -21,11 +21,13 @@ function Action({ label, render, children }: { label: string; render?: ReactElem
   );
 }
 
-/** Row actions of the invoice list: edit and delete for drafts; open (PDF in a new tab), download PDF and XML for issued documents. */
+/** Row actions of the invoice list: open, edit and delete for drafts; open (PDF in a new tab), download PDF and XML for issued documents. */
 export function InvoiceRowActions({ id, status, hasXml }: { id: string; status: InvoiceStatus; hasXml: boolean }) {
   if (status === 'DRAFT') {
     return (
       <div className="flex justify-end gap-1">
+        {/* Drafts have no number to click: the detail page is where they are issued. */}
+        <Action label="Apri ed emetti" render={<Link href={`/invoices/${id}`} />}><FileText /></Action>
         <Action label="Modifica" render={<Link href={`/invoices/${id}/edit`} />}><Pencil /></Action>
         <form action={deleteInvoice} onSubmit={(e) => { if (!window.confirm('Eliminare la bozza?')) e.preventDefault(); }}>
           <input type="hidden" name="id" value={id} />
