@@ -9,17 +9,10 @@ Stato aggiornato al 23/09/2026. Cosa è già fatto e con quale riferimento norma
 ### Sicurezza di base (prima dell'autenticazione)
 Finché non c'è il login, l'applicazione va usata **solo in locale**: chi raggiunge l'API può leggere e modificare i dati di qualunque partita IVA (OWASP A01). Esito della security review del 23/09/2026 (intero codebase, OWASP Top 10; `pnpm audit` senza vulnerabilità note; parser e builder XML verificati contro XXE, billion laughs e prototype pollution).
 - Fatto: API, web e Postgres su `127.0.0.1`; allowlist dell'header Host contro il DNS rebinding (`ALLOWED_HOSTS`); password di Postgres da `.env`; richieste che modificano dati solo JSON (CSRF); id codificati negli URL verso l'API; set di regole attivabili solo da bozza/proposta; import XML con nomi univoci e senza sovrascrittura; SECURITY.md allineato allo stato reale; lock per tenant nell'emissione (`pg_advisory_xact_lock`) contro numeri e nomi file duplicati con emissioni concorrenti.
-- Da fare, sforzo piccolo:
-  - header di sicurezza (helmet nell'API; CSP con `frame-ancestors 'none'`, `nosniff` in `next.config.ts`); limite del body JSON solo sulla rotta di import (oggi 50 MB su tutto);
-  - `Content-Disposition`: nome file ripulito da caratteri non sicuri (il numero di un XML importato non passa per l'XSD) e validazione di `Numero` all'import (max 20 caratteri, Basic Latin);
-  - messaggi d'errore generici per le eccezioni non HTTP (oggi l'import restituisce `e.message` anche degli errori Prisma); errori in `/f24` e `/credits` passati come codice, non come testo nell'URL;
-  - DTO: `@Max` su `PaymentTermsDto.days`, `ArrayMaxSize` sulle righe, limiti sugli importi (Decimal 14,2), `@MaxLength` sulle note, `@IsEmail` sulle PEC;
-  - modello F24: rifiutare il PDF se lo SHA-256 non coincide (oggi solo warning);
-  - storage: permessi `0700`/`0600`; controllo che il percorso risolto resti dentro la cartella (oggi non sfruttabile, difesa in profondità);
-  - cookie `opentax_tenant` con `httpOnly`/`secure` e id validato;
-  - CI: `permissions: contents: read`;
-  - `tenantId` anche nella lettura della fattura collegata in `issue()`; valutare `updateMany`/`deleteMany` con `tenantId` o un'estensione Prisma che lo inietti;
-  - rinominare `NEXT_PUBLIC_API_URL` in `API_URL` (è usata solo lato server).
+- Fatto (sforzo piccolo): helmet nell'API e header anti-clickjacking/`nosniff` nel web; body JSON limitato a 1 MB tranne l'import XML; nomi file sicuri nei download e `Numero` validato all'import (String20Type); errori imprevisti non esposti; limiti nei DTO (importi, righe, giorni, note, PEC); modello F24 rifiutato se lo SHA-256 non coincide (`F24_MODEL_ALLOW_UNVERIFIED=true` per forzare); storage con permessi `0700`/`0600` e percorsi confinati nella cartella; cookie `opentax_tenant` `httpOnly` con id validato; CI con `permissions: contents: read`; `NEXT_PUBLIC_API_URL` rinominata `API_URL`.
+- Da fare:
+  - errori in `/f24` e `/credits` passati come codice invece che come testo nell'URL (rischio basso: React fa l'escape e l'app è solo locale);
+  - `updateMany`/`deleteMany` con `tenantId` o un'estensione Prisma che lo inietti, come difesa in profondità per quando ci sarà l'autenticazione.
 
 ### Autenticazione e permessi
 Oggi la partita IVA attiva è scelta in `/setup` e salvata in un cookie; l'API riceve il tenant da un header. **Obbligatoria prima di qualsiasi uso fuori dal proprio computer.**
