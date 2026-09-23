@@ -15,7 +15,7 @@ export async function AppShell({ children }: { children: ReactNode }) {
       <SidebarInset>
         <header className="flex h-12 items-center gap-2 border-b px-4 print:hidden">
           <SidebarTrigger />
-          <Separator orientation="vertical" className="h-4" />
+          <Separator orientation="vertical" className="data-vertical:h-4 data-vertical:self-center" />
           <span className="text-sm text-muted-foreground">{tenant ? tenant.name : 'Seleziona una partita IVA'}</span>
           <div className="ml-auto"><Clock /></div>
         </header>
