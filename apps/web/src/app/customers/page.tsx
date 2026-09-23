@@ -6,6 +6,8 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { NoTenant } from '@/components/no-tenant';
+import { Pencil } from 'lucide-react';
+import { DeleteRowAction, RowAction, RowActions } from '@/components/row-actions';
 
 const KIND_LABELS: Record<string, string> = { IT_B2B: 'Italia B2B', IT_B2C: 'Italia privato', IT_PA: 'PA', EU: 'UE', NON_EU: 'Extra UE' };
 
@@ -27,22 +29,22 @@ export default async function CustomersPage() {
                 <TableHead>P. IVA / CF</TableHead>
                 <TableHead>Sede</TableHead>
                 <TableHead>Cod. destinatario</TableHead>
-                <TableHead></TableHead>
+                <TableHead className="text-right">Azioni</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {customers.map((c) => (
                 <TableRow key={c.id}>
-                  <TableCell><Link href={`/customers/${c.id}`} className="font-medium hover:underline">{customerLabel(c)}</Link></TableCell>
+                  <TableCell className="font-medium">{customerLabel(c)}</TableCell>
                   <TableCell><Badge variant="secondary">{KIND_LABELS[c.kind] ?? c.kind}</Badge></TableCell>
                   <TableCell className="font-mono text-sm">{c.vatNumber ? `${c.countryCode}${c.vatNumber}` : c.fiscalCode}</TableCell>
                   <TableCell className="text-sm">{c.city}{c.province ? ` (${c.province})` : ''}, {c.country}</TableCell>
                   <TableCell className="font-mono text-sm">{c.recipientCode}{c.recipientPec ? ` · ${c.recipientPec}` : ''}</TableCell>
-                  <TableCell className="text-right">
-                    <form action={deleteCustomer}>
-                      <input type="hidden" name="id" value={c.id} />
-                      <Button variant="destructive" size="sm" type="submit">Elimina</Button>
-                    </form>
+                  <TableCell>
+                    <RowActions>
+                      <RowAction label="Modifica" render={<Link href={`/customers/${c.id}`} />}><Pencil /></RowAction>
+                      <DeleteRowAction action={deleteCustomer} fields={{ id: c.id }} confirm={`Eliminare il cliente ${customerLabel(c)}?`} />
+                    </RowActions>
                   </TableCell>
                 </TableRow>
               ))}

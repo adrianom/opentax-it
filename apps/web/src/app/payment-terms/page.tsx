@@ -6,6 +6,8 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { NoTenant } from '@/components/no-tenant';
+import { Pencil } from 'lucide-react';
+import { DeleteRowAction, RowAction, RowActions } from '@/components/row-actions';
 
 export default async function PaymentTermsPage() {
   if (!(await currentTenantId())) return <NoTenant />;
@@ -21,14 +23,19 @@ export default async function PaymentTermsPage() {
         <CardHeader><CardTitle>{terms.length} condizioni di pagamento</CardTitle></CardHeader>
         <CardContent>
           <Table>
-            <TableHeader><TableRow><TableHead>Nome</TableHead><TableHead>Scadenza</TableHead><TableHead>Modalità</TableHead><TableHead></TableHead></TableRow></TableHeader>
+            <TableHeader><TableRow><TableHead>Nome</TableHead><TableHead>Scadenza</TableHead><TableHead>Modalità</TableHead><TableHead className="text-right">Azioni</TableHead></TableRow></TableHeader>
             <TableBody>
               {terms.map((t) => (
                 <TableRow key={t.id}>
-                  <TableCell><Link href={`/payment-terms/${t.id}`} className="font-medium hover:underline">{t.name}</Link> {t.isDefault && <Badge variant="secondary">predefinito</Badge>}</TableCell>
+                  <TableCell><span className="font-medium">{t.name}</span> {t.isDefault && <Badge variant="secondary">predefinito</Badge>}</TableCell>
                   <TableCell>{t.days} giorni dalla data fattura</TableCell>
                   <TableCell className="font-mono">{t.method}</TableCell>
-                  <TableCell className="text-right"><form action={deletePaymentTerms}><input type="hidden" name="id" value={t.id} /><Button variant="destructive" size="sm" type="submit">Elimina</Button></form></TableCell>
+                  <TableCell>
+                    <RowActions>
+                      <RowAction label="Modifica" render={<Link href={`/payment-terms/${t.id}`} />}><Pencil /></RowAction>
+                      <DeleteRowAction action={deletePaymentTerms} fields={{ id: t.id }} confirm={`Eliminare il profilo ${t.name}?`} />
+                    </RowActions>
+                  </TableCell>
                 </TableRow>
               ))}
               {terms.length === 0 && <TableRow><TableCell colSpan={4} className="text-center text-muted-foreground">Nessun profilo. Aggiungine uno per calcolare la scadenza di pagamento in fattura.</TableCell></TableRow>}

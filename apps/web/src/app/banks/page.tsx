@@ -6,6 +6,8 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { NoTenant } from '@/components/no-tenant';
+import { Pencil } from 'lucide-react';
+import { DeleteRowAction, RowAction, RowActions } from '@/components/row-actions';
 
 export default async function BanksPage() {
   if (!(await currentTenantId())) return <NoTenant />;
@@ -21,15 +23,20 @@ export default async function BanksPage() {
         <CardHeader><CardTitle>{banks.length} conti correnti</CardTitle></CardHeader>
         <CardContent>
           <Table>
-            <TableHeader><TableRow><TableHead>Nome</TableHead><TableHead>Banca</TableHead><TableHead>IBAN</TableHead><TableHead>BIC</TableHead><TableHead></TableHead></TableRow></TableHeader>
+            <TableHeader><TableRow><TableHead>Nome</TableHead><TableHead>Banca</TableHead><TableHead>IBAN</TableHead><TableHead>BIC</TableHead><TableHead className="text-right">Azioni</TableHead></TableRow></TableHeader>
             <TableBody>
               {banks.map((b) => (
                 <TableRow key={b.id}>
-                  <TableCell><Link href={`/banks/${b.id}`} className="font-medium hover:underline">{b.name}</Link> {b.isDefault && <Badge variant="secondary">predefinita</Badge>}</TableCell>
+                  <TableCell><span className="font-medium">{b.name}</span> {b.isDefault && <Badge variant="secondary">predefinita</Badge>}</TableCell>
                   <TableCell>{b.bankName ?? '—'}</TableCell>
                   <TableCell className="font-mono text-xs">{b.iban}</TableCell>
                   <TableCell className="font-mono text-xs">{b.bic ?? '—'}</TableCell>
-                  <TableCell className="text-right"><form action={deleteBankAccount}><input type="hidden" name="id" value={b.id} /><Button variant="destructive" size="sm" type="submit">Elimina</Button></form></TableCell>
+                  <TableCell>
+                    <RowActions>
+                      <RowAction label="Modifica" render={<Link href={`/banks/${b.id}`} />}><Pencil /></RowAction>
+                      <DeleteRowAction action={deleteBankAccount} fields={{ id: b.id }} confirm={`Eliminare la banca ${b.name}?`} />
+                    </RowActions>
+                  </TableCell>
                 </TableRow>
               ))}
               {banks.length === 0 && <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground">Nessuna banca. Aggiungine una per indicare l&apos;IBAN in fattura.</TableCell></TableRow>}

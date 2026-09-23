@@ -7,6 +7,8 @@ import { ErrorAlert } from '@/components/error-alert';
 import { NoTenant } from '@/components/no-tenant';
 import { deleteTaxCredit } from '@/lib/actions';
 import { api, currentTenantId, fetchOrNull, formatDate, formatMoney } from '@/lib/api';
+import { FileText, Pencil } from 'lucide-react';
+import { DeleteRowAction, RowAction, RowActions } from '@/components/row-actions';
 
 const SECTION: Record<string, string> = { TREASURY: 'Erario', INPS: 'INPS', REGIONAL: 'Regioni', LOCAL: 'IMU e tributi locali' };
 
@@ -44,27 +46,31 @@ export default async function CreditsPage({ searchParams }: PageProps<'/credits'
                 <TableHead className="text-right">Importo</TableHead>
                 <TableHead className="text-right">Usato</TableHead>
                 <TableHead className="text-right">Residuo</TableHead>
-                <TableHead></TableHead>
+                <TableHead className="text-right">Azioni</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {credits.map((c) => (
                 <TableRow key={c.id}>
                   <TableCell>{SECTION[c.section]}</TableCell>
-                  <TableCell className="font-mono"><Link href={`/credits/${c.id}`} className="font-medium hover:underline">{c.code}</Link>{c.installmentCode && <span className="ml-2 text-xs text-muted-foreground">{c.installmentCode}</span>}</TableCell>
+                  <TableCell className="font-mono"><span className="font-medium">{c.code}</span>{c.installmentCode && <span className="ml-2 text-xs text-muted-foreground">{c.installmentCode}</span>}</TableCell>
                   <TableCell className="font-mono">{c.localCode ?? '—'}</TableCell>
                   <TableCell className="font-mono">{c.referenceYear}</TableCell>
                   <TableCell className="text-sm">{c.description ?? '—'}{c.usableFrom && <span className="block text-xs text-muted-foreground">dal {formatDate(c.usableFrom)}</span>}</TableCell>
                   <TableCell className="text-right font-mono tabular-nums">{formatMoney(c.amount)}</TableCell>
                   <TableCell className="text-right font-mono tabular-nums">{formatMoney(c.used)}</TableCell>
                   <TableCell className="text-right font-mono tabular-nums">{c.remaining > 0 ? formatMoney(c.remaining) : <Badge variant="secondary">esaurito</Badge>}</TableCell>
-                  <TableCell className="text-right">
-                    {c.used === 0 && (
-                      <form action={deleteTaxCredit}>
-                        <input type="hidden" name="id" value={c.id} />
-                        <Button type="submit" size="sm" variant="destructive">Elimina</Button>
-                      </form>
-                    )}
+                  <TableCell>
+                    <RowActions>
+                      {c.used === 0 ? (
+                        <>
+                          <RowAction label="Modifica" render={<Link href={`/credits/${c.id}`} />}><Pencil /></RowAction>
+                          <DeleteRowAction action={deleteTaxCredit} fields={{ id: c.id }} confirm={`Eliminare il credito ${c.code} ${c.referenceYear}?`} />
+                        </>
+                      ) : (
+                        <RowAction label="Apri (usato in F24, non modificabile)" render={<Link href={`/credits/${c.id}`} />}><FileText /></RowAction>
+                      )}
+                    </RowActions>
                   </TableCell>
                 </TableRow>
               ))}

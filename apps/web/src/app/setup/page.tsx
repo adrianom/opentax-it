@@ -7,6 +7,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { NativeSelect } from '@/components/native-select';
 import { TenantForm } from './tenant-form';
+import { CircleCheck } from 'lucide-react';
+import { ConfirmRowAction, RowActions } from '@/components/row-actions';
 
 export default async function SetupPage() {
   const year = new Date().getFullYear();
@@ -69,7 +71,7 @@ export default async function SetupPage() {
           </CardHeader>
           <CardContent>
             <Table>
-              <TableHeader><TableRow><TableHead>Versione</TableHead><TableHead>Stato</TableHead><TableHead>Attivato il</TableHead><TableHead>Note</TableHead><TableHead></TableHead></TableRow></TableHeader>
+              <TableHeader><TableRow><TableHead>Versione</TableHead><TableHead>Stato</TableHead><TableHead>Attivato il</TableHead><TableHead>Note</TableHead><TableHead className="text-right">Azioni</TableHead></TableRow></TableHeader>
               <TableBody>
                 {ruleSets.map((r) => (
                   <TableRow key={r.id}>
@@ -77,9 +79,11 @@ export default async function SetupPage() {
                     <TableCell><Badge variant={r.status === 'ACTIVE' ? 'default' : 'outline'}>{r.status}</Badge></TableCell>
                     <TableCell>{r.activatedAt ? formatDate(r.activatedAt) : '—'}</TableCell>
                     <TableCell className="text-sm text-muted-foreground">{r.notes}</TableCell>
-                    <TableCell className="text-right">
+                    <TableCell>
                       {r.status !== 'ACTIVE' && r.status !== 'SUPERSEDED' && (
-                        <form action={activateRuleSet}><input type="hidden" name="id" value={r.id} /><Button size="sm" type="submit">Attiva</Button></form>
+                        <RowActions>
+                          <ConfirmRowAction action={activateRuleSet} fields={{ id: r.id }} label="Attiva" confirm={`Attivare il set ${y} v${r.version}? Il set attivo diventerà superato e non potrà tornare attivo.`}><CircleCheck /></ConfirmRowAction>
+                        </RowActions>
                       )}
                     </TableCell>
                   </TableRow>

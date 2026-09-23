@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Field } from '@/components/field';
 import { ErrorAlert } from '@/components/error-alert';
+import { DeleteRowAction, RowActions } from '@/components/row-actions';
 
 export function Payments({ invoiceId, currency, total, payments }: { invoiceId: string; currency: string; total: number; payments: Payment[] }) {
   const [state, action, pending] = useActionState(addPayment, undefined);
@@ -22,15 +23,17 @@ export function Payments({ invoiceId, currency, total, payments }: { invoiceId: 
       </dl>
       {payments.length > 0 && (
         <Table>
-          <TableHeader><TableRow><TableHead>Data</TableHead><TableHead className="text-right">Importo</TableHead><TableHead>Metodo</TableHead><TableHead></TableHead></TableRow></TableHeader>
+          <TableHeader><TableRow><TableHead>Data</TableHead><TableHead className="text-right">Importo</TableHead><TableHead>Metodo</TableHead><TableHead className="text-right">Azioni</TableHead></TableRow></TableHeader>
           <TableBody>
             {payments.map((p) => (
               <TableRow key={p.id}>
                 <TableCell className="font-mono">{formatDate(p.date)}</TableCell>
                 <TableCell className="text-right font-mono">{formatMoney(p.amount, currency)}</TableCell>
                 <TableCell>{p.method ?? '—'}</TableCell>
-                <TableCell className="text-right">
-                  <form action={deletePayment}><input type="hidden" name="id" value={p.id} /><input type="hidden" name="invoiceId" value={invoiceId} /><Button variant="destructive" size="sm" type="submit">Elimina</Button></form>
+                <TableCell>
+                  <RowActions>
+                    <DeleteRowAction action={deletePayment} fields={{ id: p.id, invoiceId }} label="Elimina incasso" confirm={`Eliminare l'incasso del ${formatDate(p.date)}?`} />
+                  </RowActions>
                 </TableCell>
               </TableRow>
             ))}
