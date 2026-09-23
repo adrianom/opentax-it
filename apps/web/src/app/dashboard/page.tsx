@@ -128,7 +128,7 @@ export default async function DashboardPage() {
             <TableBody>
               {all.slice(0, 5).map((i) => (
                 <TableRow key={i.id}>
-                  <TableCell><Link href={`/invoices/${i.id}`} className="font-mono hover:underline">{i.number || '(bozza)'}</Link></TableCell>
+                  <TableCell><Link href={`/invoices/${i.id}`} className="font-mono hover:underline">{i.number || <span className="text-muted-foreground" aria-label="Bozza, senza numero">—</span>}</Link></TableCell>
                   <TableCell>{formatDate(i.date)}</TableCell>
                   <TableCell>{customerLabel(i.customer)}</TableCell>
                   <TableCell className="text-right font-mono">{formatMoney(i.total, i.currency)}</TableCell>

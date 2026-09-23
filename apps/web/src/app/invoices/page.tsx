@@ -59,7 +59,7 @@ export default async function InvoicesPage({ searchParams }: PageProps<'/invoice
             <TableBody>
               {invoices.map((i) => (
                 <TableRow key={i.id}>
-                  <TableCell className="font-mono font-medium">{i.number}</TableCell>
+                  <TableCell className="font-mono font-medium">{i.number || <span className="text-muted-foreground" aria-label="Bozza, senza numero">—</span>}</TableCell>
                   <TableCell>{formatDate(i.date)}</TableCell>
                   <TableCell>{TYPE_LABELS[i.type] ?? i.type}</TableCell>
                   <TableCell>{customerLabel(i.customer)}</TableCell>
