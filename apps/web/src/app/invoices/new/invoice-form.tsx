@@ -2,7 +2,7 @@
 
 import { useRouter } from 'next/navigation';
 import { useState, useTransition } from 'react';
-import { createInvoice } from '@/lib/actions';
+import { saveInvoice, type InvoiceInput } from '@/lib/actions';
 import { customerLabel } from '@/lib/format';
 import type { BankAccount, Customer, PaymentTerms } from '@/lib/types';
 import { Button } from '@/components/ui/button';
@@ -15,18 +15,31 @@ interface LineDraft { description: string; quantity: string; unit: string; unitP
 
 const emptyLine = (): LineDraft => ({ description: '', quantity: '1', unit: '', unitPrice: '' });
 
-export function InvoiceForm({ customers, issuedInvoices, terms, banks }: { customers: Customer[]; issuedInvoices: Array<{ id: string; number: string }>; terms: PaymentTerms[]; banks: BankAccount[] }) {
+/** Values of an existing draft, to edit it. */
+export interface InvoiceDraft {
+  id: string;
+  customerId: string;
+  type: 'TD01' | 'TD04';
+  refInvoiceId: string;
+  date: string;
+  surcharge: 'default' | 'yes' | 'no';
+  paymentTermsId: string;
+  bankAccountId: string;
+  lines: LineDraft[];
+}
+
+export function InvoiceForm({ customers, issuedInvoices, terms, banks, draft }: { customers: Customer[]; issuedInvoices: Array<{ id: string; number: string }>; terms: PaymentTerms[]; banks: BankAccount[]; draft?: InvoiceDraft }) {
   const router = useRouter();
   const [pending, start] = useTransition();
   const [error, setError] = useState<string>();
-  const [customerId, setCustomerId] = useState(customers[0]?.id ?? '');
-  const [type, setType] = useState<'TD01' | 'TD04'>('TD01');
-  const [refInvoiceId, setRefInvoiceId] = useState(issuedInvoices[0]?.id ?? '');
-  const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
-  const [surcharge, setSurcharge] = useState<'default' | 'yes' | 'no'>('default');
-  const [paymentTermsId, setPaymentTermsId] = useState(terms.find((t) => t.isDefault)?.id ?? terms[0]?.id ?? '');
-  const [bankAccountId, setBankAccountId] = useState(banks.find((b) => b.isDefault)?.id ?? banks[0]?.id ?? '');
-  const [lines, setLines] = useState<LineDraft[]>([emptyLine()]);
+  const [customerId, setCustomerId] = useState(draft?.customerId ?? customers[0]?.id ?? '');
+  const [type, setType] = useState<'TD01' | 'TD04'>(draft?.type ?? 'TD01');
+  const [refInvoiceId, setRefInvoiceId] = useState(draft?.refInvoiceId || (issuedInvoices[0]?.id ?? ''));
+  const [date, setDate] = useState(draft?.date ?? new Date().toISOString().slice(0, 10));
+  const [surcharge, setSurcharge] = useState<'default' | 'yes' | 'no'>(draft?.surcharge ?? 'default');
+  const [paymentTermsId, setPaymentTermsId] = useState(draft ? draft.paymentTermsId : (terms.find((t) => t.isDefault)?.id ?? terms[0]?.id ?? ''));
+  const [bankAccountId, setBankAccountId] = useState(draft ? draft.bankAccountId : (banks.find((b) => b.isDefault)?.id ?? banks[0]?.id ?? ''));
+  const [lines, setLines] = useState<LineDraft[]>(draft?.lines.length ? draft.lines : [emptyLine()]);
 
   const setLine = (i: number, patch: Partial<LineDraft>) => setLines((ls) => ls.map((l, j) => (j === i ? { ...l, ...patch } : l)));
   const total = lines.reduce((s, l) => s + (Number(l.quantity) || 0) * (Number(l.unitPrice) || 0), 0);
@@ -34,7 +47,7 @@ export function InvoiceForm({ customers, issuedInvoices, terms, banks }: { custo
   const submit = () => {
     setError(undefined);
     start(async () => {
-      const res = await createInvoice({
+      const input: InvoiceInput = {
         customerId,
         type,
         refInvoiceId: type === 'TD04' ? refInvoiceId : undefined,
@@ -43,7 +56,8 @@ export function InvoiceForm({ customers, issuedInvoices, terms, banks }: { custo
         paymentTermsId: paymentTermsId || undefined,
         bankAccountId: bankAccountId || undefined,
         lines: lines.map((l) => ({ description: l.description, quantity: Number(l.quantity) || 1, unit: l.unit || undefined, unitPrice: Number(l.unitPrice) })),
-      });
+      };
+      const res = await saveInvoice(draft?.id, input);
       if (res.error) setError(res.error);
       else router.push(`/invoices/${res.id}`);
     });
@@ -111,7 +125,10 @@ export function InvoiceForm({ customers, issuedInvoices, terms, banks }: { custo
 
       <div className="flex items-center justify-between">
         <p className="text-sm text-muted-foreground">Imponibile righe: <span className="font-mono">{total.toFixed(2)}</span> — bollo e rivalsa vengono aggiunti dal server.</p>
-        <Button onClick={submit} disabled={pending || !customerId || lines.some((l) => !l.description || !l.unitPrice)}>{pending ? 'Salvataggio…' : 'Salva bozza'}</Button>
+        <div className="flex gap-2">
+          {draft && <Button variant="ghost" type="button" onClick={() => router.push(`/invoices/${draft.id}`)}>Annulla</Button>}
+          <Button onClick={submit} disabled={pending || !customerId || lines.some((l) => !l.description || !l.unitPrice)}>{pending ? 'Salvataggio…' : draft ? 'Salva modifiche' : 'Salva bozza'}</Button>
+        </div>
       </div>
     </div>
   );

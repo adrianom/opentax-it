@@ -79,6 +79,7 @@ export const api = {
   invoices: (year?: number) => tenantRequest<Invoice[]>(`/invoices${year ? `?year=${year}` : ''}`),
   invoice: (id: string) => tenantRequest<Invoice>(`/invoices/${id}`),
   createInvoice: (data: unknown) => tenantRequest<Invoice>('/invoices', { method: 'POST', body: JSON.stringify(data) }),
+  updateInvoice: (id: string, data: unknown) => tenantRequest<Invoice>(`/invoices/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
   deleteInvoice: (id: string) => tenantRequest<void>(`/invoices/${id}`, { method: 'DELETE' }),
   issueInvoice: (id: string, data: unknown) => tenantRequest<Invoice>(`/invoices/${id}/issue`, { method: 'POST', body: JSON.stringify(data) }),
   payments: (invoiceId: string) => tenantRequest<Payment[]>(`/invoices/${invoiceId}/payments`),

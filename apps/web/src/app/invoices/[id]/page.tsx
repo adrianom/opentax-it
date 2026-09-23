@@ -28,7 +28,10 @@ export default async function InvoicePage({ params }: PageProps<'/invoices/[id]'
           <h1 className="text-2xl font-semibold">{TYPE_LABELS[inv.type]} {inv.number || '(bozza)'}</h1>
           <p className="text-sm text-muted-foreground">{formatDate(inv.date)} · {customerLabel(inv.customer)}</p>
         </div>
-        <Badge variant={isDraft ? 'outline' : 'secondary'}>{STATUS_LABELS[inv.status]}</Badge>
+        <div className="flex items-center gap-2">
+          {isDraft && <Button variant="outline" size="sm" render={<Link href={`/invoices/${inv.id}/edit`} />}>Modifica</Button>}
+          <Badge variant={isDraft ? 'outline' : 'secondary'}>{STATUS_LABELS[inv.status]}</Badge>
+        </div>
       </div>
 
       <Card>

@@ -102,10 +102,13 @@ export interface InvoiceInput {
   lines: Array<{ description: string; quantity: number; unit?: string; unitPrice: number }>;
 }
 
-export async function createInvoice(input: InvoiceInput): Promise<{ id?: string; error?: string }> {
+/** Creates a draft, or updates it when `id` is given (only drafts can be edited). */
+export async function saveInvoice(id: string | undefined, input: InvoiceInput): Promise<{ id?: string; error?: string }> {
   try {
-    const inv = await api.createInvoice({ ...input, refInvoiceId: input.refInvoiceId || undefined, paymentTermsId: input.paymentTermsId || undefined, bankAccountId: input.bankAccountId || undefined });
+    const data = { ...input, refInvoiceId: input.refInvoiceId || undefined, paymentTermsId: input.paymentTermsId || undefined, bankAccountId: input.bankAccountId || undefined };
+    const inv = id ? await api.updateInvoice(id, data) : await api.createInvoice(data);
     revalidatePath('/invoices');
+    if (id) revalidatePath(`/invoices/${id}`);
     return { id: inv.id };
   } catch (e) {
     return { error: errorMessage(e) };
