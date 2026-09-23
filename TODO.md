@@ -24,8 +24,8 @@ Emissione e XML sono pronti; manca la trasmissione.
 ## Fatturazione
 
 ### Anteprima e stampa della fattura
-- Anteprima HTML/PDF dell'XML con il foglio di stile ufficiale (AdE pubblica il foglio di stile `fatturaordinaria` per la visualizzazione) o con un layout proprio; download PDF; stampa.
-- Invio della fattura via email al cliente (copia di cortesia: l'originale è l'XML consegnato dallo SDI).
+- Fatto: anteprima HTML e PDF della copia di cortesia con layout proprio, stampa dal browser; per le fatture emesse i dati sono letti dall'XML salvato (PR #10).
+- Da fare: invio della fattura via email al cliente (copia di cortesia: l'originale è l'XML consegnato dallo SDI).
 
 ### Fatture con firma digitale (.p7m) — priorità bassa
 - Non prioritaria: serve solo quando è richiesta (caso reale: fatturazione verso una pubblica amministrazione). **Da verificare** sulle Specifiche tecniche 1.9.1 e su fatturapa.gov.it quali casi la richiedono; poi firma CAdES-BES (`.xml.p7m`) con certificato dell'utente.
