@@ -86,6 +86,14 @@ export interface InvoiceLine {
   totalPrice: string;
 }
 
+export interface InvoiceCustomerSummary {
+  id: string;
+  kind: CustomerKind;
+  businessName: string | null;
+  firstName: string | null;
+  lastName: string | null;
+}
+
 export interface Invoice {
   id: string;
   type: 'TD01' | 'TD04' | 'TD05' | 'TD06';
@@ -105,8 +113,66 @@ export interface Invoice {
   paymentTermsId: string | null;
   bankAccountId: string | null;
   xmlFileName: string | null;
-  customer: Customer;
+  customer: InvoiceCustomerSummary;
   lines?: InvoiceLine[];
+}
+
+export interface InvoiceDetail extends Omit<Invoice, 'customer'> {
+  customer: Customer;
+  lines: InvoiceLine[];
+}
+
+export interface CourtesyParty {
+  name: string;
+  taxRegime?: string;
+  vatNumber?: string;
+  fiscalCode?: string;
+  address: string;
+  postalCode?: string;
+  city: string;
+  province?: string;
+  country: string;
+  pec?: string;
+}
+
+export interface CourtesyLine {
+  lineNumber: number;
+  description: string;
+  quantity?: number;
+  unit?: string;
+  unitPrice: number;
+  totalPrice: number;
+  vatRatePct: number;
+  vatNature: string;
+}
+
+export interface CourtesyPayment {
+  method?: string;
+  dueDate?: string;
+  iban?: string;
+  bic?: string;
+}
+
+export interface CourtesyInvoice {
+  id: string;
+  documentType: string;
+  number: string;
+  date: string;
+  currency: string;
+  isDraft: boolean;
+  status: InvoiceStatus;
+  supplier: CourtesyParty;
+  customer: CourtesyParty & { recipientCode: string };
+  lines: CourtesyLine[];
+  taxableAmount: number;
+  inpsSurcharge: number;
+  inpsRatePct?: number;
+  vatAmount: number;
+  virtualStamp: boolean;
+  stampAmount: number;
+  total: number;
+  payment?: CourtesyPayment;
+  notes: string[];
 }
 
 

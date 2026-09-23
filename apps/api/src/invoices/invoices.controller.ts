@@ -39,4 +39,9 @@ export class InvoicesController {
     res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
     return new StreamableFile(Buffer.from(content));
   }
+
+  @Get(':id/preview')
+  preview(@TenantId() tenantId: string, @Param('id') id: string) {
+    return this.service.preview(tenantId, id);
+  }
 }

@@ -56,3 +56,56 @@ export class ImportFileDto {
 export class ImportInvoicesDto {
   @ValidateNested({ each: true }) @Type(() => ImportFileDto) @ArrayMinSize(1) @ArrayMaxSize(200) files!: ImportFileDto[];
 }
+
+export interface CourtesyInvoiceParty {
+  name: string;
+  taxRegime?: string;
+  vatNumber?: string;
+  fiscalCode?: string;
+  address: string;
+  postalCode?: string;
+  city: string;
+  province?: string;
+  country: string;
+  pec?: string;
+}
+
+export interface CourtesyInvoiceLine {
+  lineNumber: number;
+  description: string;
+  quantity?: number;
+  unit?: string;
+  unitPrice: number;
+  totalPrice: number;
+  vatRatePct: number;
+  vatNature: string;
+}
+
+export interface CourtesyInvoicePayment {
+  method?: string;
+  dueDate?: string;
+  iban?: string;
+  bic?: string;
+}
+
+export interface CourtesyInvoice {
+  id: string;
+  documentType: string;
+  number: string;
+  date: string;
+  currency: string;
+  isDraft: boolean;
+  status: string;
+  supplier: CourtesyInvoiceParty;
+  customer: CourtesyInvoiceParty & { recipientCode: string };
+  lines: CourtesyInvoiceLine[];
+  taxableAmount: number;
+  inpsSurcharge: number;
+  inpsRatePct?: number;
+  vatAmount: number;
+  virtualStamp: boolean;
+  stampAmount: number;
+  total: number;
+  payment?: CourtesyInvoicePayment;
+  notes: string[];
+}

@@ -1,12 +1,13 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
-import { buildInvoiceXml, invoiceFileName, type FlatRateInvoice } from '@opentax-it/fatturapa';
+import { buildInvoiceXml, invoiceFileName, parseInvoiceXml, type FlatRateInvoice } from '@opentax-it/fatturapa';
 import type { FiscalRuleSet } from '@opentax-it/fiscal-rules';
 import { FiscalRulesService } from '../fiscal-rules/fiscal-rules.service.js';
 import type { Customer, Invoice, InvoiceLine, TenantProfile } from '../generated/prisma/client.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { StorageService } from '../storage/storage.service.js';
 import { TenantsService } from '../tenants/tenants.service.js';
-import type { CreateInvoiceDto, ListInvoicesQuery, UpdateInvoiceDto } from './invoices.dto.js';
+import { InvoicesPdfService } from './invoices-pdf.service.js';
+import type { CourtesyInvoice, CreateInvoiceDto, ListInvoicesQuery, UpdateInvoiceDto } from './invoices.dto.js';
 
 /**
  * Invoices under the flat-rate regime.
@@ -26,8 +27,6 @@ import type { CreateInvoiceDto, ListInvoicesQuery, UpdateInvoiceDto } from './in
  */
 
 const round2 = (n: number) => Math.round((n + Number.EPSILON) * 100) / 100;
-
-import { InvoicesPdfService } from './invoices-pdf.service.js';
 
 type InvoiceWithRelations = Invoice & { lines: InvoiceLine[]; customer: Customer };
 
@@ -210,13 +209,179 @@ export class InvoicesService {
     return { fileName: inv.xmlFileName, content: (await this.storage.read(inv.xmlPath)).toString('utf8') };
   }
 
+  /**
+   * Returns unified courtesy copy data for preview and PDF generation.
+   * If the invoice is issued and has an XML file stored, it parses the XML so the
+   * courtesy copy strictly matches the electronic invoice sent to SDI (even if
+   * the tenant bank account or profile changed later). For draft invoices, it
+   * reconstructs the data from the database.
+   */
+  async preview(tenantId: string, id: string): Promise<CourtesyInvoice> {
+    const inv = await this.get(tenantId, id);
+
+    if (inv.status !== 'DRAFT' && inv.xmlPath) {
+      try {
+        const xmlBuffer = await this.storage.read(inv.xmlPath);
+        const p = parseInvoiceXml(xmlBuffer.toString('utf8'));
+        const { profile } = await this.tenants.getWithProfile(tenantId).catch(() => ({ profile: null }));
+
+        const supplierName = p.supplier.businessName || `${p.supplier.firstName ?? ''} ${p.supplier.lastName ?? ''}`.trim();
+        const customerName = p.customer.businessName || `${p.customer.firstName ?? ''} ${p.customer.lastName ?? ''}`.trim();
+
+        const lines = p.lines.map((l, i) => ({
+          lineNumber: l.lineNumber ?? i + 1,
+          description: l.description,
+          quantity: l.quantity,
+          unit: l.unit,
+          unitPrice: l.unitPrice,
+          totalPrice: l.totalPrice,
+          vatRatePct: l.vatRatePct,
+          vatNature: l.nature ?? (p.summaryNatures[0] || 'N2.2'),
+        }));
+
+        const linesTotal = lines.reduce((s, l) => s + l.totalPrice, 0);
+        const taxableAmount = p.socialSecurityFund?.taxable ?? linesTotal;
+        const inpsSurcharge = p.socialSecurityFund?.amount ?? 0;
+        const inpsRatePct = p.socialSecurityFund?.ratePct;
+        const virtualStamp = Boolean(p.stampDuty?.virtual);
+        const stampAmount = p.stampDuty?.amount ?? 0;
+        const total = p.documentTotal ?? round2(taxableAmount + inpsSurcharge + stampAmount);
+
+        const firstPayment = p.payments[0];
+        const payment = firstPayment
+          ? {
+              method: firstPayment.method,
+              dueDate: firstPayment.dueDate,
+              iban: firstPayment.iban,
+            }
+          : undefined;
+
+        return {
+          id: inv.id,
+          documentType: p.documentType || inv.type,
+          number: p.number || inv.number,
+          date: p.date,
+          currency: p.currency || inv.currency,
+          isDraft: false,
+          status: inv.status,
+          supplier: {
+            name: supplierName,
+            taxRegime: p.supplier.taxRegime ?? 'RF19',
+            vatNumber: p.supplier.vatNumber,
+            fiscalCode: p.supplier.fiscalCode,
+            address: p.supplier.address ?? '',
+            postalCode: p.supplier.postalCode ?? '',
+            city: p.supplier.city ?? '',
+            province: p.supplier.province ?? '',
+            country: p.supplier.country ?? 'IT',
+            pec: profile?.pecAddress ?? undefined,
+          },
+          customer: {
+            name: customerName,
+            vatNumber: p.customer.vatNumber,
+            fiscalCode: p.customer.fiscalCode,
+            address: p.customer.address ?? '',
+            postalCode: p.customer.postalCode ?? '',
+            city: p.customer.city ?? '',
+            province: p.customer.province ?? '',
+            country: p.customer.country ?? 'IT',
+            recipientCode: p.recipientCode ?? inv.customer.recipientCode,
+            pec: p.recipientPec ?? (inv.customer.recipientPec ?? undefined),
+          },
+          lines,
+          taxableAmount,
+          inpsSurcharge,
+          inpsRatePct,
+          vatAmount: 0,
+          virtualStamp,
+          stampAmount,
+          total,
+          payment,
+          notes: p.notes,
+        };
+      } catch {
+        // Fall back to database reconstruction below if XML read/parse fails
+      }
+    }
+
+    // Draft invoice or fallback from DB
+    const { profile } = await this.tenants.getWithProfile(tenantId);
+    const rules = await this.rules.getActive(inv.year);
+    const payment = await this.paymentFromTerms(tenantId, inv);
+
+    const supplierName = profile.businessName || `${profile.firstName} ${profile.lastName}`.trim();
+    const customerName = inv.customer.businessName || `${inv.customer.firstName ?? ''} ${inv.customer.lastName ?? ''}`.trim();
+
+    const inpsSurcharge = Number(inv.inpsSurcharge);
+    const inpsRatePct = inpsSurcharge > 0 ? rules.inps.surchargePct : undefined;
+    const vatNature = inv.vatNature === 'N2_1' ? 'N2.1' : 'N2.2';
+
+    return {
+      id: inv.id,
+      documentType: inv.type,
+      number: inv.number || '',
+      date: inv.date.toISOString().slice(0, 10),
+      currency: inv.currency,
+      isDraft: inv.status === 'DRAFT' || !inv.number,
+      status: inv.status,
+      supplier: {
+        name: supplierName,
+        taxRegime: rules.eInvoice.taxRegime,
+        vatNumber: profile.vatNumber,
+        fiscalCode: profile.fiscalCode,
+        address: profile.address,
+        postalCode: profile.postalCode,
+        city: profile.city,
+        province: profile.province,
+        country: profile.country,
+        pec: profile.pecAddress ?? undefined,
+      },
+      customer: {
+        name: customerName,
+        vatNumber: inv.customer.vatNumber ?? undefined,
+        fiscalCode: inv.customer.fiscalCode ?? undefined,
+        address: inv.customer.address,
+        postalCode: inv.customer.postalCode ?? undefined,
+        city: inv.customer.city,
+        province: inv.customer.province ?? undefined,
+        country: inv.customer.country,
+        recipientCode: inv.customer.recipientCode,
+        pec: inv.customer.recipientPec ?? undefined,
+      },
+      lines: inv.lines.map((l) => ({
+        lineNumber: l.lineNumber,
+        description: l.description,
+        quantity: Number(l.quantity),
+        unit: l.unit ?? undefined,
+        unitPrice: Number(l.unitPrice),
+        totalPrice: Number(l.totalPrice),
+        vatRatePct: 0,
+        vatNature,
+      })),
+      taxableAmount: Number(inv.taxableAmount),
+      inpsSurcharge,
+      inpsRatePct,
+      vatAmount: 0,
+      virtualStamp: inv.virtualStamp,
+      stampAmount: Number(inv.stampAmount),
+      total: Number(inv.total),
+      payment: payment
+        ? {
+            method: payment.method,
+            dueDate: payment.dueDate,
+            iban: payment.iban,
+            bic: payment.bic,
+          }
+        : undefined,
+      notes: inv.notes,
+    };
+  }
+
   /** Generates a readable PDF courtesy copy of the invoice using pdf-lib. */
   async pdf(tenantId: string, id: string): Promise<{ fileName: string; content: Uint8Array }> {
-    const inv = await this.get(tenantId, id);
-    const { profile } = await this.tenants.getWithProfile(tenantId);
-    const payment = await this.paymentFromTerms(tenantId, inv);
-    const content = await this.pdfService.generate({ invoice: inv, profile, payment });
-    const cleanNumber = inv.number ? inv.number.replace(/[\/\\]/g, '_') : `bozza_${inv.id.slice(-6)}`;
+    const data = await this.preview(tenantId, id);
+    const content = await this.pdfService.generate(data);
+    const cleanNumber = data.number ? data.number.replace(/[\/\\]/g, '_') : `bozza_${id.slice(-6)}`;
     const fileName = `Fattura_${cleanNumber}.pdf`;
     return { fileName, content };
   }
