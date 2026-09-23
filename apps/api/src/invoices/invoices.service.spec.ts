@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { UnprocessableEntityException } from '@nestjs/common';
+import { BadRequestException, UnprocessableEntityException } from '@nestjs/common';
 import { Prisma } from '../generated/prisma/client.js';
 import type { FiscalRulesService } from '../fiscal-rules/fiscal-rules.service.js';
 import type { PrismaService } from '../prisma/prisma.service.js';
@@ -334,5 +334,19 @@ describe('InvoicesService.preview', () => {
     );
 
     await expect(service.preview('tenant1', 'inv-no-xml')).rejects.toThrow(UnprocessableEntityException);
+  });
+});
+
+describe('InvoicesService.issue', () => {
+  it('rejects a draft dated in the future (SDI error 00403)', async () => {
+    const tomorrow = new Date(Date.now() + 2 * 24 * 3600 * 1000);
+    const prismaMock = {
+      invoice: { findFirst: vi.fn().mockResolvedValue({ id: 'draft-1', tenantId: 'tenant1', status: 'DRAFT', date: tomorrow, year: tomorrow.getUTCFullYear() }) },
+    } as unknown as PrismaService;
+    const rulesMock = { getActive: vi.fn() } as unknown as FiscalRulesService;
+    const service = new InvoicesService(prismaMock, rulesMock, {} as unknown as TenantsService, {} as unknown as StorageService, new InvoicesPdfService());
+
+    await expect(service.issue('tenant1', 'draft-1')).rejects.toThrow(BadRequestException);
+    expect(rulesMock.getActive).not.toHaveBeenCalled();
   });
 });

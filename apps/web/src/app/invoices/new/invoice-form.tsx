@@ -85,7 +85,7 @@ export function InvoiceForm({ customers, issuedInvoices, terms, banks, draft, su
             </NativeSelect>
           </Field>
         )}
-        <Field label="Data" htmlFor="date" hint="Entro 12 giorni dall'operazione (art. 21 c. 4 DPR 633/72)"><Input id="date" type="date" value={date} onChange={(e) => setDate(e.target.value)} /></Field>
+        <Field label="Data" htmlFor="date" hint="Entro 12 giorni dall'operazione (art. 21 c. 4 DPR 633/72), mai nel futuro"><Input id="date" type="date" max={new Date().toLocaleDateString('en-CA')} value={date} onChange={(e) => setDate(e.target.value)} /></Field>
         <Field label="Profilo di scadenza" htmlFor="terms" hint={terms.length === 0 ? 'Nessun profilo: creane uno nelle impostazioni' : undefined}>
           <NativeSelect id="terms" value={paymentTermsId} onChange={(e) => setPaymentTermsId(e.target.value)}>
             <option value="">— nessuna scadenza in fattura —</option>

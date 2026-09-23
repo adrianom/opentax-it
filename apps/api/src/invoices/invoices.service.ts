@@ -21,7 +21,8 @@ import type { CourtesyInvoice, CreateInvoiceDto, ListInvoicesQuery, UpdateInvoic
  *   AdE stamp duty guide), included in the document total.
  * - Optional 4% INPS surcharge (L. 662/1996 art. 1 par. 212) exposed as DatiCassaPrevidenziale TC22.
  * - Numbering: progressive per year and document type; the issue date must be within
- *   12 days of the operation (DPR 633/72 art. 21 par. 4) — enforced by the caller's date.
+ *   12 days of the operation (DPR 633/72 art. 21 par. 4) — enforced by the caller's date —
+ *   and not in the future (SDI error 00403).
  *
  * All thresholds/rates/texts come from the ACTIVE FiscalRuleSet of the invoice year.
  */
@@ -165,6 +166,9 @@ export class InvoicesService {
   async issue(tenantId: string, id: string, dto?: { payment?: CreateInvoiceDto['payment'] }) {
     const existing = await this.get(tenantId, id);
     if (existing.status !== 'DRAFT') throw new BadRequestException('Invoice already issued');
+    // SDI rejects an invoice dated after its receipt (error 00403): the date must not be in the future.
+    const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Rome' }).format(new Date());
+    if (existing.date.toISOString().slice(0, 10) > today) throw new BadRequestException('The invoice date cannot be in the future');
     const rules = await this.rules.getActive(existing.year);
     const { profile } = await this.tenants.getWithProfile(tenantId);
 
