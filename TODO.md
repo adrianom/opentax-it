@@ -2,7 +2,7 @@
 
 Elenco per la community di ciò che non è ancora fatto, per epiche. Prima di prendere un punto leggi [CONTRIBUTING.md](CONTRIBUTING.md): si lavora solo su fonti ufficiali verificate, con esempi ufficiali, senza assunzioni. Ogni epica indica le fonti da cui partire; se una fonte non è ancora stata letta, il punto è marcato **da verificare**.
 
-Stato aggiornato al 22/09/2026. Cosa è già fatto e con quale riferimento normativo: [docs/compliance.md](docs/compliance.md).
+Stato aggiornato al 23/09/2026. Cosa è già fatto e con quale riferimento normativo: [docs/compliance.md](docs/compliance.md).
 
 ## Priorità alta
 

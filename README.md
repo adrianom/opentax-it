@@ -2,13 +2,13 @@
 
 Gestionale **open source** (`opentax-it`) per partite IVA italiane in **regime forfettario** (L. 190/2014, art. 1 c. 54-89):
 
-- fatture e note di credito in formato **FatturaPA** (XML), invio allo **SDI via PEC** (nessun provider a pagamento, nessun accreditamento);
+- fatture e note di credito in formato **FatturaPA** (XML); invio allo **SDI via PEC** (nessun provider a pagamento, nessun accreditamento) *in sviluppo*;
 - **principio di cassa**: emesso vs incassato, reddito imponibile calcolato sugli incassi dell'anno;
-- **scadenzario**: saldo, acconti (40/60), rate mensili fino al 16 dicembre, INPS Gestione Separata, imposta di bollo trimestrale;
+- **scadenzario**: saldo, acconti (40/60, o 50/50 per i soggetti ISA), rate mensili fino al 16 dicembre, INPS Gestione Separata, imposta di bollo trimestrale;
 - **libro mastro crediti/compensazioni** (credito da dichiarazione → F24 che lo usano → residuo);
-- preparazione F24 per rata, pensati per l'addebito a date future (**I24**) da inviare con F24 web;
-- registro degli **avvisi/comunicazioni** (CIVIS) e delle relative rate;
-- **regole fiscali versionate per anno** (`FiscalRuleSet`): niente valori hardcodati; un job controlla periodicamente le fonti ufficiali (AdE, INPS, GU/Normattiva, ADM) e propone le modifiche all'amministratore, che le attiva esplicitamente;
+- preparazione F24 per rata, stampati sul modello ufficiale AdE e pensati per l'addebito a date future (**I24**) da inviare con F24 web;
+- registro degli **avvisi/comunicazioni** (CIVIS) e delle relative rate *(da fare)*;
+- **regole fiscali versionate per anno** (`FiscalRuleSet`): niente valori hardcodati; ogni nuovo set va attivato esplicitamente dall'amministratore; un job che controlla periodicamente le fonti ufficiali (AdE, INPS, GU/Normattiva, ADM) e propone le modifiche è *da fare*;
 - schema **multi-tenant** fin dall'inizio.
 
 ![Dashboard di OpenTax IT con dati di prova: incassato nell'anno, documenti emessi, soglia del forfettario e prossime scadenze](docs/images/dashboard.png)
@@ -17,13 +17,13 @@ Gestionale **open source** (`opentax-it`) per partite IVA italiane in **regime f
 
 ## Stato
 
-Fase iniziale. Ogni feature è ancorata a una fonte ufficiale: vedi [docs/compliance.md](docs/compliance.md). Funziona: set di regole 2025 e 2026 (`packages/fiscal-rules`, con fonti), attivazione manuale da `/setup`, scadenzario (`/deadlines`), anagrafica clienti, fatture e note di credito con emissione e XML FatturaPA validato (`/invoices`), import di XML emessi altrove, incassi per cassa, calcolo imposta sostitutiva/INPS e acconti (`/taxes`), piano rate e deleghe F24 con stato e stampa sul modello ufficiale (`/f24`). Compensazione dei crediti in F24 (`/credits`). Cosa manca, per epiche: [TODO.md](TODO.md) (in testa: autenticazione e invio PEC allo SDI). Regola per chi contribuisce: solo fonti ufficiali verificate, nessuna assunzione ([CONTRIBUTING.md](CONTRIBUTING.md)). Le fonti normative verificate (aggiornate al 2026) sono in [docs/normativa-2026.md](docs/normativa-2026.md); il design del monitoraggio normativo in [docs/monitoraggio-normativo.md](docs/monitoraggio-normativo.md).
+Fase iniziale. Ogni feature è ancorata a una fonte ufficiale: vedi [docs/compliance.md](docs/compliance.md). Funziona: set di regole 2025 e 2026 (`packages/fiscal-rules`, con fonti), attivazione manuale da `/setup`, dashboard (`/dashboard`), scadenzario (`/deadlines`), anagrafica clienti, fatture e note di credito in bozza modificabile, con emissione e XML FatturaPA validato (`/invoices`), import di XML emessi altrove, incassi per cassa, calcolo imposta sostitutiva/INPS e acconti (`/taxes`), piano rate e deleghe F24 con stato e stampa sul modello ufficiale (`/f24`). Compensazione dei crediti in F24 (`/credits`). Cosa manca, per epiche: [TODO.md](TODO.md) (in testa: autenticazione e invio PEC allo SDI). Regola per chi contribuisce: solo fonti ufficiali verificate, nessuna assunzione ([CONTRIBUTING.md](CONTRIBUTING.md)). Le fonti normative verificate (aggiornate al 2026) sono in [docs/normativa-2026.md](docs/normativa-2026.md); il design del monitoraggio normativo in [docs/monitoraggio-normativo.md](docs/monitoraggio-normativo.md).
 
 ## Struttura
 
 ```
 apps/api       NestJS + Prisma (PostgreSQL)
-apps/web       React + Vite
+apps/web       Next.js + shadcn/ui
 packages/fiscal-rules   regole fiscali pure (TypeScript), testate, con riferimento normativo
 packages/fatturapa      generatore XML FatturaPA validato contro l'XSD ufficiale
 docs/          normativa, design
@@ -31,7 +31,7 @@ docs/          normativa, design
 
 ## Avvio rapido
 
-Requisiti: Node ≥ 22, pnpm 10, Docker.
+Requisiti: Node 24 (vedi `.nvmrc`), pnpm 10, Docker.
 
 ```bash
 pnpm install
@@ -41,9 +41,9 @@ pnpm db:migrate     # schema Prisma
 pnpm dev            # api (http://localhost:3000/api) + web (http://localhost:3001)
 ```
 
-Per vedere il flusso con dati inventati: `pnpm demo:seed` (con `pnpm dev` attivo) crea la partita IVA "Demo Forfettario" con clienti, fatture e incassi dell'anno scorso e di quest'anno; selezionala in `/setup` e apri `/taxes` e `/f24`.
+Al primo avvio apri http://localhost:3001/setup/new e crea la partita IVA (profilo fiscale). Poi in **Impostazioni** (`/setup`), sezione **Regole fiscali**, carica il set fornito con l'applicazione e attivalo; conti bancari e profili di scadenza si aggiungono nelle pagine **Banche** (`/banks`) e **Profili di scadenza** (`/payment-terms`). Lo stesso vale ogni volta che un aggiornamento del codice porta un nuovo set: viene proposto come nuova versione in bozza e non è mai attivato automaticamente.
 
-Al primo avvio apri http://localhost:3001/setup: crea la partita IVA (profilo fiscale, banche, profili di scadenza) e, nella sezione **Regole fiscali**, carica il set fornito con l'applicazione e attivalo. Lo stesso vale ogni volta che un aggiornamento del codice porta un nuovo set: viene proposto come nuova versione in bozza e non è mai attivato automaticamente.
+Per vedere il flusso con dati inventati: `pnpm demo:seed` (con `pnpm dev` attivo) crea la partita IVA "Demo Forfettario" con clienti, fatture e incassi dell'anno scorso e di quest'anno; selezionala in `/setup` e apri `/taxes` e `/f24`.
 
 ## Contribuire
 

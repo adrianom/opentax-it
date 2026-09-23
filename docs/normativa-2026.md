@@ -1,4 +1,4 @@
-# Riferimenti normativi per OpenTax IT — stato al 19/09/2026
+# Riferimenti normativi per OpenTax IT — aggiornato al 22/09/2026
 
 Tutto ciò che segue è stato verificato su **fonti primarie** (testo di legge su Normattiva/GU, provvedimenti e istruzioni ufficiali AdE, circolari INPS). Dove un dato è stato preso solo da fonti secondarie è marcato con ⚠️ **[non verificato su fonte ufficiale]**. Ogni regola nel codice deve citare in commento il riferimento qui riportato.
 
@@ -57,7 +57,7 @@ Fonte: Normattiva, `urn:nir:stato:legge:2014-12-23;190~art1`; Istruzioni Redditi
 
 ### 2.2 Acconto (Istr. Fasc. 1, rigo RN62 / LC2; applicabile all'imposta sostitutiva per L. 190 c. 64)
 - Acconto = **100%** dell'imposta dell'anno precedente ("differenza").
-- **Non dovuto** se differenza < **52 €**.
+- **Non dovuto** se differenza < **51,65 €** (D.Lgs. 33/2025 art. 72).
 - **Unica soluzione entro 30 novembre** se dovuto < **257,52 €**.
 - Altrimenti **due rate**: **40%** entro 30 giugno (o 30 luglio +0,40%) e **60%** entro 30 novembre.
 - Metodo previsionale ammesso: si può versare meno se si prevede minore imposta (rischio sanzione se stima errata).
@@ -66,7 +66,7 @@ Fonte: Normattiva, `urn:nir:stato:legge:2014-12-23;190~art1`; Istruzioni Redditi
 - **Soggetti ISA (compresi i forfettari con attività per cui è approvato un ISA, entro il limite di ricavi dell'indice)**: acconti in **due rate del 50%** invece di 40/60 — DL 124/2019 art. 58 (Normattiva, vigente); Risoluzione AdE 93/E del 12/11/2019 ("si applica anche ai contribuenti che applicano il regime forfetario ... anche all'imposta sostitutiva ... dovuta dai contribuenti che si avvalgono di forme di determinazione del reddito con criteri forfetari"); Istr. Redditi PF 2026 Fasc. 2 (LM, acconti: "in due rate ciascuna nella misura del 50 per cento"). Confermato dall'F24 reale della prima rata 2026: 1790 = 3.263,50 = 50% di 1792 = 6.527,00. Nel tool: flag `isaSubject` nel profilo (l'abbinamento ATECO → ISA non è verificato automaticamente).
 - **Unica soluzione**: la regola primaria è DPR 435/2001 art. 17 c. 3 ("in due rate salvo che il versamento da effettuare alla scadenza della prima rata non superi euro 103"); 257,52 € è la traduzione con il 40% (103/0,40); con il 50% la soglia diventa 206 €.
 - **Arrotondamenti osservati sugli F24 reali**: imposta in euro interi (6.527,00, come da Istr. Fasc. 1 §7), acconto al centesimo (3.263,50), contributi INPS al centesimo (saldo 2025 = 4.963,49 compensato + 6.379,50 a rate = 11.342,99; acconto 2026 = 40% = 4.537,20). Il tool segue lo stesso schema.
-- **Compensazione + rateazione (F24 reale del 29/06/2026)**: un primo modello a saldo zero con crediti IRPEF `4001` (anno 2025, rateazione 0101) e addizionale comunale `3844` (codice comune, 0101) a fronte di `PXX` 012025–122025 per la quota di saldo INPS coperta; un secondo modello con la prima rata (`0105`) del residuo. È la procedura "Compensazione e rateazione" delle Avvertenze F24 ("due modelli: il primo con saldo finale eguale a zero ... con l'indicazione 0101 ...; il secondo per evidenziare l'importo della prima rata"). Da implementare nel modulo compensazioni.
+- **Compensazione + rateazione (F24 reale del 29/06/2026)**: un primo modello a saldo zero con crediti IRPEF `4001` (anno 2025, rateazione 0101) e addizionale comunale `3844` (codice comune, 0101) a fronte di `PXX` 012025–122025 per la quota di saldo INPS coperta; un secondo modello con la prima rata (`0105`) del residuo. È la procedura "Compensazione e rateazione" delle Avvertenze F24 ("due modelli: il primo con saldo finale eguale a zero ... con l'indicazione 0101 ...; il secondo per evidenziare l'importo della prima rata"). Implementato in `f24-schedule.ts` → `buildCompensation` (modulo Crediti, `/credits`).
 
 ### 2.2-bis Compensazione (Istr. Redditi PF 2026 Fasc. 1 §8; verificato il 22/09/2026)
 - Crediti e debiti verso enti diversi (Stato, INPS, enti locali) si compensano nel modello F24, che "deve essere presentato in ogni caso ... anche se il saldo finale ... risulti uguale a zero".
@@ -189,15 +189,9 @@ Fonti: **D.Lgs. 8 gennaio 2024 n. 1, art. 17** (Normattiva); **Provvedimento AdE
 - Se cambia l'obbligo (ricalcolo, ravvedimento, proroga, decadenza del piano) le deleghe **non si annullano da sole**: vanno annullate manualmente.
 - Compensazioni ammesse, ma il credito indicato è "bloccato" dal momento dell'invio e deve esistere sia all'invio sia alla scadenza.
 
-### 5.3 Perché il commercialista probabilmente non lo usa (ipotesi ragionate, non un fatto verificabile)
-1. Per addebitare sul conto del cliente l'intermediario deve operare col servizio "F24 cumulativo" (convenzione AdE + mandato/IBAN del cliente); molti studi preferiscono consegnare gli F24 e far pagare il cliente via home banking, evitando responsabilità sul conto incapiente.
-2. Le deleghe a data futura non si adeguano da sole: se il cliente cambia importi (acconto previsionale, credito da usare, proroga sopraggiunta) lo studio dovrebbe ricordarsi di annullarle e reinviarle per ogni cliente.
-3. Abitudine/software: molti gestionali di studio generano il flusso F24 alla scadenza, non in anticipo.
-4. Nessun obbligo: il vantaggio è quasi solo del contribuente (non dimenticare le rate), non dello studio.
-
-### 5.4 Cosa puoi fare tu (in autonomia, gratis)
+### 5.3 Uso in autonomia (gratuito)
 - Il commercialista ti dà gli importi delle rate (imposta + interessi 1668, INPS PXX) → tu entri in **F24 web** con SPID, compili un F24 per rata con la relativa **data di versamento futura** e il tuo IBAN, e li invii tutti subito. Puoi annullarne uno fino a 3 giorni lavorativi prima.
-- Il tool può generare i **file F24 pronti** (o il riepilogo per rata) e tenere il calendario degli addebiti + promemoria "verifica saldo conto 3 giorni prima".
+- Il tool genera le deleghe per rata stampate sul modello ufficiale e, per ognuna, la data limite di annullamento dell'I24; promemoria "verifica saldo conto" *da fare*.
 - ⚠️ Non esiste API pubblica per inviare F24: l'invio resta manuale su F24 web (o tramite software AdE + Entratel/Fisconline).
 
 ---
@@ -221,7 +215,7 @@ Fonte: Guida operativa AdE "Servizio CIVIS" (PDF, letta integralmente nell'indic
 
 ---
 
-## 6. Cosa è cambiato rispetto alla conversazione precedente
+## 6. Valori corretti rispetto a versioni precedenti di questo documento
 - Rateazione: 7 rate è la regola attuale (da 30/6); con proroga a luglio sono 6; 2° acconto mai rateizzabile.
 - Riferimento normativo rateazione: D.Lgs. 241/97 art. 20 → riorganizzato nel **D.Lgs. 33/2025** (testo unico versamenti), citato dalle istruzioni 2026.
 - Proroga 2026: 20 luglio / 19 agosto (+0,80%, non 0,40%).
