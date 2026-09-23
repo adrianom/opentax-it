@@ -9,7 +9,7 @@ import { HelpTip } from '@/components/help-tip';
 import { NativeSelect } from '@/components/native-select';
 import { NoTenant } from '@/components/no-tenant';
 import { createPlan, deletePlan } from '@/lib/actions';
-import { api, ApiError, currentTenantId, fetchOrNull, formatDate, formatMoney, type PlanOptions, type PlanPreview, type PlanStart } from '@/lib/api';
+import { api, ApiError, currentTenantId, fetchOrNull, formatDate, formatMoney, formatPct, type PlanOptions, type PlanPreview, type PlanStart } from '@/lib/api';
 import { F24Card } from './f24-card';
 
 const START_LABELS: Record<PlanStart, string> = {
@@ -40,7 +40,8 @@ export default async function F24Page({ searchParams }: PageProps<'/f24'>) {
   const today = new Date().toISOString().slice(0, 10);
   const taxYear = Number(params.year ?? new Date().getFullYear() - 1);
   const error = typeof params.error === 'string' ? params.error : undefined;
-  const [plan, options, credits] = await Promise.all([fetchOrNull(() => api.plan(taxYear)), fetchOrNull(() => api.planOptions(taxYear)), fetchOrNull(() => api.taxCredits())]);
+  // Installments and their interest follow the rules of the payment year.
+  const [plan, options, credits, paymentRules] = await Promise.all([fetchOrNull(() => api.plan(taxYear)), fetchOrNull(() => api.planOptions(taxYear)), fetchOrNull(() => api.taxCredits()), fetchOrNull(() => api.activeRules(taxYear + 1))]);
   const availableCredit = (credits ?? []).reduce((s, c) => s + c.remaining, 0);
   const useCredits = params.useCredits === undefined ? availableCredit > 0 : params.useCredits === 'on';
   const creditOrder = params.creditOrder === 'TAX_FIRST' ? 'TAX_FIRST' : 'INPS_FIRST';
@@ -126,7 +127,7 @@ export default async function F24Page({ searchParams }: PageProps<'/f24'>) {
           <CardHeader>
             <CardTitle>Nuovo piano di versamento</CardTitle>
             <CardDescription>
-              Saldo e primo acconto si possono rateizzare in rate mensili di pari importo entro il 16 dicembre (D.Lgs. 33/2025 art. 10); il secondo acconto del 30 novembre no. Interessi 4% annuo con metodo commerciale sulla seconda rata e +0,33% sulle successive (Istr. Redditi PF, &quot;Rateazione&quot;).
+              Saldo e primo acconto si possono rateizzare in rate mensili di pari importo entro il 16 dicembre (D.Lgs. 33/2025 art. 10); il secondo acconto del 30 novembre no. {paymentRules ? `Interessi ${formatPct(paymentRules.installments.annualInterestPct)} annuo con metodo commerciale sulla seconda rata e +${formatPct(paymentRules.installments.incrementPct)} sulle successive` : 'Interessi con metodo commerciale sulla seconda rata e maggiorazione forfettaria sulle successive'} (Istr. Redditi PF, &quot;Rateazione&quot;).
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">

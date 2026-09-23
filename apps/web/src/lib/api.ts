@@ -66,7 +66,7 @@ export const api = {
   createTenant: (data: unknown) => request<Tenant>('/tenants', { method: 'POST', body: JSON.stringify(data) }),
   ruleSets: (year: number) => request<RuleSetSummary[]>(`/fiscal-rules/${year}`),
   /** Only the fields the web needs from the active rule set of the year. */
-  activeRules: (year: number) => request<{ inps: { surchargePct: number } }>(`/fiscal-rules/${year}/active`),
+  activeRules: (year: number) => request<{ inps: { surchargePct: number; fullRatePct: number; reducedRatePct: number }; installments: { annualInterestPct: number; incrementPct: number } }>(`/fiscal-rules/${year}/active`),
   ruleSetStatus: (year: number) => request<{ year: number; ok: boolean; reason?: string }>(`/fiscal-rules/${year}/status`),
   /** With a selected tenant the calendar is derived from its profile and invoices (stamp duty, Intrastat). */
   deadlines: async (year: number) => {

@@ -3,7 +3,7 @@
 import { useActionState } from 'react';
 import { saveTaxYearData } from '@/lib/actions';
 import type { TaxSummary } from '@/lib/types';
-import { formatMoney } from '@/lib/format';
+import { formatMoney, formatPct } from '@/lib/format';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
@@ -11,7 +11,8 @@ import { Field } from '@/components/field';
 import { ErrorAlert } from '@/components/error-alert';
 import { HelpTip } from '@/components/help-tip';
 
-export function YearDataForm({ year, input }: { year: number; input: TaxSummary['input'] }) {
+/** `inpsRates` are the full and reduced INPS rates of the tax year's rule set. */
+export function YearDataForm({ year, input, inpsRates }: { year: number; input: TaxSummary['input']; inpsRates?: { full: number; reduced: number } }) {
   const [state, action, pending] = useActionState(saveTaxYearData, undefined);
   return (
     <form action={action} className="grid gap-4 sm:grid-cols-2">
@@ -29,7 +30,7 @@ export function YearDataForm({ year, input }: { year: number; input: TaxSummary[
       <Field label="Crediti d'imposta e ritenute da scomputare" htmlFor="taxCredits" help={<HelpTip><p>Righi LM40 e LM41. Normalmente zero per un forfettario.</p></HelpTip>}>
         <Input id="taxCredits" name="taxCredits" type="number" step="0.01" defaultValue={input.taxCredits} />
       </Field>
-      <label className="flex items-center gap-2 text-sm sm:col-span-2"><Checkbox name="inpsReducedRate" defaultChecked={input.inpsRatePct === 24} /> Pensionato o assicurato presso altra forma obbligatoria (aliquota INPS 24% invece di 26,07%)</label>
+      <label className="flex items-center gap-2 text-sm sm:col-span-2"><Checkbox name="inpsReducedRate" defaultChecked={inpsRates ? input.inpsRatePct === inpsRates.reduced : false} /> Pensionato o assicurato presso altra forma obbligatoria{inpsRates && ` (aliquota INPS ${formatPct(inpsRates.reduced)} invece di ${formatPct(inpsRates.full)})`}</label>
       <div className="sm:col-span-2"><Button type="submit" disabled={pending}>{pending ? 'Salvataggio…' : 'Salva e ricalcola'}</Button></div>
     </form>
   );

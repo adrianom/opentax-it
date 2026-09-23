@@ -20,7 +20,7 @@ export default async function TaxesPage({ searchParams }: PageProps<'/taxes'>) {
   if (!(await currentTenantId())) return <NoTenant />;
   const params = await searchParams;
   const year = Number(params.year ?? new Date().getFullYear());
-  const s = await fetchOrNull(() => api.taxSummary(year));
+  const [s, rules] = await Promise.all([fetchOrNull(() => api.taxSummary(year)), fetchOrNull(() => api.activeRules(year))]);
   return (
     <main className="mx-auto w-full max-w-5xl space-y-6 p-6">
       <div className="flex items-center justify-between">
@@ -118,7 +118,7 @@ export default async function TaxesPage({ searchParams }: PageProps<'/taxes'>) {
               <CardTitle>Dati dell&apos;anno inseriti a mano</CardTitle>
               <CardDescription>Le deleghe segnate come pagate in &quot;F24 e rate&quot; vengono contate automaticamente; qui vanno solo i versamenti fatti fuori dal tool (es. tramite il commercialista prima di usarlo).</CardDescription>
             </CardHeader>
-            <CardContent><YearDataForm year={year} input={s.input} /></CardContent>
+            <CardContent><YearDataForm year={year} input={s.input} inpsRates={rules ? { full: rules.inps.fullRatePct, reduced: rules.inps.reducedRatePct } : undefined} /></CardContent>
           </Card>
         </>
       )}
