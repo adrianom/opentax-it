@@ -1,4 +1,5 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { isEuMemberState } from '@opentax-it/fiscal-rules';
 import { PrismaService } from '../prisma/prisma.service.js';
 import type { CreateCustomerDto, UpdateCustomerDto } from './customers.dto.js';
 
@@ -16,6 +17,9 @@ export class CustomersService {
     const foreign = dto.kind === 'EU' || dto.kind === 'NON_EU';
     const countryCode = dto.countryCode ?? (foreign ? undefined : 'IT');
     if (foreign && (!countryCode || countryCode === 'IT')) throw new BadRequestException('EU/NON_EU customers need a non-IT countryCode');
+    // The kind drives Natura, annotations, INVCONT and Intrastat: it must match the country (GB and XI are non-EU for services).
+    if (dto.kind === 'EU' && !isEuMemberState(countryCode ?? '')) throw new BadRequestException(`${countryCode} non è uno Stato membro dell'UE: scegli "Extra UE" (Regno Unito, GB, e Irlanda del Nord, XI, sono fuori dall'UE per i servizi)`);
+    if (dto.kind === 'NON_EU' && isEuMemberState(countryCode ?? '')) throw new BadRequestException(`${countryCode} è uno Stato membro dell'UE: scegli "Unione Europea"`);
     if (!foreign && !dto.vatNumber && !dto.fiscalCode) throw new BadRequestException('Italian customers need a VAT number or a fiscal code');
     // AdE FAQ (fatture verso soggetti stranieri): foreign customers are identified with IdCodice (max 28 chars, not validated by SDI).
     if (foreign && !dto.vatNumber) throw new BadRequestException('Foreign customers need an identifier (VAT id or other code) in vatNumber');
@@ -41,7 +45,7 @@ export class CustomersService {
     return c;
   }
 
-  create(tenantId: string, dto: CreateCustomerDto) {
+  async create(tenantId: string, dto: CreateCustomerDto) {
     return this.prisma.customer.create({ data: { tenantId, ...this.normalize(dto) } });
   }
 

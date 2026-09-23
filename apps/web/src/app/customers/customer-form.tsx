@@ -37,7 +37,7 @@ export function CustomerForm({ customer }: { customer?: Customer }) {
       <Field label="Nome" htmlFor="firstName"><Input id="firstName" name="firstName" defaultValue={c?.firstName ?? ''} /></Field>
       <Field label="Cognome" htmlFor="lastName"><Input id="lastName" name="lastName" defaultValue={c?.lastName ?? ''} /></Field>
       {foreign && (
-        <Field label="Paese (ISO)" htmlFor="countryCode" hint="Es. DE, FR, US"><Input id="countryCode" name="countryCode" defaultValue={c?.countryCode ?? ''} maxLength={2} required /></Field>
+        <Field label="Paese (ISO)" htmlFor="countryCode" hint={kind === 'EU' ? 'Stato membro UE, es. DE, FR, ES' : 'Es. US, CH; Regno Unito (GB) e Irlanda del Nord (XI) sono Extra UE per i servizi'}><Input id="countryCode" name="countryCode" defaultValue={c?.countryCode ?? ''} maxLength={2} required /></Field>
       )}
       <Field label={foreign ? 'Partita IVA / VAT id (senza prefisso paese)' : 'Partita IVA'} htmlFor="vatNumber"><Input id="vatNumber" name="vatNumber" defaultValue={c?.vatNumber ?? ''} /></Field>
       {!foreign && <Field label="Codice fiscale" htmlFor="fiscalCode"><Input id="fiscalCode" name="fiscalCode" defaultValue={c?.fiscalCode ?? ''} /></Field>}

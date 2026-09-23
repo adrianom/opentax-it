@@ -1,5 +1,6 @@
 import { BadRequestException, HttpException, Injectable, Logger } from '@nestjs/common';
 import { parseInvoiceXml, type ParsedInvoice, type ParsedParty } from '@opentax-it/fatturapa';
+import { isEuMemberState } from '@opentax-it/fiscal-rules';
 import type { CustomerKind, DocumentType, VatNature } from '../generated/prisma/enums.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { StorageService } from '../storage/storage.service.js';
@@ -30,7 +31,6 @@ export interface ImportResult {
 
 const round2 = (n: number) => Math.round((n + Number.EPSILON) * 100) / 100;
 const ACCEPTED: DocumentType[] = ['TD01', 'TD04', 'TD05', 'TD06'];
-const EU = new Set(['AT', 'BE', 'BG', 'CY', 'CZ', 'DE', 'DK', 'EE', 'EL', 'GR', 'ES', 'FI', 'FR', 'HR', 'HU', 'IE', 'LT', 'LU', 'LV', 'MT', 'NL', 'PL', 'PT', 'RO', 'SE', 'SI', 'SK', 'XI']);
 
 @Injectable()
 export class InvoicesImportService {
@@ -148,7 +148,7 @@ export class InvoicesImportService {
       },
     });
     if (found) return found;
-    const kind: CustomerKind = foreign ? (EU.has(countryCode) ? 'EU' : 'NON_EU') : recipientCode && /^[A-Z0-9]{6}$/.test(recipientCode) ? 'IT_PA' : c.vatNumber ? 'IT_B2B' : 'IT_B2C';
+    const kind: CustomerKind = foreign ? (isEuMemberState(countryCode) ? 'EU' : 'NON_EU') : recipientCode && /^[A-Z0-9]{6}$/.test(recipientCode) ? 'IT_PA' : c.vatNumber ? 'IT_B2B' : 'IT_B2C';
     return this.prisma.customer.create({
       data: {
         tenantId,
