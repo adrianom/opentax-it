@@ -161,7 +161,9 @@ export class InvoicesService {
   /**
    * Issue a draft: assign the next progressive number for year/type, build the FatturaPA
    * XML, store it and mark the invoice ISSUED. Numbering and file writing happen in one
-   * transaction so that a failed XML never consumes a number.
+   * transaction so that a failed XML never consumes a number. A per-tenant advisory lock
+   * serializes concurrent issues (double click, two tabs, invoice and credit note together),
+   * which would otherwise read the same progressive and transmission numbers.
    */
   async issue(tenantId: string, id: string, dto?: { payment?: CreateInvoiceDto['payment'] }) {
     const existing = await this.get(tenantId, id);
@@ -173,6 +175,11 @@ export class InvoicesService {
     const { profile } = await this.tenants.getWithProfile(tenantId);
 
     return this.prisma.$transaction(async (tx) => {
+      await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`issue:${tenantId}`}))`;
+      // Re-read after the lock: a concurrent request may have issued this draft meanwhile.
+      const current = await tx.invoice.findFirst({ where: { id, tenantId }, select: { status: true } });
+      if (current?.status !== 'DRAFT') throw new BadRequestException('Invoice already issued');
+
       const last = await tx.invoice.aggregate({ where: { tenantId, year: existing.year, type: existing.type, status: { not: 'DRAFT' } }, _max: { sequence: true } });
       const sequence = (last._max.sequence ?? 0) + 1;
       // Separate series per document type; TD04/TD05 get an explicit prefix (Numero: Basic Latin, max 20 chars).
@@ -181,18 +188,22 @@ export class InvoicesService {
       const transmissions = await tx.invoice.count({ where: { tenantId, xmlFileName: { not: null } } });
       const transmissionSeq = transmissions + 1;
 
-      const refInvoice = existing.refInvoiceId ? await tx.invoice.findUnique({ where: { id: existing.refInvoiceId } }) : null;
+      const refInvoice = existing.refInvoiceId ? await tx.invoice.findFirst({ where: { id: existing.refInvoiceId, tenantId } }) : null;
       const payment = dto?.payment ?? (await this.paymentFromTerms(tenantId, existing));
       const model = this.toFatturaPa({ ...existing, number }, profile, rules, transmissionSeq, refInvoice, payment);
       const xml = buildInvoiceXml(model);
       const xmlFileName = invoiceFileName(profile.country, profile.fiscalCode, transmissionSeq);
-      const xmlPath = await this.storage.write(`${tenantId}/invoices/${existing.year}/${xmlFileName}`, xml);
+      const xmlPath = `${tenantId}/invoices/${existing.year}/${xmlFileName}`;
 
-      return tx.invoice.update({
+      const issued = await tx.invoice.update({
         where: { id },
         data: { sequence, number, status: 'ISSUED', xmlFileName, xmlPath },
         include: { lines: true, customer: true },
       });
+      // Last step: a failed write rolls the transaction back. The file may replace one left by a
+      // transaction that failed after writing, whose name was never recorded.
+      await this.storage.write(xmlPath, xml);
+      return issued;
     });
   }
 

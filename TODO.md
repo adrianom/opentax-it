@@ -8,8 +8,7 @@ Stato aggiornato al 23/09/2026. Cosa è già fatto e con quale riferimento norma
 
 ### Sicurezza di base (prima dell'autenticazione)
 Finché non c'è il login, l'applicazione va usata **solo in locale**: chi raggiunge l'API può leggere e modificare i dati di qualunque partita IVA (OWASP A01). Esito della security review del 23/09/2026 (intero codebase, OWASP Top 10; `pnpm audit` senza vulnerabilità note; parser e builder XML verificati contro XXE, billion laughs e prototype pollution).
-- Fatto: API, web e Postgres su `127.0.0.1`; allowlist dell'header Host contro il DNS rebinding (`ALLOWED_HOSTS`); password di Postgres da `.env`; richieste che modificano dati solo JSON (CSRF); id codificati negli URL verso l'API; set di regole attivabili solo da bozza/proposta; import XML con nomi univoci e senza sovrascrittura; SECURITY.md allineato allo stato reale.
-- Da fare, sforzo medio: lock nell'emissione (`pg_advisory_xact_lock` per tenant) e scrittura dell'XML dopo il commit, contro numeri/nomi file duplicati con emissioni concorrenti.
+- Fatto: API, web e Postgres su `127.0.0.1`; allowlist dell'header Host contro il DNS rebinding (`ALLOWED_HOSTS`); password di Postgres da `.env`; richieste che modificano dati solo JSON (CSRF); id codificati negli URL verso l'API; set di regole attivabili solo da bozza/proposta; import XML con nomi univoci e senza sovrascrittura; SECURITY.md allineato allo stato reale; lock per tenant nell'emissione (`pg_advisory_xact_lock`) contro numeri e nomi file duplicati con emissioni concorrenti.
 - Da fare, sforzo piccolo:
   - header di sicurezza (helmet nell'API; CSP con `frame-ancestors 'none'`, `nosniff` in `next.config.ts`); limite del body JSON solo sulla rotta di import (oggi 50 MB su tutto);
   - `Content-Disposition`: nome file ripulito da caratteri non sicuri (il numero di un XML importato non passa per l'XSD) e validazione di `Numero` all'import (max 20 caratteri, Basic Latin);

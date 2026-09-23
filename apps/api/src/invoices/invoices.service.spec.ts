@@ -349,4 +349,40 @@ describe('InvoicesService.issue', () => {
     await expect(service.issue('tenant1', 'draft-1')).rejects.toThrow(BadRequestException);
     expect(rulesMock.getActive).not.toHaveBeenCalled();
   });
+
+  it('takes the per-tenant lock and stops when a concurrent request already issued the draft', async () => {
+    const calls: string[] = [];
+    const tx = {
+      $executeRaw: vi.fn().mockImplementation((sql: TemplateStringsArray, key: string) => {
+        calls.push(`lock:${sql.join('?')}:${key}`);
+        return Promise.resolve(1);
+      }),
+      invoice: {
+        findFirst: vi.fn().mockImplementation(() => {
+          calls.push('recheck');
+          return Promise.resolve({ status: 'ISSUED' }); // issued by the other request while we waited
+        }),
+        aggregate: vi.fn(),
+        update: vi.fn(),
+      },
+    };
+    const prismaMock = {
+      invoice: { findFirst: vi.fn().mockResolvedValue({ id: 'draft-1', tenantId: 'tenant1', status: 'DRAFT', date: new Date('2026-01-15T00:00:00Z'), year: 2026 }) },
+      $transaction: vi.fn().mockImplementation((fn: (t: typeof tx) => unknown) => fn(tx)),
+    } as unknown as PrismaService;
+    const storageMock = { write: vi.fn() } as unknown as StorageService;
+    const service = new InvoicesService(
+      prismaMock,
+      { getActive: vi.fn().mockResolvedValue({}) } as unknown as FiscalRulesService,
+      { getWithProfile: vi.fn().mockResolvedValue({ profile: { country: 'IT', fiscalCode: 'RSSMRA80A01H501U' } }) } as unknown as TenantsService,
+      storageMock,
+      new InvoicesPdfService(),
+    );
+
+    await expect(service.issue('tenant1', 'draft-1')).rejects.toThrow('Invoice already issued');
+    expect(calls).toEqual(['lock:SELECT pg_advisory_xact_lock(hashtext(?)):issue:tenant1', 'recheck']);
+    expect(tx.invoice.aggregate).not.toHaveBeenCalled();
+    expect(tx.invoice.update).not.toHaveBeenCalled();
+    expect(storageMock.write).not.toHaveBeenCalled();
+  });
 });
