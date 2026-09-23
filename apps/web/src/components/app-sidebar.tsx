@@ -39,7 +39,7 @@ export function AppSidebar({ tenantName }: { tenantName: string | null }) {
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton size="lg" render={<Link href="/dashboard" />}>
-              <div className="flex size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground text-sm font-bold">OT</div>
+              <div className="flex size-8 items-center justify-center text-2xl" aria-hidden="true">🧾</div>
               <div className="flex flex-col leading-tight">
                 <span className="font-semibold">OpenTax IT</span>
                 <span className="text-xs text-muted-foreground">{tenantName ?? 'Nessuna partita IVA'}</span>
