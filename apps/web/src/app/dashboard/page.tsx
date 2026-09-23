@@ -60,14 +60,12 @@ export default async function DashboardPage() {
 
   return (
     <main className="mx-auto w-full max-w-6xl space-y-6 p-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold">Dashboard {year}</h1>
-          <p className="text-sm text-muted-foreground">Regole fiscali {active ? `v${active.version} attive` : 'non attive — attivale dalle impostazioni'}.</p>
-          {ruleStatus && !ruleStatus.ok && <p className="text-sm font-medium text-destructive">{ruleStatus.reason}</p>}
-        </div>
-        <Button render={<Link href="/invoices/new" />}>Nuova fattura</Button>
+      <div>
+        <h1 className="text-2xl font-semibold">Dashboard {year}</h1>
+        <p className="text-sm text-muted-foreground">Regole fiscali {active ? `v${active.version} attive` : 'non attive — attivale dalle impostazioni'}.</p>
+        {ruleStatus && !ruleStatus.ok && <p className="text-sm font-medium text-destructive">{ruleStatus.reason}</p>}
       </div>
+      <div className="flex flex-wrap justify-end gap-2"><Button render={<Link href="/invoices/new" />}>Nuova fattura</Button></div>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatTile label="Incassato nell'anno" value={formatMoney(collected)} hint={`Emesso: ${formatMoney(revenue)} (totali documento, al netto delle note di credito)`} />

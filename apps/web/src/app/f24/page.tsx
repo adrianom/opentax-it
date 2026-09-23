@@ -65,15 +65,13 @@ export default async function F24Page({ searchParams }: PageProps<'/f24'>) {
 
   return (
     <main className="mx-auto w-full max-w-6xl space-y-6 p-6">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <div>
-          <h1 className="text-2xl font-semibold">F24 e rate — periodo d&apos;imposta {taxYear}</h1>
-          <p className="text-sm text-muted-foreground">Saldo {taxYear} e acconti {taxYear + 1}, versati nel {taxYear + 1}. Deleghe calcolate dal riepilogo imposte: verifica gli importi con chi ti assiste prima di pagare.</p>
-        </div>
-        <div className="flex gap-2">
-          <Button variant="outline" render={<Link href={`/f24?year=${taxYear - 1}`} />}>{taxYear - 1}</Button>
-          <Button variant="outline" render={<Link href={`/f24?year=${taxYear + 1}`} />}>{taxYear + 1}</Button>
-        </div>
+      <div>
+        <h1 className="text-2xl font-semibold">F24 e rate — periodo d&apos;imposta {taxYear}</h1>
+        <p className="text-sm text-muted-foreground">Saldo {taxYear} e acconti {taxYear + 1}, versati nel {taxYear + 1}. Deleghe calcolate dal riepilogo imposte: verifica gli importi con chi ti assiste prima di pagare.</p>
+      </div>
+      <div className="flex flex-wrap justify-end gap-2">
+        <Button variant="outline" render={<Link href={`/f24?year=${taxYear - 1}`} />}>{taxYear - 1}</Button>
+        <Button variant="outline" render={<Link href={`/f24?year=${taxYear + 1}`} />}>{taxYear + 1}</Button>
       </div>
 
       <ErrorAlert message={error ?? previewError} />

@@ -23,15 +23,13 @@ export default async function TaxesPage({ searchParams }: PageProps<'/taxes'>) {
   const [s, rules] = await Promise.all([fetchOrNull(() => api.taxSummary(year)), fetchOrNull(() => api.activeRules(year))]);
   return (
     <main className="mx-auto w-full max-w-6xl space-y-6 p-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold">Imposte {year}</h1>
-          <p className="text-sm text-muted-foreground">Periodo d&apos;imposta {year}: dichiarazione e versamenti nel {year + 1}. Stima, non consulenza fiscale.</p>
-        </div>
-        <div className="flex gap-2">
-          <Button variant="outline" render={<Link href={`/taxes?year=${year - 1}`} />}>{year - 1}</Button>
-          <Button variant="outline" render={<Link href={`/taxes?year=${year + 1}`} />}>{year + 1}</Button>
-        </div>
+      <div>
+        <h1 className="text-2xl font-semibold">Imposte {year}</h1>
+        <p className="text-sm text-muted-foreground">Periodo d&apos;imposta {year}: dichiarazione e versamenti nel {year + 1}. Stima, non consulenza fiscale.</p>
+      </div>
+      <div className="flex flex-wrap justify-end gap-2">
+        <Button variant="outline" render={<Link href={`/taxes?year=${year - 1}`} />}>{year - 1}</Button>
+        <Button variant="outline" render={<Link href={`/taxes?year=${year + 1}`} />}>{year + 1}</Button>
       </div>
 
       {!s ? (

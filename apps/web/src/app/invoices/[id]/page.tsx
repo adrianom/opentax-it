@@ -24,17 +24,17 @@ export default async function InvoicePage({ params }: PageProps<'/invoices/[id]'
   const defaultDueDate = chosenTerms ? new Date(new Date(inv.date).getTime() + chosenTerms.days * 86_400_000).toISOString().slice(0, 10) : undefined;
   return (
     <main className="mx-auto w-full max-w-6xl space-y-6 p-6">
-      <div className="flex items-center justify-between">
-        <div>
+      <div>
+        <div className="flex items-center gap-3">
           <h1 className="text-2xl font-semibold">{TYPE_LABELS[inv.type]} {inv.number || '(bozza)'}</h1>
-          <p className="text-sm text-muted-foreground">{formatDate(inv.date)} · {customerLabel(inv.customer)}</p>
-        </div>
-        <div className="flex items-center gap-2">
-          {isDraft && <Button variant="outline" size="sm" render={<Link href={`/invoices/${inv.id}/edit`} />}>Modifica</Button>}
-          <Button variant="outline" size="sm" render={<a href={`/invoices/${inv.id}/pdf?inline=1`} target="_blank" rel="noreferrer" />}>Anteprima</Button>
-          <Button variant="outline" size="sm" render={<a href={`/invoices/${inv.id}/pdf`} />}>Scarica PDF</Button>
           <InvoiceStatusBadge status={inv.status} />
         </div>
+        <p className="text-sm text-muted-foreground">{formatDate(inv.date)} · {customerLabel(inv.customer)}</p>
+      </div>
+      <div className="flex flex-wrap justify-end gap-2">
+        {isDraft && <Button variant="outline" render={<Link href={`/invoices/${inv.id}/edit`} />}>Modifica</Button>}
+        <Button variant="outline" render={<a href={`/invoices/${inv.id}/pdf?inline=1`} target="_blank" rel="noreferrer" />}>Anteprima</Button>
+        <Button variant="outline" render={<a href={`/invoices/${inv.id}/pdf`} />}>Scarica PDF</Button>
       </div>
 
       <Card>
