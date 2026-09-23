@@ -16,6 +16,8 @@ jobs:
           cache: pnpm
       - run: sudo apt-get update && sudo apt-get install -y --no-install-recommends libxml2-utils # xmllint for XSD validation tests
       - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @opentax-it/api run prisma:generate # the Prisma client is generated, not committed; tests import it
+      - run: pnpm --filter "./packages/**" build # workspace packages resolve to dist/, needed by the API tests and type-aware lint
       - run: pnpm lint
       - run: pnpm test
       - run: pnpm build
