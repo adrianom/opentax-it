@@ -1,17 +1,17 @@
 import { currentTenantId } from '@/lib/api';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { NoTenant } from '@/components/no-tenant';
 import { ImportForm } from './import-form';
 
 export default async function ImportInvoicesPage() {
   if (!(await currentTenantId())) return <NoTenant />;
   return (
-    <main className="mx-auto w-full max-w-6xl p-6">
+    <main className="mx-auto w-full max-w-6xl space-y-6 p-6">
+      <div>
+        <h1 className="text-2xl font-semibold">Importa fatture da XML</h1>
+        <p className="text-sm text-muted-foreground">Carica le fatture elettroniche emesse con altri software (es. dal commercialista) per completare numerazione, bolli e incassi dell&apos;anno.</p>
+      </div>
       <Card>
-        <CardHeader>
-          <CardTitle>Importa fatture da XML</CardTitle>
-          <CardDescription>Carica le fatture elettroniche emesse con altri software (es. dal commercialista) per completare numerazione, bolli e incassi dell&apos;anno.</CardDescription>
-        </CardHeader>
         <CardContent><ImportForm /></CardContent>
       </Card>
     </main>
