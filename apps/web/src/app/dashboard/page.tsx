@@ -1,11 +1,10 @@
 import Link from 'next/link';
 import { api, currentTenantId, customerLabel, fetchOrNull, formatDate, formatMoney, type Deadline, type Invoice } from '@/lib/api';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { NoTenant } from '@/components/no-tenant';
-import { STATUS_LABELS } from '../invoices/page';
+import { InvoiceStatusBadge } from '@/components/invoice-status-badge';
 
 function describeDeadline(d: Deadline): string {
   const { taxYear, percentage, quarter } = d.details;
@@ -133,7 +132,7 @@ export default async function DashboardPage() {
                   <TableCell>{formatDate(i.date)}</TableCell>
                   <TableCell>{customerLabel(i.customer)}</TableCell>
                   <TableCell className="text-right font-mono">{formatMoney(i.total, i.currency)}</TableCell>
-                  <TableCell><Badge variant={i.status === 'DRAFT' ? 'outline' : 'secondary'}>{STATUS_LABELS[i.status]}</Badge></TableCell>
+                  <TableCell><InvoiceStatusBadge status={i.status} /></TableCell>
                 </TableRow>
               ))}
               {all.length === 0 && <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground">Nessun documento nel {year}.</TableCell></TableRow>}

@@ -2,12 +2,12 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { api, customerLabel, fetchOrNull, formatDate, formatMoney, inpsSurchargeLabel } from '@/lib/api';
 import { deleteInvoice } from '@/lib/actions';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { STATUS_LABELS, TYPE_LABELS } from '../page';
+import { InvoiceStatusBadge } from '@/components/invoice-status-badge';
+import { TYPE_LABELS } from '../page';
 import { IssueForm } from './issue-form';
 import { Payments } from './payments';
 
@@ -33,7 +33,7 @@ export default async function InvoicePage({ params }: PageProps<'/invoices/[id]'
           {isDraft && <Button variant="outline" size="sm" render={<Link href={`/invoices/${inv.id}/edit`} />}>Modifica</Button>}
           <Button variant="outline" size="sm" render={<a href={`/invoices/${inv.id}/pdf?inline=1`} target="_blank" rel="noreferrer" />}>Anteprima</Button>
           <Button variant="outline" size="sm" render={<a href={`/invoices/${inv.id}/pdf`} />}>Scarica PDF</Button>
-          <Badge variant={isDraft ? 'outline' : 'secondary'}>{STATUS_LABELS[inv.status]}</Badge>
+          <InvoiceStatusBadge status={inv.status} />
         </div>
       </div>
 

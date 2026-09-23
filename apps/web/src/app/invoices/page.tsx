@@ -1,21 +1,13 @@
 import Link from 'next/link';
-import { api, currentTenantId, customerLabel, fetchOrNull, formatDate, formatMoney, type InvoiceStatus } from '@/lib/api';
-import { Badge } from '@/components/ui/badge';
+import { api, currentTenantId, customerLabel, fetchOrNull, formatDate, formatMoney } from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { InvoiceStatusBadge } from '@/components/invoice-status-badge';
 import { NoTenant } from '@/components/no-tenant';
 import { InvoiceRowActions } from './row-actions';
 
-export const STATUS_LABELS: Record<InvoiceStatus, string> = {
-  DRAFT: 'Bozza',
-  ISSUED: 'Emessa',
-  SENT: 'Inviata a SDI',
-  DELIVERED: 'Consegnata',
-  NOT_DELIVERED: 'Non consegnata',
-  REJECTED: 'Scartata',
-  CANCELLED: 'Annullata',
-};
+export { STATUS_LABELS } from '@/components/invoice-status-badge';
 
 export const TYPE_LABELS: Record<string, string> = { TD01: 'Fattura', TD04: 'Nota di credito', TD05: 'Nota di debito', TD06: 'Parcella' };
 
@@ -63,7 +55,7 @@ export default async function InvoicesPage({ searchParams }: PageProps<'/invoice
                   <TableCell>{TYPE_LABELS[i.type] ?? i.type}</TableCell>
                   <TableCell>{customerLabel(i.customer)}</TableCell>
                   <TableCell className="text-right font-mono">{formatMoney(i.total, i.currency)}</TableCell>
-                  <TableCell><Badge variant={i.status === 'DRAFT' ? 'outline' : i.status === 'REJECTED' ? 'destructive' : 'secondary'}>{STATUS_LABELS[i.status]}</Badge></TableCell>
+                  <TableCell><InvoiceStatusBadge status={i.status} /></TableCell>
                   <TableCell><InvoiceRowActions id={i.id} status={i.status} hasXml={Boolean(i.xmlFileName)} /></TableCell>
                 </TableRow>
               ))}
