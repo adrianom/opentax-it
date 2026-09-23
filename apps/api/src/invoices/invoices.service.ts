@@ -48,6 +48,11 @@ export class InvoicesService {
     });
   }
 
+  async years(tenantId: string): Promise<number[]> {
+    const rows = await this.prisma.invoice.findMany({ where: { tenantId }, distinct: ['year'], select: { year: true }, orderBy: { year: 'desc' } });
+    return rows.map((r) => r.year);
+  }
+
   async get(tenantId: string, id: string): Promise<InvoiceWithRelations> {
     const inv = await this.prisma.invoice.findFirst({ where: { id, tenantId }, include: { lines: { orderBy: { lineNumber: 'asc' } }, customer: true } });
     if (!inv) throw new NotFoundException(`Invoice ${id} not found`);

@@ -13,6 +13,9 @@ export class InvoicesController {
   @Post('import')
   importXml(@TenantId() tenantId: string, @Body() dto: ImportInvoicesDto) { return this.importer.importFiles(tenantId, dto.files); }
 
+  /** Years that have at least one invoice (declared before ':id' routes). */
+  @Get('years') years(@TenantId() tenantId: string) { return this.service.years(tenantId); }
+
   @Get() list(@TenantId() tenantId: string, @Query() q: ListInvoicesQuery) { return this.service.list(tenantId, q); }
   @Get(':id') get(@TenantId() tenantId: string, @Param('id') id: string) { return this.service.get(tenantId, id); }
   @Post() create(@TenantId() tenantId: string, @Body() dto: CreateInvoiceDto) { return this.service.create(tenantId, dto); }

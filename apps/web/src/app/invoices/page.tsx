@@ -14,8 +14,14 @@ export const TYPE_LABELS: Record<string, string> = { TD01: 'Fattura', TD04: 'Not
 export default async function InvoicesPage({ searchParams }: PageProps<'/invoices'>) {
   if (!(await currentTenantId())) return <NoTenant />;
   const params = await searchParams;
-  const year = Number(params.year ?? new Date().getFullYear());
-  const invoices = (await fetchOrNull(() => api.invoices(year))) ?? [];
+  const currentYear = new Date().getFullYear();
+  // Invoices are never dated in a future year: a future year in the URL falls back to the current one.
+  const year = Math.min(Number(params.year ?? currentYear) || currentYear, currentYear);
+  const [invoices, invoiceYears] = await Promise.all([
+    fetchOrNull(() => api.invoices(year)).then((r) => r ?? []),
+    fetchOrNull(() => api.invoiceYears()).then((r) => r ?? []),
+  ]);
+  const years = [...new Set([currentYear, year, ...invoiceYears])].sort((a, b) => b - a);
   const collected = invoices.filter((i) => i.status !== 'DRAFT' && i.status !== 'CANCELLED' && i.type !== 'TD04');
   const total = collected.reduce((s, i) => s + Number(i.total), 0);
   return (
@@ -26,12 +32,15 @@ export default async function InvoicesPage({ searchParams }: PageProps<'/invoice
           <p className="text-sm text-muted-foreground">Emesso (totali documento, escluse note di credito): {formatMoney(total)}</p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" render={<Link href={`/invoices?year=${year - 1}`} />}>{year - 1}</Button>
-          <Button variant="outline" render={<Link href={`/invoices?year=${year + 1}`} />}>{year + 1}</Button>
           <Button variant="outline" render={<Link href="/invoices/import" />}>Importa XML</Button>
           <Button render={<Link href="/invoices/new" />}>Nuova fattura</Button>
         </div>
       </div>
+      <nav className="flex flex-wrap gap-2" aria-label="Anno">
+        {years.map((y) => (
+          <Button key={y} size="sm" variant={y === year ? 'default' : 'outline'} aria-current={y === year ? 'page' : undefined} render={<Link href={`/invoices?year=${y}`} />}>{y}</Button>
+        ))}
+      </nav>
       <Card>
         <CardHeader><CardTitle>{invoices.length} documenti</CardTitle></CardHeader>
         <CardContent>

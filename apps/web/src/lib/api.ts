@@ -79,6 +79,7 @@ export const api = {
   updateCustomer: (id: string, data: unknown) => tenantRequest<Customer>(`/customers/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
   deleteCustomer: (id: string) => tenantRequest<void>(`/customers/${id}`, { method: 'DELETE' }),
   invoices: (year?: number) => tenantRequest<Invoice[]>(`/invoices${year ? `?year=${year}` : ''}`),
+  invoiceYears: () => tenantRequest<number[]>('/invoices/years'),
   invoice: (id: string) => tenantRequest<InvoiceDetail>(`/invoices/${id}`),
   createInvoice: (data: unknown) => tenantRequest<Invoice>('/invoices', { method: 'POST', body: JSON.stringify(data) }),
   updateInvoice: (id: string, data: unknown) => tenantRequest<Invoice>(`/invoices/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
