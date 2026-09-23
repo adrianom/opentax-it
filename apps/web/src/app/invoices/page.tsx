@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { NoTenant } from '@/components/no-tenant';
+import { InvoiceRowActions } from './row-actions';
 
 export const STATUS_LABELS: Record<InvoiceStatus, string> = {
   DRAFT: 'Bozza',
@@ -51,20 +52,22 @@ export default async function InvoicesPage({ searchParams }: PageProps<'/invoice
                 <TableHead>Cliente</TableHead>
                 <TableHead className="text-right">Totale</TableHead>
                 <TableHead>Stato</TableHead>
+                <TableHead className="text-right">Azioni</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {invoices.map((i) => (
                 <TableRow key={i.id}>
-                  <TableCell><Link href={`/invoices/${i.id}`} className="font-mono font-medium hover:underline">{i.number || '(bozza)'}</Link></TableCell>
+                  <TableCell><Link href={`/invoices/${i.id}`} className="font-mono font-medium hover:underline">{i.number || 'Bozza'}</Link></TableCell>
                   <TableCell>{formatDate(i.date)}</TableCell>
                   <TableCell>{TYPE_LABELS[i.type] ?? i.type}</TableCell>
                   <TableCell>{customerLabel(i.customer)}</TableCell>
                   <TableCell className="text-right font-mono">{formatMoney(i.total, i.currency)}</TableCell>
                   <TableCell><Badge variant={i.status === 'DRAFT' ? 'outline' : i.status === 'REJECTED' ? 'destructive' : 'secondary'}>{STATUS_LABELS[i.status]}</Badge></TableCell>
+                  <TableCell><InvoiceRowActions id={i.id} status={i.status} hasXml={Boolean(i.xmlFileName)} /></TableCell>
                 </TableRow>
               ))}
-              {invoices.length === 0 && <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground">Nessun documento nel {year}.</TableCell></TableRow>}
+              {invoices.length === 0 && <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground">Nessun documento nel {year}.</TableCell></TableRow>}
             </TableBody>
           </Table>
         </CardContent>
