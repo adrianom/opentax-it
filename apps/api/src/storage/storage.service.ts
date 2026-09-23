@@ -10,10 +10,11 @@ export class StorageService {
     ? resolve(process.env.STORAGE_DIR)
     : resolve(dirname(fileURLToPath(import.meta.url)), '..', '..', 'storage');
 
-  async write(relativePath: string, content: string | Buffer): Promise<string> {
+  /** With `exclusive` the write fails (EEXIST) instead of replacing an existing file. */
+  async write(relativePath: string, content: string | Buffer, options: { exclusive?: boolean } = {}): Promise<string> {
     const full = join(this.root, relativePath);
     await mkdir(dirname(full), { recursive: true });
-    await writeFile(full, content);
+    await writeFile(full, content, { flag: options.exclusive ? 'wx' : 'w' });
     return relativePath;
   }
 

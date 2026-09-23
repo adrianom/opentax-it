@@ -78,42 +78,47 @@ export class InvoicesImportService {
       : null;
 
     const xmlFileName = f.name.replace(/[^A-Za-z0-9._-]/g, '_');
-    const xmlPath = await this.storage.write(`${tenantId}/invoices/${year}/imported/${xmlFileName}`, f.xml);
 
-    const inv = await this.prisma.invoice.create({
-      data: {
-        tenantId,
-        customerId: customer.id,
-        type,
-        year,
-        sequence,
-        number: p.number,
-        date: new Date(`${p.date}T00:00:00Z`),
-        currency: p.currency,
-        exchangeRate: 1,
-        vatNature: amounts.vatNature,
-        taxableAmount: amounts.taxableAmount,
-        inpsSurcharge: amounts.inpsSurcharge,
-        virtualStamp: amounts.virtualStamp,
-        stampAmount: amounts.stampAmount,
-        total: amounts.total,
-        notes: p.notes,
-        status: 'ISSUED',
-        refInvoiceId: refInvoice?.id ?? null,
-        xmlFileName,
-        xmlPath,
-        internalNotes: `Imported from ${f.name}`,
-        lines: {
-          create: p.lines.map((l) => ({
-            lineNumber: l.lineNumber,
-            description: l.description,
-            quantity: l.quantity ?? 1,
-            unit: l.unit ?? null,
-            unitPrice: l.unitPrice,
-            totalPrice: l.totalPrice,
-          })),
+    // The stored XML is the archived copy of the document: its path carries the invoice id so that
+    // two imports with the same file name never share a file, and it is never overwritten. The
+    // file is written inside the transaction, so a failed write leaves no invoice without its XML.
+    const inv = await this.prisma.$transaction(async (tx) => {
+      const created = await tx.invoice.create({
+        data: {
+          tenantId,
+          customerId: customer.id,
+          type,
+          year,
+          sequence,
+          number: p.number,
+          date: new Date(`${p.date}T00:00:00Z`),
+          currency: p.currency,
+          exchangeRate: 1,
+          vatNature: amounts.vatNature,
+          taxableAmount: amounts.taxableAmount,
+          inpsSurcharge: amounts.inpsSurcharge,
+          virtualStamp: amounts.virtualStamp,
+          stampAmount: amounts.stampAmount,
+          total: amounts.total,
+          notes: p.notes,
+          status: 'ISSUED',
+          refInvoiceId: refInvoice?.id ?? null,
+          xmlFileName,
+          internalNotes: `Imported from ${f.name}`,
+          lines: {
+            create: p.lines.map((l) => ({
+              lineNumber: l.lineNumber,
+              description: l.description,
+              quantity: l.quantity ?? 1,
+              unit: l.unit ?? null,
+              unitPrice: l.unitPrice,
+              totalPrice: l.totalPrice,
+            })),
+          },
         },
-      },
+      });
+      const xmlPath = await this.storage.write(`${tenantId}/invoices/${year}/imported/${created.id}_${xmlFileName}`, f.xml, { exclusive: true });
+      return tx.invoice.update({ where: { id: created.id }, data: { xmlPath } });
     });
     return { file: f.name, status: 'IMPORTED', number: p.number, invoiceId: inv.id, customer: customer.businessName ?? `${customer.firstName ?? ''} ${customer.lastName ?? ''}`.trim() };
   }
