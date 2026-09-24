@@ -12,6 +12,7 @@ const pct = z.number().min(0).max(100);
 
 export const SourceRefSchema = z.object({
   url: z.string().url(),
+  /** Reference shown to the user, in Italian (e.g. "Circ. INPS n. 8 del 3/2/2026, §2"). */
   title: z.string(),
   /** Verbatim excerpt of the archived source; fragments separated by "...". */
   quote: z.string(),
