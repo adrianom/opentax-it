@@ -69,20 +69,22 @@ export class TaxesService {
    * - advances for `year`: FIRST/SECOND_ADVANCE lines with reference year = `year` (LM45; RR5 col. 16);
    * - contributions paid in `year` (cash basis, LM35 col. 1: "versati nel presente periodo d'imposta"):
    *   INPS balance/advance lines of forms paid in `year`, interest excluded.
+   * Deferral surcharges are excluded (booklet 3, LM45: "non devono essere considerate le maggiorazioni"):
+   * Treasury rows store their surcharge share; INPS pays it with DPPI (interest rows, already excluded).
    * Amounts entered by hand in TaxYearData are added to these (payments made outside the tool).
    */
   async paidFromF24(tenantId: string, year: number) {
     const [advances, contributions] = await Promise.all([
       this.prisma.f24Line.findMany({
         where: { f24: { tenantId, status: 'PAID' }, role: { in: ['FIRST_ADVANCE', 'SECOND_ADVANCE'] }, referenceYear: year },
-        select: { section: true, debitAmount: true },
+        select: { section: true, debitAmount: true, surchargeAmount: true },
       }),
       this.prisma.f24Line.findMany({
         where: { f24: { tenantId, status: 'PAID', paidOn: { gte: new Date(Date.UTC(year, 0, 1)), lt: new Date(Date.UTC(year + 1, 0, 1)) } }, section: 'INPS', role: { in: ['BALANCE', 'FIRST_ADVANCE', 'SECOND_ADVANCE'] } },
-        select: { debitAmount: true },
+        select: { debitAmount: true, surchargeAmount: true },
       }),
     ]);
-    const sum = (rows: Array<{ debitAmount: unknown }>) => roundCents(rows.reduce((t, r) => t + Number(r.debitAmount), 0));
+    const sum = (rows: Array<{ debitAmount: unknown; surchargeAmount: unknown }>) => roundCents(rows.reduce((t, r) => t + Number(r.debitAmount) - Number(r.surchargeAmount), 0));
     return {
       taxAdvancesPaid: sum(advances.filter((a) => a.section === 'TREASURY')),
       inpsAdvancesPaid: sum(advances.filter((a) => a.section === 'INPS')),

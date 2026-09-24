@@ -678,6 +678,9 @@ model F24Line {
   periodTo        String?
   referenceYear   Int
   debitAmount     Decimal    @default(0) @db.Decimal(14, 2)
+  /// Part of debitAmount that is the deferral surcharge (0.40/0.80%, Treasury rows): excluded from
+  /// the advances carried to the return (Redditi PF booklet 3, LM45).
+  surchargeAmount Decimal    @default(0) @db.Decimal(14, 2)
   creditAmount    Decimal    @default(0) @db.Decimal(14, 2)
   description     String?
 

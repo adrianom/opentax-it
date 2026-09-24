@@ -191,6 +191,7 @@ export class F24Service {
                 periodTo: l.periodTo ?? null,
                 referenceYear: l.referenceYear,
                 debitAmount: l.debitAmount,
+                surchargeAmount: l.surchargeAmount ?? 0,
                 creditAmount: l.creditAmount ?? 0,
                 description: l.description,
                 // Credit rows are matched to the credits in the same order they were consumed.

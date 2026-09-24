@@ -108,6 +108,9 @@ describe('buildPaymentSchedule – single payment', () => {
     });
     expect(forms[0].lines[0].debitAmount).toBe(502);
     expect(forms[1].lines[0].debitAmount).toBe(502);
+    // 2 of each 502 is the surcharge, excluded from the advances carried to LM45.
+    expect(forms[0].lines[0].surchargeAmount).toBe(2);
+    expect(forms[1].lines[0].surchargeAmount).toBe(2);
     expect(forms[1].lines[1]).toMatchObject({ code: '1668', debitAmount: 0.9 }); // 502 × 0.18%
   });
 

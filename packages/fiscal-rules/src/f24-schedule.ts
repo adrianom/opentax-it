@@ -53,6 +53,12 @@ export interface F24LineDraft {
   periodTo?: string;
   referenceYear: number;
   debitAmount: number;
+  /**
+   * Part of `debitAmount` that is the deferral surcharge (Treasury rows only; for INPS it goes on DPPI).
+   * Excluded when paid advances are carried to the return (Redditi PF booklet 3, LM45: "non devono
+   * essere considerate le maggiorazioni").
+   */
+  surchargeAmount?: number;
   creditAmount?: number;
   description: string;
 }
@@ -138,7 +144,7 @@ interface Component {
   referenceYear: number;
   description: string;
   plan: Installment[];
-  /** INPS only: the same plan without surcharge, whose principals go on the contribution rows. */
+  /** With a deferral surcharge: the same plan without it, to tell the surcharge share of each installment. */
   basePlan?: Installment[];
 }
 
@@ -169,7 +175,7 @@ export function buildPaymentSchedule(rules: FiscalRuleSet, input: PaymentSchedul
   ];
   const components: Component[] = candidates
     .filter((c) => amounts[c.key] > 0)
-    .map((c) => ({ ...c, plan: planFor(amounts[c.key]), basePlan: c.section === 'INPS' && surcharge > 0 ? planFor(amounts[c.key], false) : undefined }));
+    .map((c) => ({ ...c, plan: planFor(amounts[c.key]), basePlan: surcharge > 0 ? planFor(amounts[c.key], false) : undefined }));
 
   const forms: F24Draft[] = [];
   if (components.length > 0) {
@@ -179,17 +185,18 @@ export function buildPaymentSchedule(rules: FiscalRuleSet, input: PaymentSchedul
       const interestByYear = new Map<string, { section: F24Section; referenceYear: number; amount: number }>();
       for (const c of components) {
         const r = c.plan[i];
-        // INPS with deferral: the surcharge share of this installment moves from the contribution to DPPI.
-        const principal = c.basePlan ? c.basePlan[i].principal : r.principal;
-        const surchargeShare = round2(r.principal - principal);
-        lines.push(line(c.section, c.role, c.code, c.referenceYear, principal, c.description, {
+        // Deferral surcharge share of this installment: inside the tax for the Treasury, moved to DPPI for INPS.
+        const surchargeShare = c.basePlan ? round2(r.principal - c.basePlan[i].principal) : 0;
+        const inpsShare = c.section === 'INPS' ? surchargeShare : 0;
+        lines.push(line(c.section, c.role, c.code, c.referenceYear, round2(r.principal - inpsShare), c.description, {
+          surchargeAmount: c.section === 'TREASURY' && surchargeShare > 0 ? surchargeShare : undefined,
           installmentCode: c.section === 'TREASURY' ? (single ? SINGLE_PAYMENT_INSTALLMENT_CODE : installmentCode(i + 1, installments)) : undefined,
           officeCode: c.section === 'INPS' ? input.inpsOfficeCode : undefined,
         }));
-        if (r.interest > 0 || surchargeShare > 0) {
+        if (r.interest > 0 || inpsShare > 0) {
           const k = `${c.section}-${c.referenceYear}`;
           const cur = interestByYear.get(k) ?? { section: c.section, referenceYear: c.referenceYear, amount: 0 };
-          cur.amount = round2(cur.amount + r.interest + surchargeShare);
+          cur.amount = round2(cur.amount + r.interest + inpsShare);
           interestByYear.set(k, cur);
         }
       }
@@ -219,7 +226,7 @@ export function buildPaymentSchedule(rules: FiscalRuleSet, input: PaymentSchedul
   return { forms, warnings };
 }
 
-function line(section: F24Section, role: F24LineRole, code: string, referenceYear: number, amount: number, description: string, extra: { installmentCode?: string; officeCode?: string }): F24LineDraft {
+function line(section: F24Section, role: F24LineRole, code: string, referenceYear: number, amount: number, description: string, extra: { installmentCode?: string; officeCode?: string; surchargeAmount?: number }): F24LineDraft {
   return {
     section,
     role,
@@ -230,6 +237,7 @@ function line(section: F24Section, role: F24LineRole, code: string, referenceYea
     periodTo: section === 'INPS' ? `12/${referenceYear}` : undefined,
     referenceYear,
     debitAmount: round2(amount),
+    surchargeAmount: extra.surchargeAmount,
     description,
   };
 }
