@@ -22,3 +22,10 @@ export function formatPct(value: number): string {
 export function formatMoney(value: string | number, currency = 'EUR'): string {
   return new Intl.NumberFormat('it-IT', { style: 'currency', currency }).format(Number(value));
 }
+
+/** Years from `from` to `to`, newest first, always including `selected` (e.g. a year typed in the URL). */
+export function yearRange(from: number, to: number, selected?: number): number[] {
+  const years = new Set(Array.from({ length: to - from + 1 }, (_, i) => to - i));
+  if (selected !== undefined) years.add(selected);
+  return [...years].sort((a, b) => b - a);
+}

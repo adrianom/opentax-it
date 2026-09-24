@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { InvoiceStatusBadge } from '@/components/invoice-status-badge';
 import { NoTenant } from '@/components/no-tenant';
+import { YearSelect } from '@/components/year-select';
 import { InvoiceRowActions } from './row-actions';
 
 export { STATUS_LABELS } from '@/components/invoice-status-badge';
@@ -31,11 +32,7 @@ export default async function InvoicesPage({ searchParams }: PageProps<'/invoice
         <p className="text-sm text-muted-foreground">Emesso (totali documento, escluse note di credito): {formatMoney(total)}</p>
       </div>
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <nav className="flex flex-wrap gap-2" aria-label="Anno">
-          {years.map((y) => (
-            <Button key={y} size="sm" variant={y === year ? 'default' : 'outline'} aria-current={y === year ? 'page' : undefined} render={<Link href={`/invoices?year=${y}`} />}>{y}</Button>
-          ))}
-        </nav>
+        <YearSelect path="/invoices" value={year} years={years} />
         <div className="flex gap-2">
           <Button variant="outline" render={<Link href="/invoices/import" />}>Importa XML</Button>
           <Button render={<Link href="/invoices/new" />}>Nuova fattura</Button>

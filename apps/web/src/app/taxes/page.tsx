@@ -1,10 +1,10 @@
 import Link from 'next/link';
-import { api, currentTenantId, fetchOrNull, formatMoney } from '@/lib/api';
+import { api, currentTenantId, fetchOrNull, formatMoney, yearRange } from '@/lib/api';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { NoTenant } from '@/components/no-tenant';
+import { YearSelect } from '@/components/year-select';
 import { YearDataForm } from './year-data-form';
 import { TriangleAlert } from 'lucide-react';
 
@@ -20,7 +20,8 @@ function Row({ label, value, code, strong }: { label: string; value: string; cod
 export default async function TaxesPage({ searchParams }: PageProps<'/taxes'>) {
   if (!(await currentTenantId())) return <NoTenant />;
   const params = await searchParams;
-  const year = Number(params.year ?? new Date().getFullYear());
+  const currentYear = new Date().getFullYear();
+  const year = Number(params.year) || currentYear;
   const [s, rules] = await Promise.all([fetchOrNull(() => api.taxSummary(year)), fetchOrNull(() => api.activeRules(year))]);
   return (
     <main className="mx-auto w-full max-w-6xl space-y-6 p-6">
@@ -29,8 +30,7 @@ export default async function TaxesPage({ searchParams }: PageProps<'/taxes'>) {
         <p className="text-sm text-muted-foreground">Periodo d&apos;imposta {year}: dichiarazione e versamenti nel {year + 1}. Stima, non consulenza fiscale.</p>
       </div>
       <div className="flex flex-wrap justify-end gap-2">
-        <Button variant="outline" render={<Link href={`/taxes?year=${year - 1}`} />}>{year - 1}</Button>
-        <Button variant="outline" render={<Link href={`/taxes?year=${year + 1}`} />}>{year + 1}</Button>
+        <YearSelect path="/taxes" value={year} years={yearRange(currentYear - 4, currentYear, year)} label="Periodo d'imposta" />
       </div>
 
       {!s ? (
@@ -126,7 +126,7 @@ export default async function TaxesPage({ searchParams }: PageProps<'/taxes'>) {
               <CardTitle>Dati dell&apos;anno inseriti a mano</CardTitle>
               <CardDescription>Le deleghe segnate come pagate in &quot;F24 e rate&quot; vengono contate automaticamente; qui vanno solo i versamenti fatti fuori dal tool (es. tramite il commercialista prima di usarlo).</CardDescription>
             </CardHeader>
-            <CardContent><YearDataForm year={year} input={s.input} inpsRates={rules ? { full: rules.inps.fullRatePct, reduced: rules.inps.reducedRatePct } : undefined} /></CardContent>
+            <CardContent><YearDataForm key={`${year}-${JSON.stringify(s.input)}`} year={year} input={s.input} inpsRates={rules ? { full: rules.inps.fullRatePct, reduced: rules.inps.reducedRatePct } : undefined} /></CardContent>
           </Card>
         </>
       )}

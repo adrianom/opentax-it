@@ -8,8 +8,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { ConfirmRowAction, RowAction, RowActions } from '@/components/row-actions';
 import { RevealHashTarget } from '@/components/reveal-hash-target';
+import { YearSelect } from '@/components/year-select';
 import { activateRuleSet, seedRuleSets } from '@/lib/actions';
-import { api, fetchOrNull, formatDate, type RuleSetDetail, type RuleSourceRef, type SourceSummary } from '@/lib/api';
+import { api, fetchOrNull, formatDate, yearRange, type RuleSetDetail, type RuleSourceRef, type SourceSummary } from '@/lib/api';
 import { byRuleOrder, RULE_LABELS, RULE_SECTIONS, ruleValueLabel } from '@/lib/sources';
 
 const STATUS_LABELS: Record<string, string> = { DRAFT: 'Bozza', PROPOSED: 'Proposto', ACTIVE: 'Attivo', SUPERSEDED: 'Superato' };
@@ -214,9 +215,7 @@ export default async function RulesPage({ searchParams }: PageProps<'/rules'>) {
         </p>
       </div>
       <div className="flex flex-wrap items-center justify-end gap-2">
-        {[current - 1, current, current + 1].map((y) => (
-          <Button key={y} variant={y === year ? 'default' : 'outline'} render={<Link href={`/rules?year=${y}`} />}>{y}</Button>
-        ))}
+        <YearSelect path="/rules" value={year} years={yearRange(current - 2, current + 1, year)} />
         <form action={seedRuleSets}>
           <Button variant="outline" type="submit">Carica set forniti con l&apos;applicazione</Button>
         </form>

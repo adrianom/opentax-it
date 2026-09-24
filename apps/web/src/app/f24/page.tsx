@@ -9,8 +9,9 @@ import { HelpTip } from '@/components/help-tip';
 import { NativeSelect } from '@/components/native-select';
 import { NoTenant } from '@/components/no-tenant';
 import { createPlan, deletePlan } from '@/lib/actions';
-import { api, ApiError, currentTenantId, fetchOrNull, formatDate, formatMoney, formatPct, type PlanOptions, type PlanPreview, type PlanStart } from '@/lib/api';
+import { api, ApiError, currentTenantId, fetchOrNull, formatDate, formatMoney, formatPct, yearRange, type PlanOptions, type PlanPreview, type PlanStart } from '@/lib/api';
 import { F24Card } from './f24-card';
+import { YearSelect } from '@/components/year-select';
 import { TriangleAlert } from 'lucide-react';
 
 const START_LABELS: Record<PlanStart, string> = {
@@ -71,8 +72,7 @@ export default async function F24Page({ searchParams }: PageProps<'/f24'>) {
         <p className="text-sm text-muted-foreground">Saldo {taxYear} e acconti {taxYear + 1}, versati nel {taxYear + 1}. Deleghe calcolate dal riepilogo imposte: verifica gli importi con chi ti assiste prima di pagare.</p>
       </div>
       <div className="flex flex-wrap justify-end gap-2">
-        <Button variant="outline" render={<Link href={`/f24?year=${taxYear - 1}`} />}>{taxYear - 1}</Button>
-        <Button variant="outline" render={<Link href={`/f24?year=${taxYear + 1}`} />}>{taxYear + 1}</Button>
+        <YearSelect path="/f24" value={taxYear} years={yearRange(new Date().getFullYear() - 4, new Date().getFullYear(), taxYear)} label="Periodo d'imposta" />
       </div>
 
       <ErrorAlert message={error ?? previewError} />
