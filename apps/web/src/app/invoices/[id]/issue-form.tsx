@@ -7,6 +7,7 @@ import { formatMoney } from '@/lib/format';
 import type { ThresholdOutlook } from '@/lib/types';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Checkbox } from '@/components/ui/checkbox';
+import { HelpTip } from '@/components/help-tip';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Field } from '@/components/field';
@@ -29,7 +30,7 @@ export function IssueForm({ id, defaultDueDate, defaultIban, thresholds }: { id:
           <AlertTitle>{thresholds.projectedOverExit ? 'Soglia dei 100.000 € a rischio' : 'Limite personale superato'}</AlertTitle>
           <AlertDescription>
             <p>
-              Incassato {formatMoney(thresholds.collectedRevenue)} + da incassare {formatMoney(thresholds.outstanding)} + questa fattura {formatMoney(thresholds.invoiceTotal)} = <strong>{formatMoney(thresholds.projected)}</strong>
+              Incassato {formatMoney(thresholds.collectedRevenue)} + da incassare {formatMoney(thresholds.outstanding)} + questa fattura {formatMoney(thresholds.invoiceTotal)} = <strong>{formatMoney(thresholds.projected)}</strong> <HelpTip label="Come si calcola la proiezione"><p>Proiezione = incassato nell&apos;anno + fatture emesse non ancora incassate + questa fattura. Serve solo per l&apos;avviso: le soglie di legge valgono sugli incassi (principio di cassa, L. 190/2014 c. 54 e 71), quindi una fattura conta nell&apos;anno in cui viene pagata.</p><p>Le note di credito non ancora rimborsate non vengono sottratte: la stima è per eccesso, cioè prudente.</p></HelpTip>
               {thresholds.projectedOverExit ? `, oltre ${formatMoney(thresholds.exitThreshold)}: se incassati nell'anno il regime cessa subito e l'IVA è dovuta dalla fattura che fa superare la soglia (L. 190/2014 c. 71).` : `, oltre il tuo limite di ${formatMoney(thresholds.personalLimit ?? 0)}.`}
             </p>
             <label className="mt-2 flex items-center gap-2 font-medium"><Checkbox name="confirmThresholds" required /> Ho capito, emetti comunque</label>

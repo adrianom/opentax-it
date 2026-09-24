@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { NoTenant } from '@/components/no-tenant';
+import { HelpTip } from '@/components/help-tip';
 import { InvoiceStatusBadge } from '@/components/invoice-status-badge';
 
 function describeDeadline(d: Deadline): string {
@@ -110,7 +111,7 @@ export default async function DashboardPage() {
                 {thresholds.personalLimit !== null && (
                   <ThresholdMeter label={`Limite personale ${formatMoney(thresholds.personalLimit)}`} value={thresholds.collectedRevenue} limit={thresholds.personalLimit} level={thresholds.collectedRevenue > thresholds.personalLimit ? 'OVER' : thresholds.collectedRevenue >= thresholds.personalLimit * 0.8 ? 'NEAR' : 'OK'} note="Impostato in Impostazioni: oltre il limite l'emissione chiede conferma." />
                 )}
-                <p className="text-xs text-muted-foreground">Con le fatture emesse non ancora incassate ({formatMoney(thresholds.outstanding)}) l&apos;anno arriverebbe a <span className="font-medium text-foreground">{formatMoney(thresholds.projected)}</span>.</p>
+                <p className="text-xs text-muted-foreground">Con le fatture emesse non ancora incassate ({formatMoney(thresholds.outstanding)}) l&apos;anno arriverebbe a <span className="font-medium text-foreground">{formatMoney(thresholds.projected)}</span>. <HelpTip label="Come si calcola la proiezione"><p>Proiezione = incassato nell&apos;anno + fatture emesse non ancora incassate. Serve solo per l&apos;avviso: le soglie di legge valgono sugli incassi (principio di cassa, L. 190/2014 c. 54 e 71), quindi una fattura conta nell&apos;anno in cui viene pagata.</p><p>Le note di credito non ancora rimborsate non vengono sottratte: la stima è per eccesso, cioè prudente.</p></HelpTip></p>
               </>
             ) : (
               <p className="text-sm text-muted-foreground">Soglie non disponibili: serve un set di regole attivo per il {year}.</p>
