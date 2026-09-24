@@ -44,6 +44,7 @@ Emissione e XML sono pronti; manca la trasmissione. Normativa verificata in [doc
 - **PEC**: nessun accreditamento, messaggio fino a 30 MB, primo invio a `sdi01@pec.fatturapa.it` e poi all'indirizzo assegnato dallo SDI. **Non esiste un ambiente di prova per chi usa solo la PEC**: il primo invio è reale.
 - **Invio web** dal portale Fatture e Corrispettivi (SPID/CIE/CNS, file fino a 5 MB): manuale, nessuna API.
 - **SDICoop (web service SOAP) e SDIFTP**: sono le uniche vie "via API", ma richiedono l'accreditamento sul Sistema di Accreditamento, certificati rilasciati dallo SDI, test di interoperabilità, un accordo di servizio e la "capacità di gestione di certificati digitali"; per ricevere fatture e notifiche va esposto un servizio web raggiungibile da internet (SdICoop - Ricezione). L'ambiente di test esiste solo per i canali accreditati. Non adatti a un'app locale per un singolo professionista.
+- **Servizi massivi SDICoop** (agenziaentrate.gov.it, "Servizi massivi SDICoop"): download massivo di fatture e dati, trasmissione dell'elenco B del bollo; riservati ai "provider Web-Service, già accreditati al servizio SdI-Cooperazione Applicativa". Stesso ostacolo dell'accreditamento; utili solo se un giorno il progetto si accreditasse.
 
 **Piano (canale PEC)**
 1. Cifratura a riposo delle credenziali (`APP_ENCRYPTION_KEY`, oggi non usata): la password PEC non va mai salvata in chiaro.
@@ -53,7 +54,7 @@ Emissione e XML sono pronti; manca la trasmissione. Normativa verificata in [doc
 5. Scarto: correzione e nuovo invio. Termini e regole del reinvio (numero e data della fattura scartata) **da verificare** sulle fonti AdE prima di scrivere codice.
 6. Bollo per data di consegna (punto 12 dell'epica Conformità) con le date delle ricevute.
 7. Dipendenze: `nodemailer` (SMTP) e `imapflow` (IMAP), ultime versioni stabili.
-8. Test: lettura delle ricevute sui file di esempio e sugli XSD dei messaggi della Spec. 1.9.1; nessun test automatico può inviare allo SDI. Primo invio reale fatto insieme all'utente con una fattura da emettere comunque. **Da verificare**: se un file volutamente scartato (ricevuta di scarto) non ha effetti fiscali e può servire come prova del canale.
+8. Test: lettura delle ricevute sugli **esempi ufficiali già scaricati** in `packages/fatturapa/schemas/messaggi/` (schema `MessaggiTypes_v1.1.xsd` ed esempi RC, NS, MC da fatturapa.gov.it, "Documentazione Sistema d'Interscambio"; validi per lo schema). La ricevuta di consegna contiene `IdentificativoSdI`, `NomeFile`, `DataOraRicezione`, `DataOraConsegna` e `MessageId`, ed è firmata (XAdES) dall'AdE. Nessun test automatico può inviare allo SDI. Primo invio reale fatto insieme all'utente con una fattura da emettere comunque. **Da verificare**: se un file volutamente scartato (ricevuta di scarto) non ha effetti fiscali e può servire come prova del canale.
 9. Requisiti dell'utente: casella PEC con accesso SMTP e IMAP (dati dei server dal gestore).
 - Conservazione: le fatture emesse vanno conservate a norma (DPR 633/72 art. 39; DM 17/06/2014). Fatto: avviso nel README con l'indicazione del servizio gratuito dell'AdE (Fatture e Corrispettivi). Da fare: storico delle fatture nell'applicazione e promemoria di adesione nella pagina di setup.
 
