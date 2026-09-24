@@ -48,6 +48,20 @@ Finché non c'è il login, l'applicazione va usata **solo in locale**: chi raggi
   - errori in `/f24` e `/credits` passati come codice invece che come testo nell'URL (rischio basso: React fa l'escape e l'app è solo locale);
   - `updateMany`/`deleteMany` con `tenantId` o un'estensione Prisma che lo inietti, come difesa in profondità per quando ci sarà l'autenticazione.
 
+### Qualità del codice e architettura dell'API
+Regole di lavoro in [AGENTS.md](AGENTS.md) (fatto il 24/09/2026, letto anche da Claude Code tramite `CLAUDE.md`). Oggi i DTO sono solo di richiesta, più classi per file (fino a 8 in `invoices.dto.ts`), niente Swagger, e i controller restituiscono direttamente le entità Prisma: ogni campo del database arriva al client (OWASP [API3:2023](https://api-security.owasp.org/editions/2023/en/0x11-t10), Broken Object Property Level Authorization). Documentazione da seguire: NestJS [OpenAPI](https://docs.nestjs.com/openapi/introduction) e [CLI plugin](https://docs.nestjs.com/openapi/cli-plugin), [validazione](https://docs.nestjs.com/techniques/validation).
+- **DTO in due cartelle per modulo**: `dto/request/` e `dto/response/`, **una sola classe per file**, nome `<nome>.dto.ts` (richiesto dal plugin Swagger per documentare le proprietà).
+- **DTO di risposta e mapper** per ogni endpoint: un mapper (`<nome>.mapper.ts`) costruisce il DTO dalla entità; nessun controller restituisce più entità Prisma o oggetti interni. Scegliere per ogni risposta i campi da esporre (es. niente `tenantId`, percorsi di storage, hash interni). Il mapper può usare **class-transformer** (già installato, 0.5.1, ultima stabile): `@Expose()` su ogni campo del DTO di risposta e `plainToInstance(..., { excludeExtraneousValues: true })` come allowlist dei campi, `@Transform()` per le conversioni (es. `Decimal` di Prisma). Da valutare anche `ClassSerializerInterceptor` di NestJS ([serializzazione](https://docs.nestjs.com/techniques/serialization)), che serializza solo istanze di classe: "A plain JavaScript object ... is not serialized correctly".
+- **Swagger** con `@nestjs/swagger` (ultima versione stabile): `DocumentBuilder` e `SwaggerModule.setup` in `main.ts`, plugin CLI in `nest-cli.json` con `classValidatorShim` e `introspectComments`, tipo di risposta dichiarato su ogni endpoint (`@ApiOkResponse` e simili), tag per modulo. La pagina della documentazione solo in locale o disattivabile per ambiente (OWASP API8:2023, Security Misconfiguration).
+- **Pattern API**: rivedere percorsi, metodi e codici di stato (es. `POST /fiscal-rules/seed`, azioni come `/issue` e `/activate`) e scegliere una convenzione unica, documentata in AGENTS.md.
+- **Migrazione per modulo**, un modulo per volta con i suoi test verdi: prima i piccoli (banche, profili di scadenza, crediti), poi clienti, incassi, F24, fatture; il web si adegua ai tipi di risposta (`apps/web/src/lib/types.ts`).
+- **Controlli automatici** perché le regole restino rispettate (le istruzioni in AGENTS.md sono contesto per gli agenti, non un vincolo):
+  - test di architettura nell'API: i DTO stanno solo in `dto/request` e `dto/response`, una classe per file; i controller non importano `PrismaService`;
+  - test sul documento OpenAPI generato: ogni endpoint dichiara il tipo di risposta e nessuno schema di risposta espone campi vietati (es. `tenantId`);
+  - regola di lint `max-classes-per-file` sui DTO, se supportata da oxlint (**da verificare** nella documentazione di oxlint);
+  - `openapi.json` versionato e controllato in CI, così ogni modifica all'API si vede nella diff della PR;
+  - modello di PR (`.github/pull_request_template.md`) con la checklist: fonte ufficiale e citazione, test, OWASP, documentazione letta, AGENTS.md aggiornato se cambia una convenzione.
+
 ### Autenticazione e permessi
 Oggi la partita IVA attiva è scelta in `/setup` e salvata in un cookie; l'API riceve il tenant da un header. **Obbligatoria prima di qualsiasi uso fuori dal proprio computer.**
 - Login (email + password o passkey), sessioni, ruoli già previsti nello schema (`UserRole`), tenant multipli per utente.
