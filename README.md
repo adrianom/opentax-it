@@ -4,6 +4,8 @@ Gestionale **open source** (`opentax-it`) per partite IVA italiane in **regime f
 
 - fatture e note di credito in formato **FatturaPA** (XML); invio allo **SDI via PEC** (nessun provider a pagamento, nessun accreditamento) *in sviluppo*;
 - **principio di cassa**: emesso vs incassato, reddito imponibile calcolato sugli incassi dell'anno;
+- **soglie 85.000 / 100.000 €** con avviso di avvicinamento, proiezione sulle fatture da incassare e limite personale che chiede conferma prima di emettere;
+- **clienti italiani, UE ed extra UE**, aziende o privati, con natura IVA e diciture corrette (art. 7-ter e 7-septies DPR 633/72); fatture in **valuta** con il cambio di riferimento della Banca d'Italia;
 - **scadenzario**: saldo, acconti (40/60, o 50/50 per i soggetti ISA), rate mensili fino al 16 dicembre, INPS Gestione Separata, imposta di bollo trimestrale;
 - **libro mastro crediti/compensazioni** (credito da dichiarazione → F24 che lo usano → residuo);
 - preparazione F24 per rata, stampati sul modello ufficiale AdE e pensati per l'addebito a date future (**I24**) da inviare con F24 web;
@@ -19,7 +21,23 @@ Gestionale **open source** (`opentax-it`) per partite IVA italiane in **regime f
 
 ## Stato
 
-Fase iniziale. Ogni feature è ancorata a una fonte ufficiale: vedi [docs/compliance.md](docs/compliance.md). Funziona: set di regole 2025 e 2026 (`packages/fiscal-rules`, con fonti), attivazione manuale da `/setup`, dashboard (`/dashboard`), scadenzario (`/deadlines`), anagrafica clienti, fatture e note di credito in bozza modificabile, con emissione e XML FatturaPA validato (`/invoices`), import di XML emessi altrove, incassi per cassa, calcolo imposta sostitutiva/INPS e acconti (`/taxes`), piano rate e deleghe F24 con stato e stampa sul modello ufficiale (`/f24`). Compensazione dei crediti in F24 (`/credits`). Cosa manca, per epiche: [TODO.md](TODO.md) (in testa: sicurezza di base, autenticazione e invio PEC allo SDI). Regola per chi contribuisce: solo fonti ufficiali verificate, nessuna assunzione ([CONTRIBUTING.md](CONTRIBUTING.md)). Le fonti normative verificate (aggiornate al 2026) sono in [docs/normativa-2026.md](docs/normativa-2026.md); il design del monitoraggio normativo in [docs/monitoraggio-normativo.md](docs/monitoraggio-normativo.md).
+Fase iniziale, in uso **solo in locale** (manca ancora l'autenticazione). Ogni funzione è ancorata a una fonte ufficiale, elencata in [docs/compliance.md](docs/compliance.md); le citazioni verificate sono in [docs/normativa-2026.md](docs/normativa-2026.md).
+
+**Funziona**
+- **Regole fiscali**: set 2025 e 2026 con fonti (`packages/fiscal-rules`), attivazione manuale e storico delle versioni in Impostazioni (`/setup`).
+- **Fatture** (`/invoices`): clienti, bozze illimitate e modificabili, note di credito, emissione con numerazione progressiva e XML FatturaPA validato sullo schema ufficiale, copia di cortesia in PDF, import di XML emessi con altri software. Data mai nel futuro (errore SDI 00403), clienti esteri azienda o privato, valuta con cambio precompilato dalla Banca d'Italia.
+- **Incassi e soglie**: principio di cassa, incassi in valuta al cambio del giorno, soglie 85.000 / 100.000 € in dashboard e all'emissione, limite personale nel profilo.
+- **Imposte** (`/taxes`): reddito, imposta sostitutiva, contributo INPS Gestione Separata (in euro interi sul rigo LM34), acconti 40/60 o 50/50 ISA; sopra 100.000 € il calcolo forfettario si ferma.
+- **F24** (`/f24`, `/credits`): piano rate con interessi, differimento con maggiorazione (per l'INPS nella riga DPPI), compensazione dei crediti a saldo zero, stampa sul modello ufficiale AdE, stato delle deleghe e date I24.
+- **Scadenzario** (`/deadlines`) e **dashboard** (`/dashboard`), con festività nazionali calcolate per ogni anno.
+
+**Limiti noti** (dettagli in [TODO.md](TODO.md))
+- L'invio allo SDI via PEC e la lettura delle ricevute non ci sono ancora: l'XML va trasmesso con un altro canale.
+- Nessuna conservazione a norma: vedi l'avviso sopra.
+- Fatture verso la **PA** bloccate: serve la firma qualificata, non ancora supportata.
+- Servizi elettronici a privati UE (art. 7-octies, OSS) e bollo nelle fatture in valuta: da verificare.
+
+**Cosa manca**, per epiche: [TODO.md](TODO.md) (in testa: conformità, sicurezza di base, autenticazione e invio PEC allo SDI). Regola per chi contribuisce: solo fonti ufficiali verificate, nessuna assunzione ([CONTRIBUTING.md](CONTRIBUTING.md)). Il design del monitoraggio normativo è in [docs/monitoraggio-normativo.md](docs/monitoraggio-normativo.md).
 
 ## Struttura
 
