@@ -1,6 +1,6 @@
 'use client';
 
-import { useActionState } from 'react';
+import { useActionState, useState } from 'react';
 import { addPayment, deletePayment } from '@/lib/actions';
 import { formatDate, formatMoney } from '@/lib/format';
 import type { Payment } from '@/lib/types';
@@ -9,10 +9,14 @@ import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Field } from '@/components/field';
 import { ErrorAlert } from '@/components/error-alert';
+import { useExchangeRate } from '@/components/exchange-rate';
 import { DeleteRowAction, RowActions } from '@/components/row-actions';
 
 export function Payments({ invoiceId, currency, total, payments }: { invoiceId: string; currency: string; total: number; payments: Payment[] }) {
   const [state, action, pending] = useActionState(addPayment, undefined);
+  const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
+  const [ecbRate, setEcbRate] = useState('');
+  const rate = useExchangeRate(currency, date, ecbRate, setEcbRate);
   const collected = payments.reduce((s, p) => s + Number(p.amount), 0);
   const outstanding = Math.round((total - collected) * 100) / 100;
   return (
@@ -43,11 +47,11 @@ export function Payments({ invoiceId, currency, total, payments }: { invoiceId: 
       <form action={action} className="grid gap-3 sm:grid-cols-4">
         <ErrorAlert message={state?.error} />
         <input type="hidden" name="invoiceId" value={invoiceId} />
-        <Field label="Data incasso" htmlFor="date"><Input id="date" name="date" type="date" required defaultValue={new Date().toISOString().slice(0, 10)} /></Field>
+        <Field label="Data incasso" htmlFor="date"><Input id="date" name="date" type="date" required value={date} onChange={(e) => setDate(e.target.value)} /></Field>
         <Field label={`Importo (${currency})`} htmlFor="amount" hint="Negativo per un rimborso"><Input id="amount" name="amount" type="number" step="0.01" required defaultValue={outstanding > 0 ? outstanding : ''} /></Field>
         {currency !== 'EUR' && (
-          <Field label={`Cambio del giorno: 1 EUR = … ${currency}`} htmlFor="ecbRate" hint="Cambio BCE del giorno dell'incasso (art. 9 c. 2 TUIR)">
-            <Input id="ecbRate" name="ecbRate" type="number" step="0.0001" min="0.0001" required />
+          <Field label={`Cambio del giorno: 1 EUR = … ${currency}`} htmlFor="ecbRate" hint={rate.info ?? "Cambio del giorno dell'incasso (art. 9 c. 2 TUIR)"}>
+            <Input id="ecbRate" name="ecbRate" type="number" step="0.000001" min="0.000001" required value={ecbRate} onChange={(e) => rate.onManualChange(e.target.value)} />
           </Field>
         )}
         <Field label="Metodo" htmlFor="method"><Input id="method" name="method" placeholder="bonifico" /></Field>

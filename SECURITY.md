@@ -16,6 +16,8 @@ Protezioni presenti:
 - modello F24 usato solo se lo SHA-256 coincide con quello di riferimento;
 - CI con permessi di sola lettura e action fissate a un commit.
 
+Chiamate verso servizi esterni: il modello F24 ufficiale dal sito AdE (una volta, poi in cache) e i cambi di riferimento della Banca d'Italia (una volta per giorno richiesto, poi in cache). Vengono inviati solo la data e il codice della valuta, nessun dato del contribuente.
+
 Esito dell'ultima security review e punti ancora aperti: [TODO.md](TODO.md), epica "Sicurezza di base".
 
 Linee guida di progetto:

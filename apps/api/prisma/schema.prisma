@@ -815,3 +815,28 @@ model AuditLog {
   @@index([tenantId, createdAt])
   @@index([entityType, entityId])
 }
+
+/// Daily reference exchange rates published by Banca d'Italia (ECB/ESCB reference rates, REST API
+/// "tassidicambio.bancaditalia.it"), cached per day on first use. Global, not per tenant.
+model ExchangeRate {
+  id          String   @id @default(cuid())
+  /// Quotation day (Central European time).
+  date        DateTime @db.Date
+  /// ISO 4217 code.
+  currency    String
+  /// Units of the currency per 1 EUR, as published ("Quantità di valuta estera per 1 Euro").
+  unitsPerEur Decimal  @db.Decimal(18, 6)
+  source      String
+  fetchedAt   DateTime @default(now())
+
+  @@unique([date, currency])
+}
+
+/// Days already downloaded from Banca d'Italia, including those without quotations (weekends,
+/// holidays), so that a day is requested only once. Today is never stored as empty: its rates may
+/// not be published yet.
+model ExchangeRateDay {
+  date      DateTime @id @db.Date
+  records   Int
+  fetchedAt DateTime @default(now())
+}

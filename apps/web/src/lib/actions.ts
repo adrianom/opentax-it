@@ -362,3 +362,13 @@ export async function deleteTaxCredit(formData: FormData) {
   revalidatePath('/credits');
   revalidatePath('/f24');
 }
+
+/** Reference exchange rate for a day ("1 EUR = X units", Banca d'Italia), to prefill the forms. */
+export async function getExchangeRate(currency: string, date: string): Promise<{ unitsPerEur: number; quotationDate: string; source: string } | { error: string }> {
+  try {
+    const r = await api.exchangeRate(currency, date);
+    return { unitsPerEur: r.unitsPerEur, quotationDate: r.quotationDate, source: r.source };
+  } catch (e) {
+    return { error: errorMessage(e) };
+  }
+}

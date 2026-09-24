@@ -3,6 +3,7 @@ import { ConfigModule } from '@nestjs/config';
 import { AppController } from './app.controller.js';
 import { AppService } from './app.service.js';
 import { CustomersModule } from './customers/customers.module.js';
+import { ExchangeRatesModule } from './exchange-rates/exchange-rates.module.js';
 import { F24Module } from './f24/f24.module.js';
 import { FiscalRulesModule } from './fiscal-rules/fiscal-rules.module.js';
 import { InvoicesModule } from './invoices/invoices.module.js';
@@ -24,6 +25,7 @@ import { TenantsModule } from './tenants/tenants.module.js';
     PaymentsModule,
     TaxesModule,
     F24Module,
+    ExchangeRatesModule,
   ],
   controllers: [AppController],
   providers: [AppService],

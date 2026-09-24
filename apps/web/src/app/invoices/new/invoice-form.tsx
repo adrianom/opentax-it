@@ -8,6 +8,7 @@ import type { BankAccount, Customer, PaymentTerms } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Field } from '@/components/field';
+import { useExchangeRate } from '@/components/exchange-rate';
 import { HelpTip } from '@/components/help-tip';
 import { NativeSelect } from '@/components/native-select';
 import { ErrorAlert } from '@/components/error-alert';
@@ -46,6 +47,7 @@ export function InvoiceForm({ customers, issuedInvoices, terms, banks, draft, su
   const [ecbRate, setEcbRate] = useState(draft?.ecbRate ?? '');
   const currency = customers.find((c) => c.id === customerId)?.currency ?? 'EUR';
   const foreignCurrency = currency !== 'EUR';
+  const rate = useExchangeRate(currency, date, ecbRate, setEcbRate);
 
   const setLine = (i: number, patch: Partial<LineDraft>) => setLines((ls) => ls.map((l, j) => (j === i ? { ...l, ...patch } : l)));
   const total = lines.reduce((s, l) => s + (Number(l.quantity) || 0) * (Number(l.unitPrice) || 0), 0);
@@ -98,10 +100,10 @@ export function InvoiceForm({ customers, issuedInvoices, terms, banks, draft, su
           <Field
             label={`Cambio: 1 EUR = … ${currency}`}
             htmlFor="ecbRate"
-            hint="Cambio del giorno dell'operazione o della fattura (art. 13 c. 4 DPR 633/72)"
+            hint={rate.info ?? "Cambio del giorno dell'operazione o della fattura (art. 13 c. 4 DPR 633/72)"}
             help={<HelpTip><p>Il cliente è fatturato in {currency}. Gli importi in valuta si convertono con il cambio del giorno di effettuazione dell&apos;operazione o, se non indicato in fattura, del giorno di emissione (art. 13 c. 4 DPR 633/72). Si può usare il cambio di riferimento della Banca centrale europea, pubblicato dalla Banca d&apos;Italia nella forma &quot;1 EUR = X {currency}&quot;. Il reddito invece si calcola con il cambio del giorno dell&apos;incasso (art. 9 c. 2 TUIR), da indicare quando registri l&apos;incasso.</p></HelpTip>}
           >
-            <Input id="ecbRate" type="number" step="0.0001" min="0.0001" required value={ecbRate} onChange={(e) => setEcbRate(e.target.value)} />
+            <Input id="ecbRate" type="number" step="0.000001" min="0.000001" required value={ecbRate} onChange={(e) => rate.onManualChange(e.target.value)} />
           </Field>
         )}
         <Field label="Profilo di scadenza" htmlFor="terms" hint={terms.length === 0 ? 'Nessun profilo: creane uno nelle impostazioni' : undefined}>

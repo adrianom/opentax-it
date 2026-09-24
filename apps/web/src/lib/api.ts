@@ -85,6 +85,8 @@ export const api = {
   invoices: (year?: number) => tenantRequest<Invoice[]>(`/invoices${year ? `?year=${year}` : ''}`),
   invoiceYears: () => tenantRequest<number[]>('/invoices/years'),
   thresholds: () => tenantRequest<ThresholdOutlook>('/invoices/thresholds'),
+  exchangeRate: (currency: string, date: string) =>
+    request<{ currency: string; requestedDate: string; quotationDate: string; unitsPerEur: number; source: string }>(`/exchange-rates?currency=${encodeURIComponent(currency)}&date=${encodeURIComponent(date)}`),
   invoiceThresholds: (id: string) => tenantRequest<ThresholdOutlook>(`/invoices/${seg(id)}/thresholds`),
   invoice: (id: string) => tenantRequest<InvoiceDetail>(`/invoices/${seg(id)}`),
   createInvoice: (data: unknown) => tenantRequest<Invoice>('/invoices', { method: 'POST', body: JSON.stringify(data) }),
