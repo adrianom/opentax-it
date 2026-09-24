@@ -99,6 +99,9 @@ model TenantProfile {
   /// Personal revenue limit for the year (EUR, e.g. to stay below 85,000): issuing an invoice that
   /// would take the projected revenue above it needs an explicit confirmation. Null = no limit.
   revenueLimit       Decimal? @db.Decimal(14, 2)
+  /// Lowest progressive for the SDI file names (1-5 alphanumeric characters, read as base 36), to stay
+  /// above names already sent with the same fiscal code from other tools (spec 1.9.1 §1.2.2, error 00002).
+  sdiFileProgressiveStart String?
   /// INPS office ("codice sede") for the F24 INPS section, by residence (INPS sheet "F24 per professionisti iscritti alla GS").
   /// Stored as the unique id from packages/fiscal-rules INPS_OFFICES (e.g. "5500-palermo"); the 4-digit code is derived from it.
   inpsOfficeId       String?

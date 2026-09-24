@@ -239,3 +239,22 @@ export function invoiceFileName(countryCode: string, transmitterId: string, sequ
   if (progressive.length > 5) throw new Error('file sequence exceeds 5 characters');
   return `${countryCode}${transmitterId}_${progressive}.xml`;
 }
+
+/**
+ * Next file sequence for a transmitter (spec 1.9.1 §1.2.2): the progressive only has to differ from the
+ * names already sent by the same subject ("non deve necessariamente seguire una stretta progressività";
+ * a duplicate is rejected with error 00002). Every existing name with the same prefix is read as a
+ * base-36 number, whatever software produced it, and the result is above all of them and at least
+ * `start` (e.g. to skip names sent from the AdE portal and not imported here).
+ */
+export function nextFileSequence(existingNames: Iterable<string>, countryCode: string, transmitterId: string, start?: string): number {
+  const prefix = `${countryCode}${transmitterId}_`.toUpperCase();
+  let max = start ? parseInt(start, 36) - 1 : 0;
+  for (const name of existingNames) {
+    const upper = name.toUpperCase();
+    if (!upper.startsWith(prefix)) continue;
+    const m = upper.slice(prefix.length).match(/^([A-Z0-9]{1,5})\.XML(\.P7M)?$/);
+    if (m) max = Math.max(max, parseInt(m[1], 36));
+  }
+  return max + 1;
+}

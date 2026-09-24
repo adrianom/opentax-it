@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { amount8, buildInvoiceXml, computeTotals, invoiceFileName, sanitizeText, validateInvoice } from './builder';
+import { amount8, buildInvoiceXml, computeTotals, invoiceFileName, nextFileSequence, sanitizeText, validateInvoice } from './builder';
 import type { FlatRateInvoice } from './types';
 import { isXmllintAvailable, validateWithXsd } from './xsd';
 
@@ -96,6 +96,15 @@ describe('formatting', () => {
     expect(amount8(50)).toBe('50.00');
     expect(amount8(12.5)).toBe('12.50');
     expect(amount8(0.123456789)).toBe('0.12345679');
+  });
+
+  it('nextFileSequence goes above every name already used by the same transmitter (error 00002)', () => {
+    const names = ['IT01234567890_00001.xml', 'IT01234567890_0000A.xml', 'IT01234567890_00012.xml.p7m', 'ITOTHER000000_ZZZZZ.xml', 'fattura.xml'];
+    expect(nextFileSequence(names, 'IT', '01234567890')).toBe(parseInt('00012', 36) + 1);
+    expect(invoiceFileName('IT', '01234567890', nextFileSequence(names, 'IT', '01234567890'))).toBe('IT01234567890_00013.xml');
+    // A configured start skips names sent elsewhere and not imported.
+    expect(nextFileSequence(names, 'IT', '01234567890', '00100')).toBe(parseInt('00100', 36));
+    expect(nextFileSequence([], 'IT', '01234567890')).toBe(1);
   });
 
   it('invoiceFileName follows <country><id>_<progressive>.xml', () => {

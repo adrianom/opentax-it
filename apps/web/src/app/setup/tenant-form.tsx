@@ -84,6 +84,14 @@ export function TenantForm({ offices, current, surchargePct }: Props) {
         <Input id="revenueLimit" name="revenueLimit" type="number" min={1} max={1000000} step="1" defaultValue={p?.revenueLimit ? Number(p.revenueLimit) : ''} />
       </Field>
       <Field
+        label="Primo progressivo dei file SDI"
+        htmlFor="sdiFileProgressiveStart"
+        hint="Facoltativo, 1-5 caratteri alfanumerici (es. 00100)"
+        help={<HelpTip><p>Il nome del file inviato allo SDI è codice paese + codice fiscale + &quot;_&quot; + un progressivo di massimo 5 caratteri alfanumerici; un nome già usato con lo stesso codice fiscale viene scartato (errore 00002, Specifiche tecniche 1.9.1 §1.2.2). OpenTax IT parte già dal progressivo più alto tra le fatture emesse e importate qui; se hai inviato altre fatture con il tuo codice fiscale da altri strumenti (es. il portale Fatture e Corrispettivi) senza importarle, indica qui un valore più alto di quelli usati.</p></HelpTip>}
+      >
+        <Input id="sdiFileProgressiveStart" name="sdiFileProgressiveStart" maxLength={5} pattern="[A-Za-z0-9]{1,5}" defaultValue={p?.sdiFileProgressiveStart ?? ''} />
+      </Field>
+      <Field
         label="Sede INPS (codice sede F24)"
         htmlFor="inpsOfficeId"
         help={

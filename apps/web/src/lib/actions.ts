@@ -48,6 +48,7 @@ export async function createTenant(_prev: ActionState, formData: FormData): Prom
       applyInpsSurcharge: formData.get('applyInpsSurcharge') === 'on',
       viesRegistered: formData.get('viesRegistered') === 'on',
       revenueLimit: f('revenueLimit') ? Number(f('revenueLimit').replace(/\./g, '').replace(',', '.')) : null,
+      sdiFileProgressiveStart: f('sdiFileProgressiveStart').toUpperCase() || null,
       inpsOfficeId: f('inpsOfficeId') || undefined,
       pecAddress: f('pecAddress') || undefined,
     });
@@ -171,6 +172,7 @@ export async function updateTenantProfile(_prev: ActionState, formData: FormData
       applyInpsSurcharge: formData.get('applyInpsSurcharge') === 'on',
       viesRegistered: formData.get('viesRegistered') === 'on',
       revenueLimit: f('revenueLimit') ? Number(f('revenueLimit').replace(/\./g, '').replace(',', '.')) : null,
+      sdiFileProgressiveStart: f('sdiFileProgressiveStart').toUpperCase() || null,
       pecAddress: f('pecAddress') || undefined,
       inpsOfficeId: f('inpsOfficeId'),
     });

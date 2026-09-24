@@ -1,5 +1,5 @@
 import { BadRequestException, ConflictException, Injectable, Logger, NotFoundException, UnprocessableEntityException } from '@nestjs/common';
-import { buildInvoiceXml, invoiceFileName, parseInvoiceXml, type FlatRateInvoice } from '@opentax-it/fatturapa';
+import { buildInvoiceXml, invoiceFileName, nextFileSequence, parseInvoiceXml, type FlatRateInvoice } from '@opentax-it/fatturapa';
 import { customerTreatment, thresholdOutlook, type FiscalRuleSet, type ThresholdOutlook } from '@opentax-it/fiscal-rules';
 import { FiscalRulesService } from '../fiscal-rules/fiscal-rules.service.js';
 import type { Customer, Invoice, InvoiceLine, TenantProfile } from '../generated/prisma/client.js';
@@ -233,8 +233,10 @@ export class InvoicesService {
       // Separate series per document type; TD04/TD05 get an explicit prefix (Numero: Basic Latin, max 20 chars).
       const prefix = existing.type === 'TD04' ? 'NC-' : existing.type === 'TD05' ? 'ND-' : '';
       const number = `${prefix}${sequence}/${existing.year}`;
-      const transmissions = await tx.invoice.count({ where: { tenantId, xmlFileName: { not: null } } });
-      const transmissionSeq = transmissions + 1;
+      // File progressive above every name already used with this fiscal code (issued or imported) and the
+      // configured start: a duplicate name is rejected by SDI with error 00002 (spec 1.9.1 §1.2.2).
+      const used = await tx.invoice.findMany({ where: { tenantId, xmlFileName: { not: null } }, select: { xmlFileName: true } });
+      const transmissionSeq = nextFileSequence(used.map((u) => u.xmlFileName ?? ''), profile.country, profile.fiscalCode, profile.sdiFileProgressiveStart ?? undefined);
 
       const refInvoice = existing.refInvoiceId ? await tx.invoice.findFirst({ where: { id: existing.refInvoiceId, tenantId } }) : null;
       const payment = dto?.payment ?? (await this.paymentFromTerms(tenantId, existing));

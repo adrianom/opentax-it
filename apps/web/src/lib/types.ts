@@ -27,6 +27,7 @@ export interface Tenant {
 
 export interface TenantProfile {
   revenueLimit: string | null;
+  sdiFileProgressiveStart: string | null;
   businessName: string | null;
   firstName: string;
   lastName: string;

@@ -19,6 +19,8 @@ export class CreateTenantDto {
   @IsOptional() @IsBoolean() isaSubject?: boolean;
   /** Personal revenue limit for the year; null removes it. */
   @IsOptional() @IsNumber() @Min(1) @Max(1_000_000) revenueLimit?: number | null;
+  /** First progressive of the SDI file names (1-5 alphanumeric); null removes it. */
+  @IsOptional() @IsString() @Matches(/^[A-Za-z0-9]{1,5}$/) sdiFileProgressiveStart?: string | null;
   @IsOptional() @IsBoolean() viesRegistered?: boolean;
   @IsOptional() @IsString() @Matches(/^\d{4}-[a-z0-9-]+$/) inpsOfficeId?: string;
   @IsOptional() @IsString() @Matches(/^(\d{4}-\d{2}-\d{2})?$/) birthDate?: string;
@@ -46,6 +48,8 @@ export class UpdateTenantProfileDto {
   @IsOptional() @IsBoolean() isaSubject?: boolean;
   /** Personal revenue limit for the year; null removes it. */
   @IsOptional() @IsNumber() @Min(1) @Max(1_000_000) revenueLimit?: number | null;
+  /** First progressive of the SDI file names (1-5 alphanumeric); null removes it. */
+  @IsOptional() @IsString() @Matches(/^[A-Za-z0-9]{1,5}$/) sdiFileProgressiveStart?: string | null;
   @IsOptional() @IsBoolean() viesRegistered?: boolean;
   @IsOptional() @IsString() @Matches(/^(\d{4}-\d{2}-\d{2})?$/) birthDate?: string;
   @IsOptional() @IsString() @Matches(/^[MF]?$/) sex?: string;
