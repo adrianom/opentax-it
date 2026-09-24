@@ -1,5 +1,5 @@
 import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
-import type { AvailableCredit } from '@opentax-it/fiscal-rules';
+import type { AvailableCredit, CreditUse } from '@opentax-it/fiscal-rules';
 import { PrismaService } from '../prisma/prisma.service.js';
 import type { CreateTaxCreditDto } from './tax-credits.dto.js';
 
@@ -20,11 +20,15 @@ export class TaxCreditsService {
     });
   }
 
-  /** Credits with a remaining amount, in the order they were entered (oldest reference year first). */
-  async available(tenantId: string): Promise<AvailableCredit[]> {
+  /**
+   * Credits with a remaining amount, in the order they were entered (oldest reference year first). With
+   * `date`, credits whose "usable from" date is later are left out (e.g. above EUR 5,000: from the tenth
+   * day after the return is filed, art. 3 D.Lgs. 33/2025).
+   */
+  async available(tenantId: string, date?: Date): Promise<AvailableCredit[]> {
     const rows = await this.list(tenantId);
     return rows
-      .filter((c) => c.remaining > 0)
+      .filter((c) => c.remaining > 0 && (!date || !c.usableFrom || c.usableFrom.getTime() <= date.getTime()))
       .sort((a, b) => a.referenceYear - b.referenceYear || a.createdAt.getTime() - b.createdAt.getTime())
       .map((c) => ({ id: c.id, section: c.section, code: c.code, referenceYear: c.referenceYear, amount: c.remaining, localCode: c.localCode ?? undefined, installmentCode: c.installmentCode ?? undefined, description: c.description ?? undefined }));
   }
@@ -48,6 +52,15 @@ export class TaxCreditsService {
   async remove(tenantId: string, id: string) {
     await this.unused(tenantId, id);
     await this.prisma.taxCredit.delete({ where: { id } });
+  }
+
+  /** Credit amounts already used in the tenant's F24 forms, by credit code and reference year. */
+  async earlierUses(tenantId: string): Promise<CreditUse[]> {
+    const rows = await this.prisma.taxCreditUsage.findMany({
+      where: { taxCredit: { tenantId } },
+      select: { amount: true, taxCredit: { select: { id: true, section: true, code: true, referenceYear: true } } },
+    });
+    return rows.map((r) => ({ creditId: r.taxCredit.id, section: r.taxCredit.section, code: r.taxCredit.code, referenceYear: r.taxCredit.referenceYear, amount: Number(r.amount) }));
   }
 
   private async unused(tenantId: string, id: string) {

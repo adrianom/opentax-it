@@ -1,17 +1,5 @@
 import { BadRequestException, ConflictException, Injectable, NotFoundException, UnprocessableEntityException } from '@nestjs/common';
-import {
-  buildCompensation,
-  buildPaymentSchedule,
-  findInpsOfficeById,
-  i24CancelBy,
-  maxInstallmentDates,
-  nextBusinessDay,
-  parseIsoDate,
-  toIsoDate,
-  type F24Draft,
-  type FiscalRuleSet,
-  type PaymentScheduleAmounts,
-} from '@opentax-it/fiscal-rules';
+import { buildCompensation, buildPaymentSchedule, creditsAboveLimit, type F24Draft, findInpsOfficeById, type FiscalRuleSet, horizontalUses, i24CancelBy, maxInstallmentDates, nextBusinessDay, parseIsoDate, type PaymentScheduleAmounts, toIsoDate } from '@opentax-it/fiscal-rules';
 import type { F24Kind, F24Status } from '../generated/prisma/enums.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { TaxCreditsService } from '../taxes/tax-credits.service.js';
@@ -93,7 +81,7 @@ export class F24Service {
       inpsSecondAdvance: summary.nextYearAdvances.inps.second,
     };
     const inpsReducedRate = summary.input.inpsRatePct === paymentRules.inps.reducedRatePct;
-    const availableCredits = dto.useCredits ? await this.credits.available(tenantId) : [];
+    const availableCredits = dto.useCredits ? await this.credits.available(tenantId, parseIsoDate(start.date)) : [];
     // Credits cover the debts first, without the deferral surcharge; only the residual goes to the
     // installment plan with the surcharge. AdE: "Per coloro che effettuano la compensazione, la
     // maggiorazione si applica solamente sulla differenza tra debiti e crediti, se positiva" (Redditi 2026
@@ -124,7 +112,18 @@ export class F24Service {
     const compensationWarnings: string[] = [];
     if (compensation.form) {
       compensationWarnings.push('Modello con compensazione: va presentato solo con i servizi telematici dell\'Agenzia delle Entrate (F24 web/online), anche a saldo zero (Istr. Redditi PF §8; art. 37 c. 49-bis DL 223/2006)');
-      if (creditsUsed > 5000) compensationWarnings.push('Crediti oltre 5.000 € nell\'anno: utilizzabili dal decimo giorno successivo alla presentazione della dichiarazione e con il visto di conformità (art. 3 D.Lgs. 33/2025; L. 147/2013 art. 1 c. 574)');
+      // 5,000 limit per credit and reference year, horizontal use only, earlier forms included (res. 110/E/2019).
+      const byId = new Map(availableCredits.map((c) => [c.id, c]));
+      const current = horizontalUses(
+        compensation.usages.flatMap((u) => {
+          const c = byId.get(u.creditId);
+          return c ? [{ creditId: c.id, section: c.section, code: c.code, referenceYear: c.referenceYear, amount: u.amount }] : [];
+        }),
+        compensation.form.lines.filter((l) => l.role !== 'CREDIT').map((l) => ({ code: l.code, amount: l.debitAmount })),
+      );
+      for (const over of creditsAboveLimit(current, await this.credits.earlierUses(tenantId))) {
+        compensationWarnings.push(`Credito ${over.code} ${over.referenceYear} usato in compensazione per ${over.total.toFixed(2).replace('.', ',')} € nell'anno, oltre 5.000 €: utilizzabile solo dal decimo giorno successivo alla presentazione della dichiarazione e con il visto di conformità (art. 3 D.Lgs. 33/2025; L. 147/2013 art. 1 c. 574; ris. AdE 110/E/2019). Indica la data in "utilizzabile dal" del credito.`);
+      }
     }
     return {
       taxYear,
