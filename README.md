@@ -47,7 +47,7 @@ pnpm dev            # api (http://localhost:3000/api) + web (http://localhost:30
 
 Al primo avvio apri http://localhost:3001/setup/new e crea la partita IVA (profilo fiscale). Poi in **Impostazioni** (`/setup`), sezione **Regole fiscali**, carica il set fornito con l'applicazione e attivalo; conti bancari e profili di scadenza si aggiungono nelle pagine **Banche** (`/banks`) e **Profili di scadenza** (`/payment-terms`). Lo stesso vale ogni volta che un aggiornamento del codice porta un nuovo set: viene proposto come nuova versione in bozza e non è mai attivato automaticamente.
 
-Per vedere il flusso con dati inventati: `pnpm demo:seed` (con `pnpm dev` attivo) crea la partita IVA "Demo Forfettario" con clienti, fatture e incassi dell'anno scorso e di quest'anno; selezionala in `/setup` e apri `/taxes` e `/f24`.
+Per vedere il flusso con dati inventati: `pnpm demo:seed` (con `pnpm dev` attivo) crea la partita IVA "Demo Forfettario" con clienti, fatture e incassi dell'anno scorso e di quest'anno, due crediti e il piano rate F24; selezionala in `/setup` e apri `/taxes` e `/f24`. `pnpm demo:seed --reset` la cancella e la ricrea con le regole attive. Il seed carica prima i set di regole forniti con il codice e si ferma se c'è una bozza più recente di quella attiva: non attiva mai nulla da solo.
 
 ## Contribuire
 

@@ -5,12 +5,23 @@
  *
  * Runs against a running API (default http://localhost:3000/api) through the public
  * endpoints, so every document goes through the same validation as the UI. Idempotent:
- * a second run finds the tenant by name and stops. All data is invented; the VAT number
- * and fiscal code are syntactically valid but do not belong to anyone.
+ * a second run finds the tenant by name and stops; with --reset the demo tenant is deleted
+ * (database rows and stored files) and created again with the rules active now. All data is
+ * invented; the VAT number and fiscal code are syntactically valid but do not belong to anyone.
  *
- *   node scripts/seed-demo.ts            (from apps/api; Node 24 runs TypeScript directly)
- *   pnpm demo:seed                       (from the repository root)
+ * Before creating anything it loads the rule sets bundled with the code (as drafts) and stops
+ * if a draft newer than the active set exists: rule sets are global and are never activated by
+ * this script, activate them in /setup first.
+ *
+ *   node scripts/seed-demo.ts [--reset]  (from apps/api; Node 24 runs TypeScript directly)
+ *   pnpm demo:seed [--reset]             (from the repository root)
  */
+
+import { rm } from 'node:fs/promises';
+import { dirname, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { config } from 'dotenv';
+import pg from 'pg';
 
 const API = process.env.API_URL ?? 'http://localhost:3000/api';
 const TENANT_NAME = 'Demo Forfettario';
@@ -31,14 +42,48 @@ async function call<T>(method: string, path: string, body?: unknown): Promise<T>
   return json as T;
 }
 
+/** Deletes the demo tenant and everything attached to it (all tenant relations cascade), then its stored files. */
+async function deleteDemoTenant(id: string) {
+  const here = dirname(fileURLToPath(import.meta.url));
+  config({ path: [resolve(here, '../.env'), resolve(here, '../../../.env')], quiet: true });
+  const client = new pg.Client({ connectionString: process.env.DATABASE_URL });
+  await client.connect();
+  try {
+    const res = await client.query('DELETE FROM "Tenant" WHERE id = $1 AND name = $2', [id, TENANT_NAME]);
+    if (res.rowCount !== 1) throw new Error(`Tenant ${id} "${TENANT_NAME}" not found`);
+  } finally {
+    await client.end();
+  }
+  const storageRoot = process.env.STORAGE_DIR ? resolve(process.env.STORAGE_DIR) : resolve(here, '../storage');
+  await rm(resolve(storageRoot, id), { recursive: true, force: true });
+}
+
+/** Loads the bundled rule sets as drafts; stops when a draft is newer than the active version. */
+async function checkRuleSets(years: number[]) {
+  await call('POST', '/fiscal-rules/seed');
+  for (const year of years) {
+    const sets = await call<Array<{ version: number; status: string }>>('GET', `/fiscal-rules/${year}`);
+    const active = sets.find((r) => r.status === 'ACTIVE');
+    const newer = sets.filter((r) => (r.status === 'DRAFT' || r.status === 'PROPOSED') && r.version > (active?.version ?? 0));
+    if (newer.length > 0) {
+      throw new Error(`Rule set ${year}: v${newer.map((r) => r.version).join(', v')} is newer than the active ${active ? `v${active.version}` : 'one (none)'}. Activate it in /setup, then run the seed again.`);
+    }
+  }
+}
+
 const iso = (y: number, m: number, d: number) => `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
 
 async function main() {
+  await checkRuleSets([prevYear, thisYear]);
   const tenants = await call<Array<{ id: string; name: string }>>('GET', '/tenants');
   const existing = tenants.find((t) => t.name === TENANT_NAME);
-  if (existing) {
-    console.log(`Tenant "${TENANT_NAME}" already exists (${existing.id}); nothing to do. Select it in /setup.`);
+  if (existing && !process.argv.includes('--reset')) {
+    console.log(`Tenant "${TENANT_NAME}" already exists (${existing.id}); nothing to do. Use --reset to create it again. Select it in /setup.`);
     return;
+  }
+  if (existing) {
+    await deleteDemoTenant(existing.id);
+    console.log(`Deleted tenant "${TENANT_NAME}" (${existing.id}) and its files`);
   }
 
   const tenant = await call<{ id: string }>('POST', '/tenants', {
@@ -122,6 +167,19 @@ async function main() {
   // Amounts paid during the previous year with F24 (entered by hand, as in the taxes page).
   await call('PUT', `/taxes/${prevYear}/data`, { contributionsPaid: 8500, taxAdvancesPaid: 1200, inpsAdvancesPaid: 3900, taxCredits: 0, inpsReducedRate: false });
   await call('PUT', `/taxes/${thisYear}/data`, { contributionsPaid: 0, taxAdvancesPaid: 0, inpsAdvancesPaid: 0, taxCredits: 0, inpsReducedRate: false });
+
+  // Credits from the previous year's return, used in a zero-balance form before the installments.
+  await call('POST', '/taxes/credits', { section: 'TREASURY', code: '4001', referenceYear: prevYear, amount: 1500, installmentCode: '0101', description: `Credito IRPEF ${prevYear} (demo)` });
+  await call('POST', '/taxes/credits', { section: 'LOCAL', code: '3844', localCode: 'G273', referenceYear: prevYear, amount: 109, installmentCode: '0101', description: 'Addizionale comunale a credito (demo)' });
+
+  // Installment plan for the previous tax year, paid this year: first available start without surcharge, five installments.
+  const options = await call<{ starts: Array<{ start: string; date: string; surchargePct: number; maxInstallments: number }> }>('GET', `/f24/plans/${prevYear}/options`);
+  const start = options.starts.find((s) => s.start === 'EXTENDED') ?? options.starts.find((s) => s.surchargePct === 0) ?? options.starts[0];
+  if (start) {
+    const installments = Math.min(5, start.maxInstallments);
+    await call('POST', `/f24/plans/${prevYear}`, { start: start.start, installments, useCredits: true, creditOrder: 'INPS_FIRST' });
+    console.log(`Created the ${prevYear} installment plan: start ${start.date}, ${installments} installments, credits used`);
+  }
 
   console.log(`\nDone. Collected in ${prevYear}: ${collectedPrev.toFixed(2)} EUR.`);
   console.log(`Select "${TENANT_NAME}" in /setup, then open /taxes?year=${prevYear} and /f24?year=${prevYear}.`);
