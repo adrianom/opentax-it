@@ -27,6 +27,10 @@
   --color-input: var(--input);
   --color-border: var(--border);
   --color-destructive: var(--destructive);
+  --color-f24-band: var(--f24-band);
+  --color-f24-fill: var(--f24-fill);
+  --color-f24-line: var(--f24-line);
+  --color-f24-ink: var(--f24-ink);
   --color-accent-foreground: var(--accent-foreground);
   --color-accent: var(--accent);
   --color-muted-foreground: var(--muted-foreground);
@@ -64,6 +68,11 @@
   --accent: oklch(0.97 0 0);
   --accent-foreground: oklch(0.205 0 0);
   --destructive: oklch(0.577 0.245 27.325);
+  /* Colours of the official AdE F24 model (sampled from the PDF): section band, field fill, rules, ink. */
+  --f24-band: #a2dcea;
+  --f24-fill: #d8eff5;
+  --f24-line: #20c0db;
+  --f24-ink: #231f20;
   --border: oklch(0.922 0 0);
   --input: oklch(0.922 0 0);
   --ring: oklch(0.708 0 0);
@@ -99,6 +108,10 @@
   --accent: oklch(0.269 0 0);
   --accent-foreground: oklch(0.985 0 0);
   --destructive: oklch(0.704 0.191 22.216);
+  --f24-band: #1d5a66;
+  --f24-fill: #102e35;
+  --f24-line: #2aa3bb;
+  --f24-ink: #e3f4f8;
   --border: oklch(1 0 0 / 10%);
   --input: oklch(1 0 0 / 15%);
   --ring: oklch(0.556 0 0);

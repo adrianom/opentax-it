@@ -53,57 +53,60 @@ function LinesTable({ lines, section, taxYear }: { lines: F24Line[]; section: F2
   const debit = rows.reduce((s, l) => s + Number(l.debitAmount), 0);
   const credit = rows.reduce((s, l) => s + Number(l.creditAmount ?? 0), 0);
   const cols = (inps ? 4 : local ? 4 : 3) + (hasCredit ? 2 : 1);
+  const head = 'h-8 border-b border-f24-line/50 text-f24-ink';
+  const cell = 'border-b border-f24-line/30 text-f24-ink';
   return (
-    <div className="overflow-x-auto">
-      <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">{SECTION_TITLE[section]}</p>
+    <div className="overflow-x-auto rounded-md border border-f24-line/60 bg-f24-fill">
+      {/* Band and colours of the official F24 model; dark text on the band for contrast (the model uses white). */}
+      <p className="bg-f24-band px-3 py-1 text-xs font-bold uppercase tracking-wide text-f24-ink">{SECTION_TITLE[section]}</p>
       <Table>
         <TableHeader>
-          <TableRow>
+          <TableRow className="hover:bg-transparent">
             {inps ? (
               <>
-                <TableHead>Codice sede</TableHead>
-                <TableHead>Causale</TableHead>
-                <TableHead>Periodo da</TableHead>
-                <TableHead>a</TableHead>
+                <TableHead className={head}>Codice sede</TableHead>
+                <TableHead className={head}>Causale</TableHead>
+                <TableHead className={head}>Periodo da</TableHead>
+                <TableHead className={head}>a</TableHead>
               </>
             ) : (
               <>
-                {local && <TableHead>{section === 'REGIONAL' ? 'Codice regione' : 'Codice ente/comune'}</TableHead>}
-                <TableHead>Codice tributo</TableHead>
-                <TableHead>Rateazione</TableHead>
-                <TableHead>Anno di riferimento</TableHead>
+                {local && <TableHead className={head}>{section === 'REGIONAL' ? 'Codice regione' : 'Codice ente/comune'}</TableHead>}
+                <TableHead className={head}>Codice tributo</TableHead>
+                <TableHead className={head}>Rateazione</TableHead>
+                <TableHead className={head}>Anno di riferimento</TableHead>
               </>
             )}
-            <TableHead className="text-right">Importo a debito</TableHead>
-            {hasCredit && <TableHead className="text-right">Importo a credito</TableHead>}
+            <TableHead className={`${head} text-right`}>Importo a debito</TableHead>
+            {hasCredit && <TableHead className={`${head} text-right`}>Importo a credito</TableHead>}
           </TableRow>
         </TableHeader>
         <TableBody>
           {rows.map((l, i) => (
-            <TableRow key={l.id ?? `${l.code}-${l.referenceYear}-${i}`}>
+            <TableRow key={l.id ?? `${l.code}-${l.referenceYear}-${i}`} className="hover:bg-f24-band/25">
               {inps ? (
                 <>
-                  <TableCell className="font-mono">{l.officeCode}</TableCell>
-                  <TableCell className="font-mono">{l.code}<span className="ml-2 font-sans text-xs text-muted-foreground">{lineLabel(l, taxYear)}</span></TableCell>
-                  <TableCell className="font-mono">{l.periodFrom}</TableCell>
-                  <TableCell className="font-mono">{l.periodTo}</TableCell>
+                  <TableCell className={`${cell} font-mono`}>{l.officeCode}</TableCell>
+                  <TableCell className={`${cell} font-mono`}>{l.code}<span className="ml-2 font-sans text-xs opacity-70">{lineLabel(l, taxYear)}</span></TableCell>
+                  <TableCell className={`${cell} font-mono`}>{l.periodFrom}</TableCell>
+                  <TableCell className={`${cell} font-mono`}>{l.periodTo}</TableCell>
                 </>
               ) : (
                 <>
-                  {local && <TableCell className="font-mono">{l.localCode ?? ''}</TableCell>}
-                  <TableCell className="font-mono">{l.code}<span className="ml-2 font-sans text-xs text-muted-foreground">{lineLabel(l, taxYear)}</span></TableCell>
-                  <TableCell className="font-mono">{l.installmentCode ?? ''}</TableCell>
-                  <TableCell className="font-mono">{l.referenceYear}</TableCell>
+                  {local && <TableCell className={`${cell} font-mono`}>{l.localCode ?? ''}</TableCell>}
+                  <TableCell className={`${cell} font-mono`}>{l.code}<span className="ml-2 font-sans text-xs opacity-70">{lineLabel(l, taxYear)}</span></TableCell>
+                  <TableCell className={`${cell} font-mono`}>{l.installmentCode ?? ''}</TableCell>
+                  <TableCell className={`${cell} font-mono`}>{l.referenceYear}</TableCell>
                 </>
               )}
-              <TableCell className="text-right font-mono tabular-nums">{Number(l.debitAmount) > 0 ? formatMoney(l.debitAmount) : ''}</TableCell>
-              {hasCredit && <TableCell className="text-right font-mono tabular-nums">{Number(l.creditAmount ?? 0) > 0 ? formatMoney(l.creditAmount ?? 0) : ''}</TableCell>}
+              <TableCell className={`${cell} text-right font-mono tabular-nums`}>{Number(l.debitAmount) > 0 ? formatMoney(l.debitAmount) : ''}</TableCell>
+              {hasCredit && <TableCell className={`${cell} text-right font-mono tabular-nums`}>{Number(l.creditAmount ?? 0) > 0 ? formatMoney(l.creditAmount ?? 0) : ''}</TableCell>}
             </TableRow>
           ))}
-          <TableRow>
-            <TableCell colSpan={cols - (hasCredit ? 2 : 1)} className="text-right text-xs text-muted-foreground">Totale sezione</TableCell>
-            <TableCell className="text-right font-mono tabular-nums">{formatMoney(debit)}</TableCell>
-            {hasCredit && <TableCell className="text-right font-mono tabular-nums">{formatMoney(credit)}</TableCell>}
+          <TableRow className="bg-f24-band/40 font-semibold hover:bg-f24-band/40">
+            <TableCell colSpan={cols - (hasCredit ? 2 : 1)} className="text-right text-xs uppercase tracking-wide text-f24-ink">Totale sezione</TableCell>
+            <TableCell className="text-right font-mono tabular-nums text-f24-ink">{formatMoney(debit)}</TableCell>
+            {hasCredit && <TableCell className="text-right font-mono tabular-nums text-f24-ink">{formatMoney(credit)}</TableCell>}
           </TableRow>
         </TableBody>
       </Table>
