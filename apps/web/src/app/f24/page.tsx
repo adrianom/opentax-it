@@ -207,7 +207,7 @@ export default async function F24Page({ searchParams }: PageProps<'/f24'>) {
 
       <section className="space-y-4">
         {plan
-          ? forms.map((f) => <F24Card key={f.id} f={f} taxYear={taxYear} highlight={next?.id === f.id} />)
+          ? forms.map((f) => <F24Card key={f.id} f={f} taxYear={taxYear} highlight={next?.id === f.id} collapsible open={next?.id === f.id} />)
           : (preview?.forms ?? []).map((f, i) => <F24Card key={`${f.kind}-${f.paymentDate}-${i}`} f={f} taxYear={taxYear} />)}
       </section>
     </main>

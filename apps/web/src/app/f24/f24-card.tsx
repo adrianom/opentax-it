@@ -6,6 +6,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { HelpTip } from '@/components/help-tip';
 import { setF24Status } from '@/lib/actions';
 import { formatDate, formatMoney, type F24, type F24Draft, type F24Line, type F24Section } from '@/lib/api';
+import { ChevronRight } from 'lucide-react';
 
 /** Same palette as the invoice status badge: neutral when planned, blue when scheduled, green when paid. */
 const STATUS: Record<string, { label: string; className: string }> = {
@@ -114,77 +115,94 @@ function LinesTable({ lines, section, taxYear }: { lines: F24Line[]; section: F2
   );
 }
 
-export function F24Card({ f, taxYear, highlight }: { f: F24Draft | F24; taxYear: number; highlight?: boolean }) {
+/** With `collapsible` the header toggles the lines and actions (native details, no client JS); `open` sets the initial state. */
+export function F24Card({ f, taxYear, highlight, collapsible, open }: { f: F24Draft | F24; taxYear: number; highlight?: boolean; collapsible?: boolean; open?: boolean }) {
   const saved = 'id' in f ? (f as F24) : null;
   const status = saved ? STATUS[saved.status] : null;
-  return (
-    <Card className={highlight ? 'border-primary' : undefined}>
-      <CardHeader>
-        <div className="flex flex-wrap items-start justify-between gap-2">
-          <div>
-            <CardTitle className="flex items-center gap-2">
-              {f24Title(f)}
-              {status && <Badge variant="outline" className={status.className}>{status.label}</Badge>}
-              {highlight && <Badge>Prossimo</Badge>}
-            </CardTitle>
-            <CardDescription>
-              Scadenza {formatDate(f.paymentDate)}
-              {f.nominalPaymentDate && f.nominalPaymentDate !== f.paymentDate && ` (nominale ${formatDate(f.nominalPaymentDate)}, spostata al primo giorno feriale)`}
-              {f.i24CancelBy && (
-                <>
-                  {' · '}I24 annullabile entro il {formatDate(f.i24CancelBy)}
-                  <HelpTip className="ml-1 -translate-y-px"><p>F24 con addebito a data futura (I24): la delega può essere annullata fino al terzultimo giorno lavorativo antecedente la data di addebito (Provv. AdE 26/07/2024 n. 313945, §5.3).</p></HelpTip>
-                </>
-              )}
-              {saved?.paidOn && ` · pagato il ${formatDate(saved.paidOn)}`}
-            </CardDescription>
-          </div>
-          <div className="text-right">
-            <p className="text-xs text-muted-foreground">Saldo finale</p>
-            <p className="font-mono text-lg tabular-nums">{formatMoney(Number(f.totalDebit) - Number(f.totalCredit ?? 0))}</p>
-            {Number(f.totalCredit ?? 0) > 0 && <p className="text-xs text-muted-foreground">debiti {formatMoney(f.totalDebit)} − crediti {formatMoney(f.totalCredit ?? 0)}</p>}
+  const header = (
+    <CardHeader>
+      <div className="flex flex-wrap items-start justify-between gap-2">
+        <div>
+          <CardTitle className="flex items-center gap-2">
+            {collapsible && <ChevronRight className="size-4 shrink-0 text-muted-foreground transition-transform group-open/f24:rotate-90" />}
+            {f24Title(f)}
+            {status && <Badge variant="outline" className={status.className}>{status.label}</Badge>}
+            {highlight && <Badge>Prossimo</Badge>}
+          </CardTitle>
+          <CardDescription>
+            Scadenza {formatDate(f.paymentDate)}
+            {f.nominalPaymentDate && f.nominalPaymentDate !== f.paymentDate && ` (nominale ${formatDate(f.nominalPaymentDate)}, spostata al primo giorno feriale)`}
+            {f.i24CancelBy && (
+              <>
+                {' · '}I24 annullabile entro il {formatDate(f.i24CancelBy)}
+                <HelpTip className="ml-1 -translate-y-px"><p>F24 con addebito a data futura (I24): la delega può essere annullata fino al terzultimo giorno lavorativo antecedente la data di addebito (Provv. AdE 26/07/2024 n. 313945, §5.3).</p></HelpTip>
+              </>
+            )}
+            {saved?.paidOn && ` · pagato il ${formatDate(saved.paidOn)}`}
+          </CardDescription>
+        </div>
+        <div className="text-right">
+          <p className="text-xs text-muted-foreground">Saldo finale</p>
+          <p className="font-mono text-lg tabular-nums">{formatMoney(Number(f.totalDebit) - Number(f.totalCredit ?? 0))}</p>
+          {Number(f.totalCredit ?? 0) > 0 && <p className="text-xs text-muted-foreground">debiti {formatMoney(f.totalDebit)} − crediti {formatMoney(f.totalCredit ?? 0)}</p>}
+        </div>
+      </div>
+    </CardHeader>
+  );
+  const content = (
+    <CardContent className={collapsible ? 'mt-(--card-spacing) space-y-4' : 'space-y-4'}>
+      <LinesTable lines={f.lines} section="TREASURY" taxYear={taxYear} />
+      <LinesTable lines={f.lines} section="INPS" taxYear={taxYear} />
+      <LinesTable lines={f.lines} section="REGIONAL" taxYear={taxYear} />
+      <LinesTable lines={f.lines} section="LOCAL" taxYear={taxYear} />
+      {saved && saved.status !== 'CANCELLED' && (
+        <div className="flex flex-wrap items-center gap-2 border-t pt-3">
+          <Button size="sm" variant="outline" render={<a href={`/f24/${saved.id}/pdf?inline=1`} target="_blank" rel="noreferrer" />}>Apri F24</Button>
+          <Button size="sm" variant="outline" render={<a href={`/f24/${saved.id}/pdf`} />}>Scarica PDF (Mod. F24)</Button>
+          <div className="ml-auto flex flex-wrap items-center justify-end gap-2">
+            {saved.status !== 'PAID' && (
+              <form action={setF24Status} className="flex items-center gap-2">
+                <input type="hidden" name="id" value={saved.id} />
+                <input type="hidden" name="taxYear" value={taxYear} />
+                <input type="hidden" name="status" value="PAID" />
+                <label className="flex items-center gap-2 text-xs whitespace-nowrap text-muted-foreground">Data pagamento<Input type="date" name="paidOn" defaultValue={f.paymentDate.slice(0, 10)} className="h-7 w-36" /></label>
+                <Button type="submit" size="sm">Segna pagato</Button>
+              </form>
+            )}
+            {saved.status === 'PLANNED' && (
+              <form action={setF24Status}>
+                <input type="hidden" name="id" value={saved.id} />
+                <input type="hidden" name="taxYear" value={taxYear} />
+                <input type="hidden" name="status" value="SCHEDULED_I24" />
+                <Button type="submit" size="sm" variant="outline">Programmato con I24</Button>
+              </form>
+            )}
+            {saved.status !== 'PLANNED' && (
+              <form action={setF24Status}>
+                <input type="hidden" name="id" value={saved.id} />
+                <input type="hidden" name="taxYear" value={taxYear} />
+                <input type="hidden" name="status" value="PLANNED" />
+                <Button type="submit" size="sm" variant="ghost">Riporta a pianificato</Button>
+              </form>
+            )}
           </div>
         </div>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <LinesTable lines={f.lines} section="TREASURY" taxYear={taxYear} />
-        <LinesTable lines={f.lines} section="INPS" taxYear={taxYear} />
-        <LinesTable lines={f.lines} section="REGIONAL" taxYear={taxYear} />
-        <LinesTable lines={f.lines} section="LOCAL" taxYear={taxYear} />
-        {saved && saved.status !== 'CANCELLED' && (
-          <div className="flex flex-wrap items-center gap-2 border-t pt-3">
-            <Button size="sm" variant="outline" render={<a href={`/f24/${saved.id}/pdf?inline=1`} target="_blank" rel="noreferrer" />}>Apri F24</Button>
-            <Button size="sm" variant="outline" render={<a href={`/f24/${saved.id}/pdf`} />}>Scarica PDF (Mod. F24)</Button>
-            <div className="ml-auto flex flex-wrap items-center justify-end gap-2">
-              {saved.status !== 'PAID' && (
-                <form action={setF24Status} className="flex items-center gap-2">
-                  <input type="hidden" name="id" value={saved.id} />
-                  <input type="hidden" name="taxYear" value={taxYear} />
-                  <input type="hidden" name="status" value="PAID" />
-                  <label className="flex items-center gap-2 text-xs whitespace-nowrap text-muted-foreground">Data pagamento<Input type="date" name="paidOn" defaultValue={f.paymentDate.slice(0, 10)} className="h-7 w-36" /></label>
-                  <Button type="submit" size="sm">Segna pagato</Button>
-                </form>
-              )}
-              {saved.status === 'PLANNED' && (
-                <form action={setF24Status}>
-                  <input type="hidden" name="id" value={saved.id} />
-                  <input type="hidden" name="taxYear" value={taxYear} />
-                  <input type="hidden" name="status" value="SCHEDULED_I24" />
-                  <Button type="submit" size="sm" variant="outline">Programmato con I24</Button>
-                </form>
-              )}
-              {saved.status !== 'PLANNED' && (
-                <form action={setF24Status}>
-                  <input type="hidden" name="id" value={saved.id} />
-                  <input type="hidden" name="taxYear" value={taxYear} />
-                  <input type="hidden" name="status" value="PLANNED" />
-                  <Button type="submit" size="sm" variant="ghost">Riporta a pianificato</Button>
-                </form>
-              )}
-            </div>
-          </div>
-        )}
-      </CardContent>
+      )}
+    </CardContent>
+  );
+  return (
+    <Card className={highlight ? 'border-primary' : undefined}>
+      {collapsible ? (
+        <details open={open} className="group/f24">
+          <summary className="cursor-pointer list-none [&::-webkit-details-marker]:hidden">{header}</summary>
+          {content}
+        </details>
+      ) : (
+        <>
+          {header}
+          {content}
+        </>
+      )}
     </Card>
   );
 }
