@@ -40,10 +40,15 @@ export function easterSunday(year: number): Date {
   return utcDate(year, month, day);
 }
 
-/** Italian national public holidays (L. 260/1949 and later amendments). */
+/**
+ * Italian national public holidays (L. 260/1949 and later amendments). Fixed dates and Easter are
+ * computed for any year; a holiday added by law applies from its first year only:
+ * 4 October (St Francis of Assisi) from 2026, L. 8 October 2025 no. 151 (GU no. 236 of 10/10/2025).
+ */
 export function italianPublicHolidays(year: number): Set<string> {
   const fixed: Array<[number, number]> = [
     [1, 1], [1, 6], [4, 25], [5, 1], [6, 2], [8, 15], [11, 1], [12, 8], [12, 25], [12, 26],
+    ...(year >= 2026 ? [[10, 4] as [number, number]] : []),
   ];
   const set = new Set(fixed.map(([m, d]) => toIsoDate(utcDate(year, m, d))));
   const easter = easterSunday(year);

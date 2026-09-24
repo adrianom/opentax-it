@@ -86,14 +86,14 @@ Fonte: Normattiva, `urn:nir:stato:legge:2014-12-23;190~art1`; Istruzioni Redditi
 | 30 giugno (ordinaria) | 30/6, 16/7, 20/8, 16/9, 16/10, 16/11, 16/12 → **7** |
 | 30 luglio (+0,40%) | 30/7, 20/8, 16/9, 16/10, 16/11, 16/12 → **6** |
 | **20 luglio 2026** (proroga forfettari/ISA, senza maggiorazione) | 20/7, 20/8, 16/9, 16/10, 16/11, 16/12 → **6** |
-| 19 agosto 2026 (proroga + 0,80%) | 19/8, 16/9, 16/10, 16/11, 16/12 → **5** |
+| 20 agosto 2026 (proroga + 0,80%; il 19/8 slitta al 20/8, art. 11 D.Lgs. 33/2025) | 20/8, 16/9, 16/10, 16/11, 16/12 → **5** |
 
 - Scadenze 1-20 agosto slittano al **20 agosto** senza maggiorazione (art. 11 D.Lgs. 33/2025; già art. 37 c. 11-bis DL 223/2006).
 - **Correzione rispetto alla conversazione precedente**: "7 rate" è la regola *attuale* (partenza 30/6), non quella vecchia; i forfettari con proroga a luglio ne hanno 6. Il tool deve **calcolare** le rate dalla data di partenza effettiva.
 - Anche i **contributi INPS a saldo e primo acconto** sono rateizzabili con le stesse regole (Istr.: "compresi i contributi risultanti dal quadro RR").
 
 ### 2.4 Proroga 2026 (DL 22 maggio 2026 n. 89, art. 6 — GU n. 117 del 22/05/2026)
-- Soggetti ISA (o con cause di esclusione), regime di vantaggio e **forfettari**: versamenti in scadenza 30/6/2026 → **20 luglio 2026** senza maggiorazione, oppure entro il **30° giorno successivo (19 agosto 2026) con +0,80%** (in deroga allo 0,40% ordinario).
+- Soggetti ISA (o con cause di esclusione), regime di vantaggio e **forfettari**: versamenti in scadenza 30/6/2026 → **20 luglio 2026** senza maggiorazione, oppure entro il **30° giorno successivo con +0,80%**: il 19 agosto cade tra l'1 e il 20 agosto e slitta al **20 agosto 2026** (art. 11 D.Lgs. 33/2025; scadenzario AdE al 20/08/2026) (in deroga allo 0,40% ordinario).
 - Nota: il DL 89/2026 è stato abrogato dalla L. 113/2026 con salvezza degli effetti (Normattiva). Proroghe analoghe: 2025 → 21 luglio. → regola annuale nel `FiscalRuleSet`.
 
 ### 2.5 Dichiarazione
@@ -237,7 +237,7 @@ Fonti lette integralmente durante la review (citazioni testuali ricontrollate su
 ## 6. Valori corretti rispetto a versioni precedenti di questo documento
 - Rateazione: 7 rate è la regola attuale (da 30/6); con proroga a luglio sono 6; 2° acconto mai rateizzabile.
 - Riferimento normativo rateazione: D.Lgs. 241/97 art. 20 → riorganizzato nel **D.Lgs. 33/2025** (testo unico versamenti), citato dalle istruzioni 2026.
-- Proroga 2026: 20 luglio / 19 agosto (+0,80%, non 0,40%).
+- Proroga 2026: 20 luglio / 20 agosto (+0,80%, non 0,40%; il 19/8 slitta al 20/8).
 - INPS 2026: 26,07%, massimale 122.295, minimale 18.808.
 - Bollo: soglia differimento 5.000 € (non 250).
 - Spec. tecniche FE: v. 1.9.1 dal 15/05/2026.

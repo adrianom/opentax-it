@@ -31,7 +31,7 @@ describe('installment plan – 2026 flat-rate extension (DL 89/2026 art. 6)', ()
   });
 
   it('first installment 19 August 2026 (+0.80%): 5 installments', () => {
-    expect(maxInstallments(d('2026-08-19'))).toBe(5);
+    expect(maxInstallments(d('2026-08-20'))).toBe(5);
   });
 
   it('commercial method (instructions text): 30/6→16/7 = 16 days, 30/7→16/8 = 16 days, 20/7→16/8 = 26 days', () => {
