@@ -94,6 +94,12 @@ export class F24Service {
     };
     const inpsReducedRate = summary.input.inpsRatePct === paymentRules.inps.reducedRatePct;
     const availableCredits = dto.useCredits ? await this.credits.available(tenantId) : [];
+    // Credits cover the debts first, without the deferral surcharge; only the residual goes to the
+    // installment plan with the surcharge. AdE: "Per coloro che effettuano la compensazione, la
+    // maggiorazione si applica solamente sulla differenza tra debiti e crediti, se positiva" (Redditi 2026
+    // general instructions, companies, §4.2); same rule for individuals in the Unico PF 2007 instructions
+    // (booklet 1, §6: with debts and credits of equal amount the taxpayer "non è tenuto a corrispondere tale
+    // maggiorazione"; otherwise it "si applica alla differenza").
     const compensation = buildCompensation(paymentRules, {
       taxYear,
       amounts: due,
