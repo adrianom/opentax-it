@@ -1,6 +1,6 @@
 'use client';
 
-import { BadgePercent, CalendarClock, CalendarDays, Calculator, FileText, Landmark, LayoutDashboard, Receipt, Settings, Users } from 'lucide-react';
+import { BadgePercent, CalendarClock, CalendarDays, Calculator, FileText, Landmark, LayoutDashboard, Library, Receipt, Settings, Users } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
@@ -31,6 +31,12 @@ const CONFIG_NAV = [
   { href: '/payment-terms', label: 'Profili di scadenza', icon: CalendarClock },
 ];
 
+const GROUPS = [
+  { label: 'Gestione', items: NAV },
+  { label: 'Configurazione', items: CONFIG_NAV },
+  { label: 'Normativa', items: [{ href: '/sources', label: 'Fonti ufficiali', icon: Library }] },
+];
+
 export function AppSidebar({ tenantName }: { tenantName: string | null }) {
   const pathname = usePathname();
   return (
@@ -49,36 +55,23 @@ export function AppSidebar({ tenantName }: { tenantName: string | null }) {
         </SidebarMenu>
       </SidebarHeader>
       <SidebarContent>
-        <SidebarGroup>
-          <SidebarGroupLabel>Gestione</SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {NAV.map((item) => (
-                <SidebarMenuItem key={item.href}>
-                  <SidebarMenuButton isActive={pathname === item.href || pathname.startsWith(`${item.href}/`)} tooltip={item.label} render={<Link href={item.href} />}>
-                    <item.icon />
-                    <span>{item.label}</span>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
-        <SidebarGroup>
-          <SidebarGroupLabel>Configurazione</SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {CONFIG_NAV.map((item) => (
-                <SidebarMenuItem key={item.href}>
-                  <SidebarMenuButton isActive={pathname === item.href || pathname.startsWith(`${item.href}/`)} tooltip={item.label} render={<Link href={item.href} />}>
-                    <item.icon />
-                    <span>{item.label}</span>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
+        {GROUPS.map((group) => (
+          <SidebarGroup key={group.label}>
+            <SidebarGroupLabel>{group.label}</SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                {group.items.map((item) => (
+                  <SidebarMenuItem key={item.href}>
+                    <SidebarMenuButton isActive={pathname === item.href || pathname.startsWith(`${item.href}/`)} tooltip={item.label} render={<Link href={item.href} />}>
+                      <item.icon />
+                      <span>{item.label}</span>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                ))}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        ))}
       </SidebarContent>
       <SidebarFooter>
         <SidebarMenu>

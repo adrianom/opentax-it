@@ -4,6 +4,14 @@
  * replaced, so they cannot inject header parameters or make Node reject the header.
  */
 export function attachment(fileName: string): string {
-  const safe = fileName.replace(/[^A-Za-z0-9._-]/g, '_') || 'download';
-  return `attachment; filename="${safe}"`;
+  return `attachment; filename="${safeName(fileName)}"`;
+}
+
+/** `inline` Content-Disposition (the browser shows the file), with the same safe file name. */
+export function inline(fileName: string): string {
+  return `inline; filename="${safeName(fileName)}"`;
+}
+
+function safeName(fileName: string): string {
+  return fileName.replace(/[^A-Za-z0-9._-]/g, '_') || 'download';
 }

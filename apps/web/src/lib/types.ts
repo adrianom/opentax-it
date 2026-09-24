@@ -352,3 +352,44 @@ export interface ThresholdOutlook {
   projectedOverExit: boolean;
   projectedOverPersonalLimit: boolean;
 }
+
+export type SourceKind = 'law' | 'circular' | 'resolution' | 'instructions' | 'specification' | 'guide' | 'table' | 'web-page';
+
+/** An entry of the official source registry (docs/fonti/registro.json). */
+export interface SourceRecord {
+  id: string;
+  authority: string;
+  title: string;
+  kind: SourceKind;
+  url: string;
+  fetchUrl?: string;
+  format: 'pdf' | 'html' | 'xls';
+  file: string;
+  text?: string;
+  retrievedOn: string;
+  sha256: string;
+}
+
+export interface SourceSummary extends SourceRecord {
+  /** Entries of the active rule sets that cite the source. */
+  citations: number;
+  years: number[];
+}
+
+export interface SourceCitation {
+  year: number;
+  version: number;
+  key: string;
+  value: unknown;
+  title: string;
+  quote: string;
+  verifiedOn: string;
+  main: boolean;
+  excerpts: Array<Array<{ text: string; mark: boolean }>>;
+  missing: string[];
+}
+
+export interface SourceDetail {
+  source: SourceRecord;
+  citations: SourceCitation[];
+}

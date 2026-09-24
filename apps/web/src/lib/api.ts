@@ -1,6 +1,6 @@
 import 'server-only';
 import { cookies } from 'next/headers';
-import type { BankAccount, Customer, Deadline, F24, ImportResult, InstallmentPlan, Invoice, InvoiceDetail, Payment, ThresholdOutlook, PaymentTerms, PlanOptions, PlanPreview, RuleSetSummary, TaxCredit, TaxSummary, TaxYearData, Tenant, TenantWithProfile } from './types';
+import type { BankAccount, Customer, Deadline, SourceDetail, SourceSummary, F24, ImportResult, InstallmentPlan, Invoice, InvoiceDetail, Payment, ThresholdOutlook, PaymentTerms, PlanOptions, PlanPreview, RuleSetSummary, TaxCredit, TaxSummary, TaxYearData, Tenant, TenantWithProfile } from './types';
 
 export * from './types';
 export * from './format';
@@ -123,6 +123,13 @@ export const api = {
     const res = await fetch(`${API_URL}/invoices/${seg(id)}/pdf`, { headers: tenantId ? { 'x-tenant-id': tenantId } : {}, cache: 'no-store' });
     if (!res.ok) throw new ApiError(res.status, 'PDF non disponibile');
     return { fileName: res.headers.get('content-disposition')?.match(/filename="([^"]+)"/)?.[1] ?? 'fattura.pdf', content: await res.arrayBuffer() };
+  },
+  sources: () => request<SourceSummary[]>('/sources'),
+  source: (id: string) => request<SourceDetail>(`/sources/${seg(id)}`),
+  sourceFile: async (id: string, text: boolean) => {
+    const res = await fetch(`${API_URL}/sources/${seg(id)}/file${text ? '?text=true' : ''}`, { cache: 'no-store' });
+    if (!res.ok) throw new ApiError(res.status, 'File non disponibile');
+    return { contentType: res.headers.get('content-type') ?? 'application/octet-stream', disposition: res.headers.get('content-disposition') ?? 'inline', content: await res.arrayBuffer() };
   },
   invoiceXml: async (id: string) => {
     const tenantId = await currentTenantId();
