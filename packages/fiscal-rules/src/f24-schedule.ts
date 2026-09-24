@@ -93,7 +93,13 @@ export interface PaymentScheduleInput {
   inpsReducedRate: boolean;
   /** Due date of the balance and first advance (ordinary, extended or deferred). */
   firstDueDate: Date;
-  /** Surcharge applied before splitting when the deferred date is used (0.40 / 0.80). */
+  /**
+   * Surcharge when the deferred date is used (0.40 / 0.80), applied before splitting. Treasury:
+   * added to the tax amount (Redditi PF instructions, booklet 1, §7: "maggiorare preventivamente le
+   * somme"). INPS: paid with DPPI together with the interest (Circ. INPS 62/2026 §3-4: "per il
+   * pagamento degli interessi comprensivi anche della maggiorazione devono essere utilizzate le
+   * causali … DPPI"), so the contribution rows carry the amount without surcharge.
+   */
   surchargePct?: number;
   /** 1 = single payment. */
   installments: number;
@@ -132,6 +138,8 @@ interface Component {
   referenceYear: number;
   description: string;
   plan: Installment[];
+  /** INPS only: the same plan without surcharge, whose principals go on the contribution rows. */
+  basePlan?: Installment[];
 }
 
 export function buildPaymentSchedule(rules: FiscalRuleSet, input: PaymentScheduleInput): PaymentSchedule {
@@ -143,9 +151,9 @@ export function buildPaymentSchedule(rules: FiscalRuleSet, input: PaymentSchedul
   const inpsReason = input.inpsReducedRate ? (single ? ir.contributionReducedRate : ir.installmentsReducedRate) : single ? ir.contribution : ir.installments;
   const warnings: string[] = [];
 
-  const planFor = (amount: number): Installment[] =>
+  const planFor = (amount: number, withSurcharge = true): Installment[] =>
     buildInstallmentPlan({
-      amount: round2(amount * (1 + surcharge / 100)),
+      amount: withSurcharge ? round2(amount * (1 + surcharge / 100)) : amount,
       firstDueDate: input.firstDueDate,
       installments,
       installmentDay: rules.deadlines.installmentDay,
@@ -159,7 +167,9 @@ export function buildPaymentSchedule(rules: FiscalRuleSet, input: PaymentSchedul
     { key: 'inpsBalance', section: 'INPS', role: 'BALANCE', code: inpsReason, referenceYear: taxYear, description: `INPS Gestione Separata balance ${taxYear}` },
     { key: 'inpsFirstAdvance', section: 'INPS', role: 'FIRST_ADVANCE', code: inpsReason, referenceYear: taxYear + 1, description: `INPS Gestione Separata first advance ${taxYear + 1}` },
   ];
-  const components: Component[] = candidates.filter((c) => amounts[c.key] > 0).map((c) => ({ ...c, plan: planFor(amounts[c.key]) }));
+  const components: Component[] = candidates
+    .filter((c) => amounts[c.key] > 0)
+    .map((c) => ({ ...c, plan: planFor(amounts[c.key]), basePlan: c.section === 'INPS' && surcharge > 0 ? planFor(amounts[c.key], false) : undefined }));
 
   const forms: F24Draft[] = [];
   if (components.length > 0) {
@@ -169,20 +179,24 @@ export function buildPaymentSchedule(rules: FiscalRuleSet, input: PaymentSchedul
       const interestByYear = new Map<string, { section: F24Section; referenceYear: number; amount: number }>();
       for (const c of components) {
         const r = c.plan[i];
-        lines.push(line(c.section, c.role, c.code, c.referenceYear, r.principal, c.description, {
+        // INPS with deferral: the surcharge share of this installment moves from the contribution to DPPI.
+        const principal = c.basePlan ? c.basePlan[i].principal : r.principal;
+        const surchargeShare = round2(r.principal - principal);
+        lines.push(line(c.section, c.role, c.code, c.referenceYear, principal, c.description, {
           installmentCode: c.section === 'TREASURY' ? (single ? SINGLE_PAYMENT_INSTALLMENT_CODE : installmentCode(i + 1, installments)) : undefined,
           officeCode: c.section === 'INPS' ? input.inpsOfficeCode : undefined,
         }));
-        if (r.interest > 0) {
+        if (r.interest > 0 || surchargeShare > 0) {
           const k = `${c.section}-${c.referenceYear}`;
           const cur = interestByYear.get(k) ?? { section: c.section, referenceYear: c.referenceYear, amount: 0 };
-          cur.amount = round2(cur.amount + r.interest);
+          cur.amount = round2(cur.amount + r.interest + surchargeShare);
           interestByYear.set(k, cur);
         }
       }
       for (const it of interestByYear.values()) {
         const treasury = it.section === 'TREASURY';
-        lines.push(line(it.section, 'INTEREST', treasury ? tc.installmentInterest : ir.interest, it.referenceYear, it.amount, `Installment interest ${it.referenceYear} (${rules.installments.annualInterestPct}% per year)`, {
+        const label = !treasury && surcharge > 0 ? `Interest and ${surcharge}% deferral surcharge ${it.referenceYear}` : `Installment interest ${it.referenceYear} (${rules.installments.annualInterestPct}% per year)`;
+        lines.push(line(it.section, 'INTEREST', treasury ? tc.installmentInterest : ir.interest, it.referenceYear, it.amount, label, {
           officeCode: treasury ? undefined : input.inpsOfficeCode,
         }));
       }

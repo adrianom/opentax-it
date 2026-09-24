@@ -8,7 +8,7 @@ Stato aggiornato al 23/09/2026. Cosa è già fatto e con quale riferimento norma
 
 ### Conformità (review del 23/09/2026)
 Esito della review dell'intero codice contro le fonti ufficiali; fonti e citazioni in [docs/normativa-2026.md](docs/normativa-2026.md) §5-ter. In ordine di priorità:
-1. **Maggiorazione INPS nella riga DPPI** (differimento 0,40%/0,80%): oggi è sommata al contributo PXX/PXXR in `f24-schedule.ts`; per l'INPS va versata con DPPI insieme agli interessi (Circ. INPS 62/2026 §3-4). Per l'Erario resta dentro il tributo (Fasc. 1 §7). Test INPS con differimento.
+1. ~~**Maggiorazione INPS nella riga DPPI**~~ fatto il 24/09/2026 — (differimento 0,40%/0,80%): oggi è sommata al contributo PXX/PXXR in `f24-schedule.ts`; per l'INPS va versata con DPPI insieme agli interessi (Circ. INPS 62/2026 §3-4). Per l'Erario resta dentro il tributo (Fasc. 1 §7). Test INPS con differimento.
 2. **Escludere le maggiorazioni** dagli acconti e contributi ripresi in dichiarazione (LM45, RR5 col. 16, LM35) in `taxes.service.ts` → `paidFromF24` (Fasc. 3 LM45: "non devono essere considerate le maggiorazioni").
 3. **Festività e date**: 4 ottobre festa nazionale dal 2026 (L. 151/2025) in `calendar.ts`, con la data di inizio validità; proroga 2026 con +0,80% al **20/8** (non 19/8) nel set di regole 2026 (seconda rata 0,30%).
 4. **Base e saldo INPS in euro interi**: base = LM34 arrotondato (Circ. INPS 62/2026 §2.2), contributo RR5 col. 15 e saldo in euro interi, acconti al 40% al centesimo.

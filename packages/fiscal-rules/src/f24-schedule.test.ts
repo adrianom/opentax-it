@@ -111,6 +111,34 @@ describe('buildPaymentSchedule – single payment', () => {
     expect(forms[1].lines[1]).toMatchObject({ code: '1668', debitAmount: 0.9 }); // 502 × 0.18%
   });
 
+  it('INPS with deferral: the surcharge goes on DPPI with the interest, not on the contribution (Circ. INPS 62/2026)', () => {
+    const { forms } = buildPaymentSchedule(ruleSet2026, {
+      ...base,
+      amounts: { taxBalance: 1000, taxFirstAdvance: 0, taxSecondAdvance: 0, inpsBalance: 1000, inpsFirstAdvance: 0, inpsSecondAdvance: 0 },
+      firstDueDate: d('2026-07-30'),
+      surchargePct: 0.4,
+      installments: 2,
+    });
+    const rows = (i: number) => forms[i].lines.map((l) => [l.code, l.debitAmount]);
+    // Treasury: 1000 × 1.004 = 1004 split in two, surcharge inside 1792 (Redditi PF booklet 1, §7).
+    // INPS: contribution without surcharge (500 per installment); DPPI = surcharge share 2 (+ interest 0.90 on the 2nd).
+    expect(rows(0)).toEqual([['1792', 502], ['PXXR', 500], ['DPPI', 2]]);
+    expect(rows(1)).toEqual([['1792', 502], ['PXXR', 500], ['1668', 0.9], ['DPPI', 2.9]]);
+    // Same total as before the change: only the split between PXXR and DPPI differs.
+    expect(forms[0].totalDebit + forms[1].totalDebit).toBe(2 * 1004 + 2 * 0.9);
+  });
+
+  it('INPS single payment with deferral: DPPI carries only the surcharge', () => {
+    const { forms } = buildPaymentSchedule(ruleSet2026, {
+      ...base,
+      amounts: { taxBalance: 0, taxFirstAdvance: 0, taxSecondAdvance: 0, inpsBalance: 1000, inpsFirstAdvance: 0, inpsSecondAdvance: 0 },
+      firstDueDate: d('2026-07-30'),
+      surchargePct: 0.4,
+      installments: 1,
+    });
+    expect(forms[0].lines.map((l) => [l.code, l.debitAmount])).toEqual([['PXX', 1000], ['DPPI', 4]]);
+  });
+
   it('warns about lines below the EUR 1.03 minimum and uses P10/P10R at the 24% rate', () => {
     const { forms, warnings } = buildPaymentSchedule(ruleSet2026, {
       ...base,
