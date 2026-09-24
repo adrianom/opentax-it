@@ -19,9 +19,10 @@ export default async function InvoicePage({ params }: PageProps<'/invoices/[id]'
   const isDraft = inv.status === 'DRAFT';
   const rules = Number(inv.inpsSurcharge) > 0 ? await fetchOrNull(() => api.activeRules(inv.year)) : null;
   const payments = isDraft ? [] : ((await fetchOrNull(() => api.payments(id))) ?? []);
-  const [terms, banks, thresholds] = isDraft
-    ? await Promise.all([fetchOrNull(() => api.paymentTerms()), fetchOrNull(() => api.bankAccounts()), fetchOrNull(() => api.invoiceThresholds(id))])
-    : [null, null, null];
+  const [terms, banks, thresholds, me] = isDraft
+    ? await Promise.all([fetchOrNull(() => api.paymentTerms()), fetchOrNull(() => api.bankAccounts()), fetchOrNull(() => api.invoiceThresholds(id)), fetchOrNull(() => api.me())])
+    : [null, null, null, null];
+  const missingVies = inv.customer.kind === 'EU' && me?.profile && !me.profile.viesRegistered;
   const chosenTerms = terms?.find((t) => t.id === inv.paymentTermsId) ?? terms?.find((t) => t.isDefault);
   const chosenBank = banks?.find((b) => b.id === inv.bankAccountId) ?? banks?.find((b) => b.isDefault);
   const defaultDueDate = chosenTerms ? new Date(new Date(inv.date).getTime() + chosenTerms.days * 86_400_000).toISOString().slice(0, 10) : undefined;
@@ -83,6 +84,13 @@ export default async function InvoicePage({ params }: PageProps<'/invoices/[id]'
           </CardHeader>
           <CardContent className="space-y-4">
             <p className="text-sm text-muted-foreground">Scadenza: {chosenTerms ? `${chosenTerms.name} (${chosenTerms.days} gg)` : 'nessuna'} · Banca: {chosenBank ? chosenBank.name : 'nessuna'}. Puoi modificare i valori qui sotto prima di emettere.</p>
+            {missingVies && (
+              <Alert variant="warning">
+                <TriangleAlert />
+                <AlertTitle>Iscrizione al VIES non indicata</AlertTitle>
+                <AlertDescription>Per effettuare operazioni intracomunitarie, compresi i servizi a soggetti passivi UE, serve l&apos;inclusione nell&apos;archivio VIES (AdE, scheda &quot;Inclusione archivio Vies&quot;; Circ. AdE 10/E/2016 §4.1.2). Nel profilo non risulti iscritto: verifica e, se sei già iscritto, spunta &quot;Iscritto al VIES&quot; in Impostazioni.</AlertDescription>
+              </Alert>
+            )}
             {inv.customer.kind === 'IT_PA' && (
               <Alert variant="warning">
                 <TriangleAlert />

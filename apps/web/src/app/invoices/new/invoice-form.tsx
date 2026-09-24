@@ -32,6 +32,13 @@ export interface InvoiceDraft {
   lines: LineDraft[];
 }
 
+/** Issue term by customer (DPR 633/72 art. 21 par. 4): 15th of the next month for services to foreign taxable persons. */
+function issueTermHint(kind?: string): string {
+  if (kind === 'EU') return "Entro il 15 del mese successivo all'operazione (servizi a soggetti passivi UE, art. 21 c. 4 lett. c DPR 633/72), mai nel futuro";
+  if (kind === 'NON_EU') return "Entro il 15 del mese successivo all'operazione (servizi a soggetti passivi extra UE, art. 21 c. 4 lett. d DPR 633/72), mai nel futuro";
+  return "Entro 12 giorni dall'operazione (art. 21 c. 4 DPR 633/72), mai nel futuro";
+}
+
 export function InvoiceForm({ customers, issuedInvoices, terms, banks, draft, surchargePct }: { customers: Customer[]; issuedInvoices: Array<{ id: string; number: string }>; terms: PaymentTerms[]; banks: BankAccount[]; draft?: InvoiceDraft; surchargePct?: number }) {
   const router = useRouter();
   const [pending, start] = useTransition();
@@ -95,7 +102,7 @@ export function InvoiceForm({ customers, issuedInvoices, terms, banks, draft, su
             </NativeSelect>
           </Field>
         )}
-        <Field label="Data" htmlFor="date" hint="Entro 12 giorni dall'operazione (art. 21 c. 4 DPR 633/72), mai nel futuro"><Input id="date" type="date" max={new Date().toLocaleDateString('en-CA')} value={date} onChange={(e) => setDate(e.target.value)} /></Field>
+        <Field label="Data" htmlFor="date" hint={issueTermHint(customers.find((c) => c.id === customerId)?.kind)}><Input id="date" type="date" max={new Date().toLocaleDateString('en-CA')} value={date} onChange={(e) => setDate(e.target.value)} /></Field>
         {foreignCurrency && (
           <Field
             label={`Cambio: 1 EUR = … ${currency}`}
