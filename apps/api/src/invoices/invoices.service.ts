@@ -91,6 +91,12 @@ export class InvoicesService {
     });
     const linesTotal = round2(lines.reduce((s, l) => s + l.totalPrice, 0));
 
+    // Foreign currency: the amounts are converted at the rate of the day of the operation or of the invoice
+    // (DPR 633/72 art. 13 par. 4); never assume 1. exchangeRate = EUR per unit of the invoice currency.
+    const currency = (dto.currency ?? customer.currency).toUpperCase();
+    const exchangeRate = currency === 'EUR' ? 1 : dto.exchangeRate;
+    if (!exchangeRate) throw new BadRequestException(`Fattura in ${currency}: indica il cambio del giorno dell'operazione o della fattura (art. 13 c. 4 DPR 633/72)`);
+
     const applySurcharge = dto.applyInpsSurcharge ?? profile.applyInpsSurcharge;
     const inpsSurcharge = applySurcharge ? round2((linesTotal * rules.inps.surchargePct) / 100) : 0;
 
@@ -116,8 +122,8 @@ export class InvoicesService {
         type,
         year,
         date: new Date(`${dto.date}T00:00:00Z`),
-        currency: dto.currency ?? customer.currency,
-        exchangeRate: dto.exchangeRate ?? 1,
+        currency,
+        exchangeRate,
         vatNature: vatNature as Invoice['vatNature'],
         taxableAmount: linesTotal,
         inpsSurcharge,

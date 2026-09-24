@@ -45,6 +45,11 @@ export function Payments({ invoiceId, currency, total, payments }: { invoiceId: 
         <input type="hidden" name="invoiceId" value={invoiceId} />
         <Field label="Data incasso" htmlFor="date"><Input id="date" name="date" type="date" required defaultValue={new Date().toISOString().slice(0, 10)} /></Field>
         <Field label={`Importo (${currency})`} htmlFor="amount" hint="Negativo per un rimborso"><Input id="amount" name="amount" type="number" step="0.01" required defaultValue={outstanding > 0 ? outstanding : ''} /></Field>
+        {currency !== 'EUR' && (
+          <Field label={`Cambio del giorno: 1 EUR = … ${currency}`} htmlFor="ecbRate" hint="Cambio BCE del giorno dell'incasso (art. 9 c. 2 TUIR)">
+            <Input id="ecbRate" name="ecbRate" type="number" step="0.0001" min="0.0001" required />
+          </Field>
+        )}
         <Field label="Metodo" htmlFor="method"><Input id="method" name="method" placeholder="bonifico" /></Field>
         <div className="flex items-end"><Button type="submit" disabled={pending}>{pending ? 'Salvataggio…' : 'Registra incasso'}</Button></div>
       </form>

@@ -7,6 +7,7 @@ import type { CreatePaymentDto } from './payments.dto.js';
  * revenue belongs to the year in which it is collected, whatever the invoice date.
  */
 const round2 = (n: number) => Math.round((n + Number.EPSILON) * 100) / 100;
+const round6 = (n: number) => Math.round(n * 1e6) / 1e6;
 
 @Injectable()
 export class PaymentsService {
@@ -28,7 +29,12 @@ export class PaymentsService {
     const invoice = await this.prisma.invoice.findFirst({ where: { id: invoiceId, tenantId } });
     if (!invoice) throw new NotFoundException(`Invoice ${invoiceId} not found`);
     if (invoice.status === 'DRAFT' || invoice.status === 'CANCELLED') throw new BadRequestException('Collections can be recorded only on issued invoices');
-    const exchangeRate = Number(invoice.exchangeRate);
+    // Income in foreign currency is valued at the rate of the day it is collected (TUIR art. 9 par. 2:
+    // "secondo il cambio del giorno in cui sono stati percepiti … o del giorno antecedente più prossimo"),
+    // not at the invoice rate: for non-EUR invoices the collection needs its own rate or EUR amount.
+    const foreign = invoice.currency !== 'EUR';
+    const exchangeRate = !foreign ? 1 : (dto.exchangeRate ?? (dto.amountEur !== undefined && dto.amount !== 0 ? round6(dto.amountEur / dto.amount) : undefined));
+    if (!exchangeRate) throw new BadRequestException(`Incasso in ${invoice.currency}: indica il cambio del giorno dell'incasso (art. 9 c. 2 TUIR)`);
     const amountEur = dto.amountEur ?? round2(dto.amount * exchangeRate);
     return this.prisma.payment.create({
       data: { tenantId, invoiceId, date: new Date(`${dto.date}T00:00:00Z`), amount: dto.amount, amountEur, exchangeRate, method: dto.method, notes: dto.notes },

@@ -8,6 +8,7 @@ import type { BankAccount, Customer, PaymentTerms } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Field } from '@/components/field';
+import { HelpTip } from '@/components/help-tip';
 import { NativeSelect } from '@/components/native-select';
 import { ErrorAlert } from '@/components/error-alert';
 
@@ -25,6 +26,8 @@ export interface InvoiceDraft {
   surcharge: 'default' | 'yes' | 'no';
   paymentTermsId: string;
   bankAccountId: string;
+  /** Foreign currency: ECB rate "1 EUR = X units", as entered. */
+  ecbRate?: string;
   lines: LineDraft[];
 }
 
@@ -40,6 +43,9 @@ export function InvoiceForm({ customers, issuedInvoices, terms, banks, draft, su
   const [paymentTermsId, setPaymentTermsId] = useState(draft ? draft.paymentTermsId : (terms.find((t) => t.isDefault)?.id ?? terms[0]?.id ?? ''));
   const [bankAccountId, setBankAccountId] = useState(draft ? draft.bankAccountId : (banks.find((b) => b.isDefault)?.id ?? banks[0]?.id ?? ''));
   const [lines, setLines] = useState<LineDraft[]>(draft?.lines.length ? draft.lines : [emptyLine()]);
+  const [ecbRate, setEcbRate] = useState(draft?.ecbRate ?? '');
+  const currency = customers.find((c) => c.id === customerId)?.currency ?? 'EUR';
+  const foreignCurrency = currency !== 'EUR';
 
   const setLine = (i: number, patch: Partial<LineDraft>) => setLines((ls) => ls.map((l, j) => (j === i ? { ...l, ...patch } : l)));
   const total = lines.reduce((s, l) => s + (Number(l.quantity) || 0) * (Number(l.unitPrice) || 0), 0);
@@ -55,6 +61,8 @@ export function InvoiceForm({ customers, issuedInvoices, terms, banks, draft, su
         applyInpsSurcharge: surcharge === 'default' ? undefined : surcharge === 'yes',
         paymentTermsId: paymentTermsId || undefined,
         bankAccountId: bankAccountId || undefined,
+        // ECB quotes "1 EUR = X units"; the API stores EUR per unit.
+        exchangeRate: foreignCurrency && Number(ecbRate) > 0 ? Math.round((1 / Number(ecbRate.replace(',', '.'))) * 1e6) / 1e6 : undefined,
         lines: lines.map((l) => ({ description: l.description, quantity: Number(l.quantity) || 1, unit: l.unit || undefined, unitPrice: Number(l.unitPrice) })),
       };
       const res = await saveInvoice(draft?.id, input);
@@ -86,6 +94,16 @@ export function InvoiceForm({ customers, issuedInvoices, terms, banks, draft, su
           </Field>
         )}
         <Field label="Data" htmlFor="date" hint="Entro 12 giorni dall'operazione (art. 21 c. 4 DPR 633/72), mai nel futuro"><Input id="date" type="date" max={new Date().toLocaleDateString('en-CA')} value={date} onChange={(e) => setDate(e.target.value)} /></Field>
+        {foreignCurrency && (
+          <Field
+            label={`Cambio: 1 EUR = … ${currency}`}
+            htmlFor="ecbRate"
+            hint="Cambio del giorno dell'operazione o della fattura (art. 13 c. 4 DPR 633/72)"
+            help={<HelpTip><p>Il cliente è fatturato in {currency}. Gli importi in valuta si convertono con il cambio del giorno di effettuazione dell&apos;operazione o, se non indicato in fattura, del giorno di emissione (art. 13 c. 4 DPR 633/72). Si può usare il cambio di riferimento della Banca centrale europea, pubblicato dalla Banca d&apos;Italia nella forma &quot;1 EUR = X {currency}&quot;. Il reddito invece si calcola con il cambio del giorno dell&apos;incasso (art. 9 c. 2 TUIR), da indicare quando registri l&apos;incasso.</p></HelpTip>}
+          >
+            <Input id="ecbRate" type="number" step="0.0001" min="0.0001" required value={ecbRate} onChange={(e) => setEcbRate(e.target.value)} />
+          </Field>
+        )}
         <Field label="Profilo di scadenza" htmlFor="terms" hint={terms.length === 0 ? 'Nessun profilo: creane uno nelle impostazioni' : undefined}>
           <NativeSelect id="terms" value={paymentTermsId} onChange={(e) => setPaymentTermsId(e.target.value)}>
             <option value="">— nessuna scadenza in fattura —</option>
@@ -127,7 +145,7 @@ export function InvoiceForm({ customers, issuedInvoices, terms, banks, draft, su
         <p className="text-sm text-muted-foreground">Imponibile righe: <span className="font-mono">{total.toFixed(2)}</span> — bollo e rivalsa vengono aggiunti dal server.</p>
         <div className="flex gap-2">
           {draft && <Button variant="ghost" type="button" onClick={() => router.push(`/invoices/${draft.id}`)}>Annulla</Button>}
-          <Button onClick={submit} disabled={pending || !customerId || lines.some((l) => !l.description || !l.unitPrice)}>{pending ? 'Salvataggio…' : draft ? 'Salva modifiche' : 'Salva bozza'}</Button>
+          <Button onClick={submit} disabled={pending || !customerId || lines.some((l) => !l.description || !l.unitPrice) || (foreignCurrency && !(Number(ecbRate) > 0))}>{pending ? 'Salvataggio…' : draft ? 'Salva modifiche' : 'Salva bozza'}</Button>
         </div>
       </div>
     </div>

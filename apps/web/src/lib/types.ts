@@ -103,6 +103,8 @@ export interface Invoice {
   number: string;
   date: string;
   currency: string;
+  /** EUR per unit of the invoice currency (1 for EUR). */
+  exchangeRate: string;
   vatNature: 'N2_1' | 'N2_2';
   taxableAmount: string;
   inpsSurcharge: string;

@@ -105,6 +105,8 @@ export interface InvoiceInput {
   bankAccountId?: string;
   date: string;
   applyInpsSurcharge?: boolean;
+  /** EUR per unit of a foreign invoice currency. */
+  exchangeRate?: number;
   lines: Array<{ description: string; quantity: number; unit?: string; unitPrice: number }>;
 }
 
@@ -198,6 +200,8 @@ export async function addPayment(_prev: ActionState, formData: FormData): Promis
     await api.createPayment(invoiceId, {
       date: f('date'),
       amount: Number(f('amount').replace(',', '.')),
+      // ECB quote "1 EUR = X units" on the collection day → EUR per unit (TUIR art. 9 par. 2).
+      exchangeRate: f('ecbRate') ? Math.round((1 / Number(f('ecbRate').replace(',', '.'))) * 1e6) / 1e6 : undefined,
       method: f('method') || undefined,
       notes: f('notes') || undefined,
     });
