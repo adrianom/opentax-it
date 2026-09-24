@@ -22,6 +22,7 @@
     "lint": "pnpm -r run lint",
     "db:up": "docker compose up -d db",
     "db:migrate": "pnpm --filter @opentax-it/api exec prisma migrate dev",
-    "demo:seed": "pnpm --filter @opentax-it/api run demo:seed"
+    "demo:seed": "pnpm --filter @opentax-it/api run demo:seed",
+    "fonti": "node scripts/fonti.mjs"
   }
 }

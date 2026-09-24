@@ -6,7 +6,7 @@ Requisito (19/09/2026): il sistema deve controllare periodicamente se sono uscit
 
 - `FiscalRuleSet` (già previsto): un set completo di regole per `year`, con `status` = `draft | proposed | active | superseded`, `version`, `activatedBy`, `activatedAt`, `sourceRefs[]`.
   Contenuto (esempi): soglie 85k/100k, coefficienti per ATECO, aliquote 5/15%, aliquota INPS GS, minimale/massimale, regole acconto (51,65 €, 257,52 €, 40/60 o 50/50 per i soggetti ISA), calendario scadenze (30/6, 30/11, eventuale proroga e maggiorazione), regola rate (giorno 16, fine 16/12, tasso 4%), bollo (77,47 €, 2 €, soglie 5.000 €, scadenze trimestrali), causali/codici tributo, versione specifiche FE, soglie Intrastat, termini avviso bonario (60 gg, 20 rate).
-- `RuleSource`: URL ufficiale monitorato, tipo (`pdf | html | json | xls`), `lastHash`, `lastModified`, `lastCheckedAt`, `checkInterval`, `parser` (quale estrattore usare), `enabled`.
+- Fonti monitorate: il [registro delle fonti](fonti/README.md) (`docs/fonti/registro.json`) al posto di una tabella `RuleSource` separata. Ogni voce ha già URL, URL di download, formato, selettore del testo, impronta e copia archiviata; `node scripts/fonti.mjs check` riscarica e confronta. Da aggiungere per il job: `lastCheckedAt`, `checkInterval`, `enabled`.
 - `RuleChangeProposal`: creata quando una sorgente cambia. Campi: `sourceId`, `detectedAt`, `snapshotBefore/After` (testo estratto), `diff`, `extractedValues` (JSON: campo → valore proposto, con citazione testuale e pagina/riga), `targetYear`, `status` = `pending | approved | rejected | partially_approved`, `reviewedBy`, `reviewNotes`.
 - `AuditLog`: ogni approvazione/rifiuto con chi, quando, cosa.
 
@@ -24,11 +24,11 @@ Requisito (19/09/2026): il sistema deve controllare periodicamente se sono uscit
 | ADM – pagina Intrastat | soglie/periodicità | hash |
 | Normattiva – L. 190/2014 art. 1, D.Lgs. 33/2025, D.Lgs. 462/97, D.Lgs. 471/97 | modifiche al testo vigente | hash del testo dell'articolo (`~artN!vig=`) |
 
-Le sorgenti stanno in una tabella (non in codice) così l'admin può aggiungerne/disattivarne.
+Le sorgenti stanno nel registro delle fonti (dati, non codice): aggiungerne una passa da una PR con la copia archiviata e le citazioni verificate dai test.
 
 ## 3. Pipeline (job schedulato, es. settimanale + intensivo a dic-feb e maggio-luglio)
 
-1. **Fetch** ogni `RuleSource` (HEAD prima: `Last-Modified`/`ETag`; poi GET se cambiato o se mancano header).
+1. **Fetch** ogni fonte del registro (HEAD prima: `Last-Modified`/`ETag`; poi GET se cambiato o se mancano header).
 2. **Normalizza** (pdftotext / html→testo / xls→righe) e calcola hash. Se uguale → aggiorna `lastCheckedAt`, fine.
 3. **Diff** testuale rispetto allo snapshot precedente; salva entrambi.
 4. **Estrazione assistita**: un estrattore per sorgente (regex mirate: "26,07%", "massimale … è pari a", "entro il 16 dicembre", codici tributo) più, opzionale, un passaggio LLM (Claude) che riceve **solo il diff + snapshot** e restituisce JSON `{campo, valoreProposto, citazione, confidenza}`. L'LLM propone, non decide: ogni valore mostra la citazione esatta e il link alla fonte.

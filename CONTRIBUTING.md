@@ -11,6 +11,7 @@ In questo settore un errore costa sanzioni a chi usa il software. Per questo:
 - Ricordi, prassi "di solito si fa così", articoli di blog, risposte di un modello linguistico: possono suggerire dove cercare, non sono mai la fonte. Una PR che cita una di queste cose come fonte non viene accettata.
 - Quando due fonti ufficiali sembrano dire cose diverse, si riportano entrambe con la citazione testuale e si lascia il punto aperto: non si sceglie "la più probabile".
 - Ogni valore, formula o scadenza nel codice porta con sé: fonte (URL ufficiale), titolo dell'atto, citazione testuale, data di verifica (vedi `sourceRefs` nei set di regole) e un test costruito su un esempio ufficiale o su un documento reale anonimizzato.
+- Ogni documento letto va nel [registro delle fonti](docs/fonti/README.md) con la sua copia archiviata; le citazioni nei set di regole puntano alla voce con `sourceId` e devono essere testo esatto del documento: i test lo controllano.
 
 Lo stesso vale per la documentazione e per `TODO.md`: una feature non verificata resta "da verificare", non "da fare".
 

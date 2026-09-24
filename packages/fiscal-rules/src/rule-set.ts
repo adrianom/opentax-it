@@ -13,8 +13,13 @@ const pct = z.number().min(0).max(100);
 export const SourceRefSchema = z.object({
   url: z.string().url(),
   title: z.string(),
+  /** Verbatim excerpt of the archived source; fragments separated by "...". */
   quote: z.string(),
   verifiedOn: isoDate,
+  /** Id in docs/fonti/registro.json. Optional so that rule sets stored before the registry still parse. */
+  sourceId: z.string().optional(),
+  /** Further sources the value rests on, each with its own verbatim quote. */
+  additional: z.array(z.object({ sourceId: z.string(), quote: z.string() })).optional(),
 });
 
 export const FiscalRuleSetSchema = z.object({
