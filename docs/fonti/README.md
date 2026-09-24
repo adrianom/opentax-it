@@ -2,6 +2,8 @@
 
 Ogni documento ufficiale letto per scrivere una regola ha una voce in [registro.json](registro.json) e una copia in [documenti/](documenti/). Le citazioni nei set di regole (`sourceRefs` in `packages/fiscal-rules/src/rule-sets/`) puntano alla voce con `sourceId` e sono controllate dai test sul testo archiviato.
 
+Nell'app: **Fonti ufficiali** (`/sources`) mostra il registro e, per ogni fonte, le regole dei set attivi che la citano con la citazione evidenziata; **Regole fiscali** (`/rules`) mostra ogni valore con la sua fonte. Il riferimento mostrato (`title` nei `sourceRefs`) è in italiano.
+
 ## La voce del registro
 
 | Campo | Contenuto |

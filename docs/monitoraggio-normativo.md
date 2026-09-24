@@ -34,7 +34,7 @@ Le sorgenti stanno nel registro delle fonti (dati, non codice): aggiungerne una 
 4. **Estrazione assistita**: un estrattore per sorgente (regex mirate: "26,07%", "massimale … è pari a", "entro il 16 dicembre", codici tributo) più, opzionale, un passaggio LLM (Claude) che riceve **solo il diff + snapshot** e restituisce JSON `{campo, valoreProposto, citazione, confidenza}`. L'LLM propone, non decide: ogni valore mostra la citazione esatta e il link alla fonte.
 5. **Crea `RuleChangeProposal`** con i valori estratti mappati sui campi del `FiscalRuleSet` dell'anno target (se il set non esiste, ne crea uno `draft` clonando l'anno precedente).
 6. **Notifica l'admin** (email/PEC interna/in-app) con riepilogo: sorgente, cosa è cambiato, valori proposti, confidenza.
-7. **Revisione**: schermata "Proposte" con diff affiancato (vecchio/nuovo), citazioni, link; l'admin approva campo per campo o rifiuta con nota. Approvazione → scrive nel `FiscalRuleSet` `draft/proposed`.
+7. **Revisione**: schermata "Proposte" con diff affiancato (vecchio/nuovo), citazioni, link (base già pronta: il confronto tra un set in bozza e quello attivo nella pagina Regole fiscali, `diffRuleSets` in `packages/fiscal-rules`); l'admin approva campo per campo o rifiuta con nota. Approvazione → scrive nel `FiscalRuleSet` `draft/proposed`.
 8. **Attivazione**: azione esplicita "Attiva set {anno}" che porta a `active` e mette il precedente in `superseded`. Si attivano solo set `draft`/`proposed`: un set `superseded` non torna attivo, una correzione esce come nuova versione (implementato in `fiscal-rules.service.ts` → `activate`). Il motore di calcolo usa solo set `active`; se manca il set dell'anno, blocca i calcoli con avviso (non fa fallback silenzioso).
 
 ## 4. Regole di sicurezza
