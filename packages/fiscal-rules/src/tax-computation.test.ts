@@ -14,7 +14,7 @@ describe('computeTaxes (LM section III, RR section II)', () => {
     expect(r.taxRatePct).toBe(5);
     expect(r.substituteTax).toBe(1_475); // LM39
     expect(r.inpsTaxableIncome).toBe(33_500); // RR5 col. 11: gross income
-    expect(r.inpsContribution).toBe(8_733.45); // 33,500 × 26.07%, in cents
+    expect(r.inpsContribution).toBe(8_733); // 33,500 × 26.07% = 8,733.45 → whole euros (RR5 col. 15)
   });
 
   it('contributions exceeding the income are deducted only up to the income (LM35 col. 2 ≤ LM34)', () => {
@@ -76,8 +76,9 @@ describe('rounding (Istr. Redditi PF 2026, "Modalità di arrotondamento")', () =
     expect(r.contributionsDeducted).toBe(1_235);
     expect(r.netIncome).toBe(7_037);
     expect(r.substituteTax).toBe(352); // 7,037 × 5% = 351.85
-    expect(r.inpsTaxableIncome).toBe(8_271.6); // INPS base in cents: 12,345.67 × 67%
-    expect(r.inpsContribution).toBe(2_156.41);
+    // INPS base = LM34 (Circ. INPS 62/2026 §2.2), contribution RR5 col. 15 in whole euros.
+    expect(r.inpsTaxableIncome).toBe(8_272);
+    expect(r.inpsContribution).toBe(2_157); // 8,272 × 26.07% = 2,156.51
   });
 });
 

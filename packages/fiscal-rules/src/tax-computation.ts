@@ -15,7 +15,10 @@ import { profitabilityCoefficient } from './rule-set.js';
  *   (col. 2: the part that fits within LM34); LM36 = LM34 − LM35 col. 2; LM39 tax.
  * - Redditi PF 2026 instructions, booklet 2, RR section II: INPS base = flat-rate income
  *   (gross, before the contribution deduction) up to the yearly ceiling; contribution =
- *   base × rate (RR5 col. 15).
+ *   base × rate (RR5 col. 15). Circ. INPS 62/2026 §2.2: for flat-rate taxpayers the base is
+ *   "il rigo LM34, colonna 2" (minus LM37 col. 2), a return row, so in whole euros like the
+ *   contribution in RR5 (booklet 1: "Tutti gli importi indicati nella dichiarazione devono
+ *   essere arrotondati all'unità di euro"). Advances (40% + 40%) are computed afterwards, in cents.
  * - Advance payments: Circ. AdE 10/E/2016 §4 ("si applicano tutte le disposizioni
  *   vigenti in materia di versamenti a saldo ed in acconto ... dell'IRPEF"); art. 72
  *   D.Lgs. 33/2025 (100% of the previous period's tax net of credits and withholdings);
@@ -89,8 +92,8 @@ export function computeTaxes(rules: FiscalRuleSet, input: TaxInput): TaxResult {
     : rules.flatRate.standardRatePct;
   const substituteTax = roundEuro((netIncome * taxRatePct) / 100);
   const taxNetOfCredits = Math.max(0, roundEuro(substituteTax - roundEuro(input.taxCredits ?? 0)));
-  const inpsTaxableIncome = Math.min(round2((input.collectedRevenue * coefficientPct) / 100), rules.inps.incomeCeiling);
-  const inpsContribution = round2((inpsTaxableIncome * input.inpsRatePct) / 100);
+  const inpsTaxableIncome = Math.min(grossIncome, rules.inps.incomeCeiling); // RR5 col. 11 from LM34
+  const inpsContribution = roundEuro((inpsTaxableIncome * input.inpsRatePct) / 100); // RR5 col. 15
   return { coefficientPct, grossIncome, contributionsDeducted, netIncome, taxRatePct, substituteTax, taxNetOfCredits, inpsTaxableIncome, inpsContribution };
 }
 
