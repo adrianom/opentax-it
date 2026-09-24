@@ -105,6 +105,12 @@ describe('formatting', () => {
 });
 
 describe('validateInvoice', () => {
+  it('requires a 6-character recipient code with FPA12 and 7 with FPR12 (error 00427)', () => {
+    expect(validateInvoice({ ...domestic, format: 'FPA12', recipientCode: 'UFABCD' })).not.toContain('recipientCode must be 6 characters with FPA12 (error 00427)');
+    expect(validateInvoice({ ...domestic, format: 'FPA12', recipientCode: 'ABCDEF1' })).toContain('recipientCode must be 6 characters with FPA12 (error 00427)');
+    expect(validateInvoice({ ...domestic, format: 'FPR12', recipientCode: 'UFABCD' })).toContain('recipientCode must be 7 characters with FPR12 (error 00427)');
+  });
+
   it('rejects XXXXXXX for an Italian customer and credit notes without reference', () => {
     expect(validateInvoice({ ...domestic, recipientCode: 'XXXXXXX' })).toContain('recipientCode XXXXXXX requires a non-IT customer (error 00313)');
     expect(validateInvoice({ ...domestic, documentType: 'TD04' })).toContain('credit/debit notes must reference the corrected invoice');

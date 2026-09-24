@@ -15,7 +15,7 @@ Esito della review dell'intero codice contro le fonti ufficiali; fonti e citazio
 5. ~~**Soglie 85.000 / 100.000 €**~~ fatto il 24/09/2026 — (L. 190/2014 c. 54 e 71): badge di avvicinamento in dashboard e in emissione (es. dall'80% di ciascuna soglia, sugli incassi dell'anno più il totale della fattura); sopra 85.000 € avviso che il regime cessa dall'anno successivo; sopra 100.000 € avviso bloccante all'emissione (il regime cessa dall'anno stesso e l'IVA è dovuta dalla fattura che fa superare la soglia) e niente calcolo forfettario né piano F24 per quell'anno. **Limite personale configurabile** nel profilo: cifra oltre la quale l'emissione viene bloccata (es. per restare sotto 85.000 €), con conferma esplicita per superarlo.
 6. ~~**Clienti esteri azienda o privato**~~ fatto il 24/09/2026 (resta il punto 14) —: UE privato → N2.2 senza "inversione contabile", INVCONT né Intrastat (art. 7-ter c. 1 lett. b); extra UE privato → N2.1 solo per i servizi dell'art. 7-septies.
 7. ~~**Fatture in valuta**~~ fatto il 24/09/2026: cambio obbligatorio in fattura (art. 13 c. 4 DPR 633/72) e all'incasso (TUIR art. 9 c. 2). Resta **da verificare** il bollo nelle fatture in valuta: soglia di 77,47 € sul controvalore in euro e i 2 € oggi sommati al totale nella valuta della fattura.
-8. **Fatture alla PA**: CodiceDestinatario di 6 caratteri con FPA12 (errore 00427); dati obbligatori FPA **da verificare**.
+8. ~~**Fatture alla PA**~~ in parte fatto il 24/09/2026: codice destinatario di 6 caratteri con FPA12 (errore 00427) ed emissione verso la PA bloccata finché manca la firma qualificata. Il resto è nell'epica "Fatture con firma digitale".
 9. **Maggiorazione anche sui debiti compensati** con partenza differita (Fasc. 1 §7, inferenza dalla regola generale: **da verificare**).
 10. **Crediti**: non proporre in F24 i crediti con `usableFrom` successivo alla data del modello; soglia 5.000 € per tipo di credito e anno.
 11. **Nome file SDI univoco**: controllare il progressivo contro tutti i file già trasmessi, anche importati o inviati con altri software (errore 00002); progressivo iniziale configurabile.
@@ -52,8 +52,9 @@ Emissione e XML sono pronti; manca la trasmissione.
 - Fatto: copia di cortesia in PDF con layout proprio, aperta in una nuova scheda (anteprima, stampa e download dal browser); per le fatture emesse i dati sono letti dall'XML salvato (PR #10).
 - Da fare: invio della fattura via email al cliente (copia di cortesia: l'originale è l'XML consegnato dallo SDI).
 
-### Fatture con firma digitale (.p7m) — priorità bassa
-- Non prioritaria: serve solo quando è richiesta (caso reale: fatturazione verso una pubblica amministrazione). **Da verificare** sulle Specifiche tecniche 1.9.1 e su fatturapa.gov.it quali casi la richiedono; poi firma CAdES-BES (`.xml.p7m`) con certificato dell'utente.
+### Fatture alla PA e firma digitale — priorità bassa
+- Verificato (fatturapa.gov.it, "Firmare la FatturaPA"): ogni fattura verso la PA "deve essere firmato dal soggetto che emette la fattura" con certificato di firma qualificata (AgID), in CAdES Baseline B (`.xml.p7m`) o XAdES Baseline B enveloped; "signing time" valorizzato, marca temporale non obbligatoria. Per le fatture tra privati la firma è facoltativa (Spec. 1.9.1 §1.2.1).
+- Oggi l'emissione verso la PA è bloccata. Per sbloccarla: firma con il certificato dell'utente (smart card/token o firma remota), invio del file firmato, e i dati obbligatori per la PA **da verificare** (es. CIG e CUP nei dati dell'ordine o del contratto, art. 25 DL 66/2014; regole del DM 55/2013 allegato A).
 
 ### Template di fattura
 - Righe ricorrenti, descrizioni e note salvate come modelli; duplicazione di una fattura esistente.
@@ -95,6 +96,10 @@ Una pagina di analisi dei dati già presenti (fatture, incassi, imposte, F24), s
 
 ### MCP server per assistenti AI
 - Esporre lettura (scadenze, riepilogo imposte, fatture) e azioni sicure (bozza fattura, registrazione incasso) come strumenti MCP, con permessi per tenant. Dipende dall'autenticazione.
+
+### Linguaggio semplice ("human friendly")
+- Rendere comprensibili i termini fiscali a chi non è del mestiere: etichette, messaggi e avvisi in parole semplici, con il termine tecnico (es. "rigo LM34", "N2.2", "DPPI") e il riferimento normativo disponibili a richiesta (tooltip o "cosa significa?").
+- Partire dalle pagine più dense (Imposte, F24, emissione fattura estera). La spiegazione semplice non deve cambiare il significato della fonte: ogni testo resta legato alla norma che riassume.
 
 ### Qualità
 - Test e2e dell'API su database reale (oggi c'è un solo test, e `test/app.e2e-spec.ts` non compila con `tsc`: mancano i tipi di `supertest/types`), in particolare: più bozze dello stesso anno e tipo, emissioni concorrenti con il lock per tenant, import con nomi file uguali; test dei componenti web.

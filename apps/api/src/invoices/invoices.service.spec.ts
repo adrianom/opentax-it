@@ -408,4 +408,12 @@ describe('InvoicesService.issue', () => {
     // 80,000 collected + 15,000 open + 6,000 = 101,000
     await expect(service.issue('tenant1', 'draft-1')).rejects.toThrow(ConflictException);
   });
+
+  it('refuses to issue an invoice to a public administration until qualified signing is supported', async () => {
+    const prismaMock = {
+      invoice: { findFirst: vi.fn().mockResolvedValue({ id: 'draft-1', tenantId: 'tenant1', status: 'DRAFT', date: new Date('2026-01-15T00:00:00Z'), year: 2026, customer: { kind: 'IT_PA' } }) },
+    } as unknown as PrismaService;
+    const service = new InvoicesService(prismaMock, {} as unknown as FiscalRulesService, {} as unknown as TenantsService, {} as unknown as StorageService, new InvoicesPdfService());
+    await expect(service.issue('tenant1', 'draft-1')).rejects.toThrow('firma qualificata');
+  });
 });

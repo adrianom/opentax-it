@@ -101,7 +101,10 @@ export function computeTotals(inv: FlatRateInvoice) {
 export function validateInvoice(inv: FlatRateInvoice): string[] {
   const errors: string[] = [];
   if (!/^[A-Za-z0-9]{1,10}$/.test(inv.transmissionId)) errors.push('transmissionId must be 1-10 alphanumeric characters');
-  if (!/^[A-Z0-9]{7}$/.test(inv.recipientCode)) errors.push('recipientCode must be 7 characters');
+  // Spec 1.9.1, error 00427: 6 characters (IPA office code) with FPA12, 7 with FPR12.
+  if (inv.format === 'FPA12' ? !/^[A-Z0-9]{6}$/.test(inv.recipientCode) : !/^[A-Z0-9]{7}$/.test(inv.recipientCode)) {
+    errors.push(`recipientCode must be ${inv.format === 'FPA12' ? 6 : 7} characters with ${inv.format} (error 00427)`);
+  }
   if (inv.recipientCode === 'XXXXXXX' && inv.customer.countryCode === 'IT') errors.push('recipientCode XXXXXXX requires a non-IT customer (error 00313)');
   if (inv.number.length > 20) errors.push('number exceeds 20 characters');
   if (sanitizeText(inv.legalReference).length > 100) errors.push('legalReference exceeds 100 characters');

@@ -105,7 +105,7 @@ export interface FlatRateInvoice {
   format: TransmissionFormat;
   /** ProgressivoInvio: unique per transmitter, max 10 alphanumeric chars. */
   transmissionId: string;
-  /** CodiceDestinatario: 7 chars ("0000000" with PEC or unknown channel, "XXXXXXX" for foreign customers). */
+  /** CodiceDestinatario: 7 chars with FPR12 ("0000000" with PEC or unknown channel, "XXXXXXX" for foreign customers); 6 chars (IPA office code) with FPA12. */
   recipientCode: string;
   /** PECDestinatario. */
   recipientPec?: string;

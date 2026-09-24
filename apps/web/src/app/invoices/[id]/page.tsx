@@ -1,6 +1,8 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { api, customerLabel, fetchOrNull, formatDate, formatMoney, inpsSurchargeLabel } from '@/lib/api';
+import { TriangleAlert } from 'lucide-react';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
@@ -81,6 +83,13 @@ export default async function InvoicePage({ params }: PageProps<'/invoices/[id]'
           </CardHeader>
           <CardContent className="space-y-4">
             <p className="text-sm text-muted-foreground">Scadenza: {chosenTerms ? `${chosenTerms.name} (${chosenTerms.days} gg)` : 'nessuna'} · Banca: {chosenBank ? chosenBank.name : 'nessuna'}. Puoi modificare i valori qui sotto prima di emettere.</p>
+            {inv.customer.kind === 'IT_PA' && (
+              <Alert variant="warning">
+                <TriangleAlert />
+                <AlertTitle>Fattura verso la pubblica amministrazione</AlertTitle>
+                <AlertDescription>Le fatture verso la PA vanno firmate con un certificato di firma qualificata (CAdES .xml.p7m o XAdES, fatturapa.gov.it &quot;Firmare la FatturaPA&quot;). La firma non è ancora supportata: l&apos;emissione è bloccata, usa un altro strumento per questa fattura.</AlertDescription>
+              </Alert>
+            )}
             <IssueForm id={inv.id} defaultDueDate={defaultDueDate} defaultIban={chosenBank?.iban} thresholds={thresholds} />
           </CardContent>
         </Card>

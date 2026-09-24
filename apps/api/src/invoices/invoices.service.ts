@@ -205,6 +205,11 @@ export class InvoicesService {
   async issue(tenantId: string, id: string, dto?: { payment?: CreateInvoiceDto['payment']; confirmThresholds?: boolean }) {
     const existing = await this.get(tenantId, id);
     if (existing.status !== 'DRAFT') throw new BadRequestException('Invoice already issued');
+    // Invoices to public administrations must be signed with a qualified certificate (fatturapa.gov.it,
+    // "Firmare la FatturaPA": CAdES .xml.p7m or XAdES): signing is not supported yet (see TODO.md).
+    if (existing.customer?.kind === 'IT_PA') {
+      throw new BadRequestException('Le fatture verso la pubblica amministrazione vanno firmate con un certificato di firma qualificata (CAdES o XAdES): la firma non è ancora supportata, emetti questa fattura con un altro strumento');
+    }
     // SDI rejects an invoice dated after its receipt (error 00403): the date must not be in the future.
     const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Rome' }).format(new Date());
     if (existing.date.toISOString().slice(0, 10) > today) throw new BadRequestException('The invoice date cannot be in the future');
