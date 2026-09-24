@@ -6,6 +6,12 @@ import { FiscalRulesService } from './fiscal-rules.service.js';
 export class FiscalRulesController {
   constructor(private readonly service: FiscalRulesService) {}
 
+  /** Content of one stored set, with the source of each value and the changes from the active set. */
+  @Get('sets/:id')
+  describe(@Param('id') id: string) {
+    return this.service.describe(id);
+  }
+
   @Get(':year')
   list(@Param('year', ParseIntPipe) year: number) {
     return this.service.listByYear(year);

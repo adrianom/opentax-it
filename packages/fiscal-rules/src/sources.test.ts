@@ -5,7 +5,7 @@ import { describe, expect, it } from 'vitest';
 import type { FiscalRuleSet } from './rule-set';
 import { ruleSet2025 } from './rule-sets/2025';
 import { ruleSet2026 } from './rule-sets/2026';
-import { locateQuote, missingQuoteFragments, normalizeForQuote, quoteFragments, quoteLocator, SourceRegistrySchema } from './sources';
+import { diffRuleSets, DOCUMENT_REF_KEYS, locateQuote, missingQuoteFragments, normalizeForQuote, quoteFragments, quoteLocator, refKeyFor, ruleFieldPaths, SourceRegistrySchema } from './sources';
 
 const DIR = fileURLToPath(new URL('../../../docs/fonti/', import.meta.url));
 const registry = SourceRegistrySchema.parse(JSON.parse(readFileSync(DIR + 'registro.json', 'utf8')));
@@ -57,51 +57,20 @@ describe('source registry', () => {
   });
 });
 
-/**
- * Entries that are not a value of the rule set: the INPS reasons table as a whole, and the rule
- * (applied in `inpsAdvance`) that the INPS advance uses the rates of the following year.
- */
-const DOCUMENT_KEYS = new Set(['inpsReasons.table', 'inps.advanceRateYear']);
-
-/** Dotted paths of the values of a rule set; the ATECO table counts as one value. */
-function fieldPaths(rules: FiscalRuleSet): Map<string, unknown> {
-  const { year: _year, sourceRefs: _refs, ...data } = rules;
-  const out = new Map<string, unknown>();
-  const walk = (value: unknown, path: string) => {
-    if (value && typeof value === 'object' && !Array.isArray(value) && !path.endsWith('profitabilityByAteco')) {
-      for (const [k, v] of Object.entries(value)) walk(v, path ? `${path}.${k}` : k);
-    } else out.set(path, value);
-  };
-  walk(data, '');
-  return out;
-}
-
-/**
- * Sections whose entry quotes one passage with all their values (e.g. the four tax codes in one
- * list of the instructions). Any other field needs its own entry.
- */
-const SECTION_KEYS = new Set([
-  'deadlines.installmentsEnd', 'deadlines.augustDeferral', 'installments', 'stampDuty', 'taxCodes', 'inpsReasons',
-  'eInvoice', 'taxNotices', 'taxNotices.summerSuspension', 'penalties', 'intrastat',
-]);
-
-/** The sourceRefs key covering a field: its own entry or the entry of a section in SECTION_KEYS. */
-const refKeyFor = (rules: FiscalRuleSet, path: string) =>
-  path in rules.sourceRefs
-    ? path
-    : Object.keys(rules.sourceRefs).filter((k) => SECTION_KEYS.has(k) && path.startsWith(`${k}.`)).sort((a, b) => b.length - a.length)[0];
+const fieldPaths = (rules: FiscalRuleSet) => ruleFieldPaths(rules);
+const refKey = (rules: FiscalRuleSet, path: string) => refKeyFor(rules.sourceRefs, path);
 
 describe.each([ruleSet2025, ruleSet2026] as FiscalRuleSet[])('sourceRefs of rule set $year', (rules) => {
   const refs = Object.entries(rules.sourceRefs);
   const fields = fieldPaths(rules);
 
-  it('cover every field, with its own entry or the entry of a listed section', () => {
-    expect([...fields.keys()].filter((path) => !refKeyFor(rules, path))).toEqual([]);
+  it('cover every field, with its own entry or the entry of a section in SECTION_REF_KEYS', () => {
+    expect([...fields.keys()].filter((path) => !refKey(rules, path))).toEqual([]);
   });
 
   it('are keyed by fields or sections of the rule set', () => {
     const paths = [...fields.keys()];
-    expect(refs.map(([key]) => key).filter((key) => !DOCUMENT_KEYS.has(key) && !paths.some((p) => p === key || p.startsWith(`${key}.`)))).toEqual([]);
+    expect(refs.map(([key]) => key).filter((key) => !DOCUMENT_REF_KEYS.has(key) && !paths.some((p) => p === key || p.startsWith(`${key}.`)))).toEqual([]);
   });
 
   it('point to a registered source with the same URL', () => {
@@ -130,8 +99,29 @@ describe('rule set 2025 derived from 2026', () => {
     const fields2026 = fieldPaths(ruleSet2026);
     const inherited = [...fieldPaths(ruleSet2025)]
       .filter(([path, value]) => JSON.stringify(value) !== JSON.stringify(fields2026.get(path)))
-      .filter(([path]) => ruleSet2025.sourceRefs[refKeyFor(ruleSet2025, path)] === ruleSet2026.sourceRefs[refKeyFor(ruleSet2026, path)])
+      .filter(([path]) => ruleSet2025.sourceRefs[refKey(ruleSet2025, path)!] === ruleSet2026.sourceRefs[refKey(ruleSet2026, path)!])
       .map(([path]) => path);
     expect(inherited).toEqual([]);
+  });
+});
+
+describe('diffRuleSets', () => {
+  it('lists changed values by field and changed sources by entry, ignoring the verification date', () => {
+    const { sourceRefs: refs2026, ...data2026 } = ruleSet2026;
+    const { sourceRefs: refs2025, ...data2025 } = ruleSet2025;
+    const diff = diffRuleSets({ data: data2025, sourceRefs: refs2025 }, { data: data2026, sourceRefs: refs2026 });
+    expect(diff.values).toContainEqual({ path: 'inps.incomeCeiling', before: 120_607, after: 122_295 });
+    expect(diff.values.map((v) => v.path)).not.toContain('inps.fullRatePct');
+    expect(diff.sources.map((s) => s.key)).toContain('inps.fullRatePct');
+    const redated = { ...refs2026, 'inps.fullRatePct': { ...refs2026['inps.fullRatePct'], verifiedOn: '2030-01-01' } };
+    expect(diffRuleSets({ data: data2026, sourceRefs: refs2026 }, { data: data2026, sourceRefs: redated })).toEqual({ values: [], sources: [] });
+  });
+
+  it('treats days of the year and the ATECO table as single values', () => {
+    const paths = [...ruleFieldPaths(ruleSet2026).keys()];
+    expect(paths).toContain('deadlines.installmentsEnd');
+    expect(paths).toContain('taxNotices.summerSuspension');
+    expect(paths).toContain('flatRate.profitabilityByAteco');
+    expect(paths).not.toContain('year');
   });
 });

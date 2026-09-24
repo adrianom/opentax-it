@@ -185,6 +185,8 @@ export async function updateTenantProfile(_prev: ActionState, formData: FormData
 
 export async function activateRuleSet(formData: FormData) {
   await api.activateRuleSet(String(formData.get('id')));
+  revalidatePath('/rules');
+  revalidatePath('/sources', 'layout');
   revalidatePath('/setup');
   revalidatePath('/dashboard');
   revalidatePath('/deadlines');
@@ -192,7 +194,7 @@ export async function activateRuleSet(formData: FormData) {
 
 export async function seedRuleSets() {
   await api.seedRuleSets();
-  revalidatePath('/setup');
+  revalidatePath('/rules');
 }
 
 export async function addPayment(_prev: ActionState, formData: FormData): Promise<ActionState> {

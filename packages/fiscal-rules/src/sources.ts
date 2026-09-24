@@ -128,3 +128,66 @@ export function locateQuote(text: string, quote: string): QuoteLocation {
 export function missingQuoteFragments(text: string, quote: string): string[] {
   return locateQuote(text, quote).missing;
 }
+
+/**
+ * Sections whose `sourceRefs` entry quotes one passage with all their values (e.g. the four tax
+ * codes in one list of the instructions). Any other field needs its own entry.
+ */
+export const SECTION_REF_KEYS: ReadonlySet<string> = new Set(['installments', 'stampDuty', 'taxCodes', 'inpsReasons', 'eInvoice', 'taxNotices', 'penalties', 'intrastat']);
+
+/**
+ * `sourceRefs` entries that are not a value of the rule set: the INPS reasons table as a whole,
+ * and the rule (applied in `inpsAdvance`) that the INPS advance uses the rates of the following year.
+ */
+export const DOCUMENT_REF_KEYS: ReadonlySet<string> = new Set(['inpsReasons.table', 'inps.advanceRateYear']);
+
+const isMonthDay = (v: unknown) => !!v && typeof v === 'object' && Object.keys(v).sort().join() === 'day,month';
+const isRange = (v: unknown) => !!v && typeof v === 'object' && Object.keys(v).sort().join() === 'from,to';
+
+/**
+ * Values of a rule set by dotted path, in declaration order. A value is a number, string,
+ * list, day of the year, range of days or the ATECO table; `year` and `sourceRefs` are left out.
+ */
+export function ruleFieldPaths(data: object): Map<string, unknown> {
+  const out = new Map<string, unknown>();
+  const walk = (value: unknown, path: string) => {
+    if (value && typeof value === 'object' && !Array.isArray(value) && !isMonthDay(value) && !isRange(value) && !path.endsWith('profitabilityByAteco')) {
+      for (const [k, v] of Object.entries(value)) if (path || (k !== 'year' && k !== 'sourceRefs')) walk(v, path ? `${path}.${k}` : k);
+    } else out.set(path, value);
+  };
+  walk(data, '');
+  return out;
+}
+
+/** The `sourceRefs` key covering a field: its own entry or the entry of a section in SECTION_REF_KEYS. */
+export function refKeyFor(sourceRefs: Record<string, unknown>, path: string): string | undefined {
+  if (path in sourceRefs) return path;
+  return Object.keys(sourceRefs).filter((k) => SECTION_REF_KEYS.has(k) && path.startsWith(`${k}.`)).sort((a, b) => b.length - a.length)[0];
+}
+
+export interface RuleSetDiff {
+  /** Fields whose value differs; `before`/`after` undefined when the field is missing on that side. */
+  values: Array<{ path: string; before: unknown; after: unknown }>;
+  /** sourceRefs entries whose source, title, quote or additional sources differ (the verification date alone is not a change). */
+  sources: Array<{ key: string; before?: Record<string, unknown>; after?: Record<string, unknown> }>;
+}
+
+const same = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b);
+const withoutDate = (ref: unknown) => {
+  if (!ref || typeof ref !== 'object') return ref;
+  const { verifiedOn: _verifiedOn, ...rest } = ref as Record<string, unknown>;
+  return rest;
+};
+
+/** What changes from one rule set to another: values by field and sources by entry. */
+export function diffRuleSets(from: { data: object; sourceRefs: Record<string, unknown> }, to: { data: object; sourceRefs: Record<string, unknown> }): RuleSetDiff {
+  const a = ruleFieldPaths(from.data);
+  const b = ruleFieldPaths(to.data);
+  const values = [...new Set([...a.keys(), ...b.keys()])]
+    .filter((path) => !same(a.get(path), b.get(path)))
+    .map((path) => ({ path, before: a.get(path), after: b.get(path) }));
+  const sources = [...new Set([...Object.keys(from.sourceRefs), ...Object.keys(to.sourceRefs)])]
+    .filter((key) => !same(withoutDate(from.sourceRefs[key]), withoutDate(to.sourceRefs[key])))
+    .map((key) => ({ key, before: from.sourceRefs[key] as Record<string, unknown> | undefined, after: to.sourceRefs[key] as Record<string, unknown> | undefined }));
+  return { values, sources };
+}

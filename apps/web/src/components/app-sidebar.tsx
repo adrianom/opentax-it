@@ -1,6 +1,6 @@
 'use client';
 
-import { BadgePercent, CalendarClock, CalendarDays, Calculator, FileText, Landmark, LayoutDashboard, Library, Receipt, Settings, Users } from 'lucide-react';
+import { BadgePercent, CalendarClock, CalendarDays, Calculator, FileText, Landmark, LayoutDashboard, Library, Receipt, Scale, Settings, Users } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
@@ -34,7 +34,7 @@ const CONFIG_NAV = [
 const GROUPS = [
   { label: 'Gestione', items: NAV },
   { label: 'Configurazione', items: CONFIG_NAV },
-  { label: 'Normativa', items: [{ href: '/sources', label: 'Fonti ufficiali', icon: Library }] },
+  { label: 'Normativa', items: [{ href: '/rules', label: 'Regole fiscali', icon: Scale }, { href: '/sources', label: 'Fonti ufficiali', icon: Library }] },
 ];
 
 export function AppSidebar({ tenantName }: { tenantName: string | null }) {

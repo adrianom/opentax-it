@@ -17,6 +17,7 @@ export interface RuleSetSummary {
   status: 'DRAFT' | 'PROPOSED' | 'ACTIVE' | 'SUPERSEDED';
   activatedAt: string | null;
   notes: string | null;
+  createdAt: string;
 }
 
 export interface Tenant {
@@ -392,4 +393,25 @@ export interface SourceCitation {
 export interface SourceDetail {
   source: SourceRecord;
   citations: SourceCitation[];
+}
+
+export interface RuleSourceRef {
+  sourceId?: string;
+  url: string;
+  title: string;
+  quote: string;
+  verifiedOn: string;
+  additional?: Array<{ sourceId: string; quote: string }>;
+}
+
+/** A stored rule set with the source of each value and the changes from the active set of its year. */
+export interface RuleSetDetail extends RuleSetSummary {
+  fields: Array<{ path: string; value: unknown; refKey: string | null; ref: RuleSourceRef | null }>;
+  /** sourceRefs entries that are not a value (e.g. the INPS reasons table). */
+  documents: Array<{ key: string; ref: RuleSourceRef }>;
+  comparison: {
+    against: { id: string; version: number };
+    values: Array<{ path: string; before: unknown; after: unknown }>;
+    sources: Array<{ key: string; before?: RuleSourceRef; after?: RuleSourceRef }>;
+  } | null;
 }

@@ -13,9 +13,9 @@ const FORMAT_LABELS = { pdf: 'PDF', html: 'testo della pagina', xls: 'foglio XLS
 function Citation({ c }: { c: SourceCitation }) {
   const value = ruleValueLabel(c.key, c.value);
   return (
-    <div className="space-y-2 border-t pt-4 first:border-t-0 first:pt-0">
+    <div id={`${c.year}-${c.key}`} className="scroll-mt-4 space-y-2 border-t pt-4 first:border-t-0 first:pt-0">
       <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-        <span className="font-medium">{RULE_LABELS[c.key] ?? c.key}</span>
+        <Link href={`/rules?year=${c.year}#${c.key}`} className="font-medium hover:underline">{RULE_LABELS[c.key] ?? c.key}</Link>
         {value && <span className="font-mono text-sm tabular-nums">{value}</span>}
         {!c.main && <Badge variant="outline">fonte aggiuntiva</Badge>}
       </div>

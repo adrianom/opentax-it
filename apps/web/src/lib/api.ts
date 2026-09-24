@@ -1,6 +1,6 @@
 import 'server-only';
 import { cookies } from 'next/headers';
-import type { BankAccount, Customer, Deadline, SourceDetail, SourceSummary, F24, ImportResult, InstallmentPlan, Invoice, InvoiceDetail, Payment, ThresholdOutlook, PaymentTerms, PlanOptions, PlanPreview, RuleSetSummary, TaxCredit, TaxSummary, TaxYearData, Tenant, TenantWithProfile } from './types';
+import type { BankAccount, Customer, Deadline, RuleSetDetail, SourceDetail, SourceSummary, F24, ImportResult, InstallmentPlan, Invoice, InvoiceDetail, Payment, ThresholdOutlook, PaymentTerms, PlanOptions, PlanPreview, RuleSetSummary, TaxCredit, TaxSummary, TaxYearData, Tenant, TenantWithProfile } from './types';
 
 export * from './types';
 export * from './format';
@@ -69,6 +69,7 @@ export const api = {
   inpsOffices: () => request<Array<{ id: string; code: string; name: string }>>('/tenants/inps-offices'),
   createTenant: (data: unknown) => request<Tenant>('/tenants', { method: 'POST', body: JSON.stringify(data) }),
   ruleSets: (year: number) => request<RuleSetSummary[]>(`/fiscal-rules/${year}`),
+  ruleSet: (id: string) => request<RuleSetDetail>(`/fiscal-rules/sets/${seg(id)}`),
   /** Only the fields the web needs from the active rule set of the year. */
   activeRules: (year: number) => request<{ inps: { surchargePct: number; fullRatePct: number; reducedRatePct: number }; installments: { annualInterestPct: number; incrementPct: number } }>(`/fiscal-rules/${year}/active`),
   ruleSetStatus: (year: number) => request<{ year: number; ok: boolean; reason?: string }>(`/fiscal-rules/${year}/status`),

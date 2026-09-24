@@ -3,12 +3,17 @@ import { createHash } from 'node:crypto';
 import { ZodError } from 'zod';
 import {
   buildDeadlines,
+  diffRuleSets,
+  DOCUMENT_REF_KEYS,
   parseFiscalRuleSet,
+  refKeyFor,
+  ruleFieldPaths,
   ruleSet2025,
   ruleSet2026,
   type Deadline,
   type DeadlineOptions,
   type FiscalRuleSet,
+  type SourceRef,
 } from '@opentax-it/fiscal-rules';
 import { PrismaService } from '../prisma/prisma.service.js';
 
@@ -45,7 +50,7 @@ export class FiscalRulesService {
       if (latest && contentHash(latest.data, latest.sourceRefs) === contentHash(data, sourceRefs)) continue;
       const version = (latest?.version ?? 0) + 1;
       await this.prisma.fiscalRuleSet.create({
-        data: { year: rules.year, version, status: 'DRAFT', data, sourceRefs, notes: 'Bundled with the application' },
+        data: { year: rules.year, version, status: 'DRAFT', data, sourceRefs, notes: "Fornito con l'applicazione" },
       });
       inserted.push({ year: rules.year, version });
     }
@@ -58,6 +63,29 @@ export class FiscalRulesService {
       orderBy: { version: 'desc' },
       select: { id: true, year: true, version: true, status: true, activatedAt: true, notes: true, createdAt: true },
     });
+  }
+
+  /**
+   * A stored rule set as read by a person: every value with the sourceRefs entry that covers it,
+   * the entries that are not values, and, when it is not the active set, what changes from the
+   * active set of the same year. Works on the stored JSON, so older sets are shown as they are.
+   */
+  async describe(id: string) {
+    const row = await this.prisma.fiscalRuleSet.findUnique({ where: { id } });
+    if (!row) throw new NotFoundException(`Rule set ${id} not found`);
+    const data = row.data as object;
+    const sourceRefs = row.sourceRefs as Record<string, SourceRef>;
+    const fields = [...ruleFieldPaths(data)].map(([path, value]) => {
+      const refKey = refKeyFor(sourceRefs, path);
+      return { path, value, refKey: refKey ?? null, ref: refKey ? sourceRefs[refKey] : null };
+    });
+    const documents = Object.keys(sourceRefs).filter((key) => DOCUMENT_REF_KEYS.has(key)).map((key) => ({ key, ref: sourceRefs[key] }));
+    const active = row.status === 'ACTIVE' ? null : await this.prisma.fiscalRuleSet.findFirst({ where: { year: row.year, status: 'ACTIVE' }, orderBy: { version: 'desc' } });
+    const comparison = active
+      ? { against: { id: active.id, version: active.version }, ...diffRuleSets({ data: active.data as object, sourceRefs: active.sourceRefs as Record<string, unknown> }, { data, sourceRefs }) }
+      : null;
+    const { id: _id, data: _data, sourceRefs: _refs, ...meta } = row;
+    return { id: row.id, ...meta, fields, documents, comparison };
   }
 
   /**
