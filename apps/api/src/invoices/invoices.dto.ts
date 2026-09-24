@@ -41,6 +41,8 @@ export class UpdateInvoiceDto extends CreateInvoiceDto {}
 
 export class IssueInvoiceDto {
   @IsOptional() @ValidateNested() @Type(() => InvoicePaymentDto) payment?: InvoicePaymentDto;
+  /** Issue even when the projected revenue exceeds 100,000 or the personal limit. */
+  @IsOptional() @IsBoolean() confirmThresholds?: boolean;
 }
 
 export class ListInvoicesQuery {

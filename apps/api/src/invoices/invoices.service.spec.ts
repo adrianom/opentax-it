@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
-import { BadRequestException, UnprocessableEntityException } from '@nestjs/common';
+import { BadRequestException, ConflictException, UnprocessableEntityException } from '@nestjs/common';
+import { ruleSet2026 } from '@opentax-it/fiscal-rules';
 import { Prisma } from '../generated/prisma/client.js';
 import type { FiscalRulesService } from '../fiscal-rules/fiscal-rules.service.js';
 import type { PrismaService } from '../prisma/prisma.service.js';
@@ -381,10 +382,30 @@ describe('InvoicesService.issue', () => {
       new InvoicesPdfService(),
     );
 
-    await expect(service.issue('tenant1', 'draft-1')).rejects.toThrow('Invoice already issued');
+    await expect(service.issue('tenant1', 'draft-1', { confirmThresholds: true })).rejects.toThrow('Invoice already issued');
     expect(calls).toEqual(['lock:SELECT pg_advisory_xact_lock(hashtext(?)):issue:tenant1', 'recheck']);
     expect(tx.invoice.aggregate).not.toHaveBeenCalled();
     expect(tx.invoice.update).not.toHaveBeenCalled();
     expect(write).not.toHaveBeenCalled();
+  });
+
+  it('asks for a confirmation when the projected revenue goes above 100,000 (L. 190/2014 par. 71)', async () => {
+    const draft = { id: 'draft-1', tenantId: 'tenant1', status: 'DRAFT', type: 'TD01', date: new Date('2026-01-15T00:00:00Z'), year: 2026, total: 6000, exchangeRate: 1 };
+    const prismaMock = {
+      invoice: {
+        findFirst: vi.fn().mockResolvedValue(draft),
+        findMany: vi.fn().mockResolvedValue([{ total: 15000, exchangeRate: 1, payments: [] }]),
+      },
+      payment: { aggregate: vi.fn().mockResolvedValue({ _sum: { amountEur: 80000 } }) },
+    } as unknown as PrismaService;
+    const service = new InvoicesService(
+      prismaMock,
+      { getActive: vi.fn().mockResolvedValue(ruleSet2026) } as unknown as FiscalRulesService,
+      { getWithProfile: vi.fn().mockResolvedValue({ profile: { revenueLimit: null } }) } as unknown as TenantsService,
+      {} as unknown as StorageService,
+      new InvoicesPdfService(),
+    );
+    // 80,000 collected + 15,000 open + 6,000 = 101,000
+    await expect(service.issue('tenant1', 'draft-1')).rejects.toThrow(ConflictException);
   });
 });

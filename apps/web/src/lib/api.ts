@@ -1,6 +1,6 @@
 import 'server-only';
 import { cookies } from 'next/headers';
-import type { BankAccount, Customer, Deadline, F24, ImportResult, InstallmentPlan, Invoice, InvoiceDetail, Payment, PaymentTerms, PlanOptions, PlanPreview, RuleSetSummary, TaxCredit, TaxSummary, TaxYearData, Tenant, TenantWithProfile } from './types';
+import type { BankAccount, Customer, Deadline, F24, ImportResult, InstallmentPlan, Invoice, InvoiceDetail, Payment, ThresholdOutlook, PaymentTerms, PlanOptions, PlanPreview, RuleSetSummary, TaxCredit, TaxSummary, TaxYearData, Tenant, TenantWithProfile } from './types';
 
 export * from './types';
 export * from './format';
@@ -84,6 +84,8 @@ export const api = {
   deleteCustomer: (id: string) => tenantRequest<void>(`/customers/${seg(id)}`, { method: 'DELETE' }),
   invoices: (year?: number) => tenantRequest<Invoice[]>(`/invoices${year ? `?year=${year}` : ''}`),
   invoiceYears: () => tenantRequest<number[]>('/invoices/years'),
+  thresholds: () => tenantRequest<ThresholdOutlook>('/invoices/thresholds'),
+  invoiceThresholds: (id: string) => tenantRequest<ThresholdOutlook>(`/invoices/${seg(id)}/thresholds`),
   invoice: (id: string) => tenantRequest<InvoiceDetail>(`/invoices/${seg(id)}`),
   createInvoice: (data: unknown) => tenantRequest<Invoice>('/invoices', { method: 'POST', body: JSON.stringify(data) }),
   updateInvoice: (id: string, data: unknown) => tenantRequest<Invoice>(`/invoices/${seg(id)}`, { method: 'PUT', body: JSON.stringify(data) }),

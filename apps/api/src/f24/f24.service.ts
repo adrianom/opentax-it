@@ -1,4 +1,4 @@
-import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ConflictException, Injectable, NotFoundException, UnprocessableEntityException } from '@nestjs/common';
 import {
   buildCompensation,
   buildPaymentSchedule,
@@ -75,6 +75,11 @@ export class F24Service {
     const office = profile.inpsOfficeId ? findInpsOfficeById(profile.inpsOfficeId) : undefined;
     if (!office) throw new BadRequestException('Set the INPS office (codice sede) in the profile before generating F24 forms');
     const [summary, { paymentRules, paymentRulesYear, warnings }] = await Promise.all([this.taxes.summary(tenantId, taxYear), this.taxes.rulesForTaxYear(taxYear)]);
+    // Above 100,000 the regime ends in the same year and income is determined in the ordinary way for the
+    // whole year (L. 190/2014 par. 71; Redditi PF 2026 booklet 3): the flat-rate amounts do not apply.
+    if (summary.thresholds.exceedsExitThreshold) {
+      throw new UnprocessableEntityException(`Incassato ${taxYear} oltre ${summary.thresholds.exitThreshold} €: il regime forfettario è cessato nell'anno e il reddito va determinato in modo ordinario, quindi il piano F24 forfettario non si genera (L. 190/2014 c. 71).`);
+    }
     const start = this.startOptions(paymentRules).find((o) => o.start === dto.start);
     if (!start) throw new BadRequestException(`Start "${dto.start}" is not available for ${paymentRulesYear}`);
     if (dto.installments > start.maxInstallments) throw new BadRequestException(`At most ${start.maxInstallments} installments from ${start.date} (plan must end by 16 December)`);

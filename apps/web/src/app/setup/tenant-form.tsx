@@ -76,6 +76,14 @@ export function TenantForm({ offices, current, surchargePct }: Props) {
       <Field label="Provincia" htmlFor="province"><Input id="province" name="province" required minLength={2} maxLength={2} defaultValue={p?.province ?? ''} /></Field>
       <Field label="PEC (per l'invio allo SDI)" htmlFor="pecAddress"><Input id="pecAddress" name="pecAddress" type="email" defaultValue={p?.pecAddress ?? ''} /></Field>
       <Field
+        label="Limite personale di incassi nell'anno (€)"
+        htmlFor="revenueLimit"
+        hint="Facoltativo. Es. 84000 per restare sotto gli 85.000 €"
+        help={<HelpTip><p>Quando emetti una fattura, incassato dell&apos;anno + fatture non ancora incassate + la nuova fattura vengono confrontati con questo limite: se lo superano, l&apos;emissione chiede una conferma esplicita. Le soglie di legge restano quelle della L. 190/2014 c. 54 e 71 (85.000 €: uscita dall&apos;anno successivo; 100.000 €: uscita immediata e IVA dalla fattura che fa superare la soglia).</p></HelpTip>}
+      >
+        <Input id="revenueLimit" name="revenueLimit" type="number" min={1} max={1000000} step="1" defaultValue={p?.revenueLimit ? Number(p.revenueLimit) : ''} />
+      </Field>
+      <Field
         label="Sede INPS (codice sede F24)"
         htmlFor="inpsOfficeId"
         help={

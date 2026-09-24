@@ -14,6 +14,10 @@ export class InvoicesController {
   @Post('import')
   importXml(@TenantId() tenantId: string, @Body() dto: ImportInvoicesDto) { return this.importer.importFiles(tenantId, dto.files); }
 
+  /** Revenue thresholds of the current year (declared before ':id' routes). */
+  @Get('thresholds') thresholds(@TenantId() tenantId: string) { return this.service.thresholds(tenantId); }
+  @Get(':id/thresholds') invoiceThresholds(@TenantId() tenantId: string, @Param('id') id: string) { return this.service.thresholds(tenantId, id); }
+
   /** Years that have at least one invoice (declared before ':id' routes). */
   @Get('years') years(@TenantId() tenantId: string) { return this.service.years(tenantId); }
 

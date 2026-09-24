@@ -17,7 +17,9 @@ export default async function InvoicePage({ params }: PageProps<'/invoices/[id]'
   const isDraft = inv.status === 'DRAFT';
   const rules = Number(inv.inpsSurcharge) > 0 ? await fetchOrNull(() => api.activeRules(inv.year)) : null;
   const payments = isDraft ? [] : ((await fetchOrNull(() => api.payments(id))) ?? []);
-  const [terms, banks] = isDraft ? await Promise.all([fetchOrNull(() => api.paymentTerms()), fetchOrNull(() => api.bankAccounts())]) : [null, null];
+  const [terms, banks, thresholds] = isDraft
+    ? await Promise.all([fetchOrNull(() => api.paymentTerms()), fetchOrNull(() => api.bankAccounts()), fetchOrNull(() => api.invoiceThresholds(id))])
+    : [null, null, null];
   const chosenTerms = terms?.find((t) => t.id === inv.paymentTermsId) ?? terms?.find((t) => t.isDefault);
   const chosenBank = banks?.find((b) => b.id === inv.bankAccountId) ?? banks?.find((b) => b.isDefault);
   const defaultDueDate = chosenTerms ? new Date(new Date(inv.date).getTime() + chosenTerms.days * 86_400_000).toISOString().slice(0, 10) : undefined;
@@ -79,7 +81,7 @@ export default async function InvoicePage({ params }: PageProps<'/invoices/[id]'
           </CardHeader>
           <CardContent className="space-y-4">
             <p className="text-sm text-muted-foreground">Scadenza: {chosenTerms ? `${chosenTerms.name} (${chosenTerms.days} gg)` : 'nessuna'} · Banca: {chosenBank ? chosenBank.name : 'nessuna'}. Puoi modificare i valori qui sotto prima di emettere.</p>
-            <IssueForm id={inv.id} defaultDueDate={defaultDueDate} defaultIban={chosenBank?.iban} />
+            <IssueForm id={inv.id} defaultDueDate={defaultDueDate} defaultIban={chosenBank?.iban} thresholds={thresholds} />
           </CardContent>
         </Card>
       ) : (

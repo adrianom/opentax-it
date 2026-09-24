@@ -26,6 +26,7 @@ export interface Tenant {
 }
 
 export interface TenantProfile {
+  revenueLimit: string | null;
   businessName: string | null;
   firstName: string;
   lastName: string;
@@ -327,4 +328,23 @@ export interface InstallmentPlan {
   ruleSetVersion?: number | null;
   createdAt: string;
   f24s: F24[];
+}
+
+export type ThresholdLevel = 'OK' | 'NEAR' | 'OVER';
+
+/** Revenue thresholds of the current year (L. 190/2014 par. 54 and 71), cash basis plus projection. */
+export interface ThresholdOutlook {
+  collectedRevenue: number;
+  accessThreshold: number;
+  exitThreshold: number;
+  exceedsAccessThreshold: boolean;
+  exceedsExitThreshold: boolean;
+  outstanding: number;
+  invoiceTotal: number;
+  projected: number;
+  accessLevel: ThresholdLevel;
+  exitLevel: ThresholdLevel;
+  personalLimit: number | null;
+  projectedOverExit: boolean;
+  projectedOverPersonalLimit: boolean;
 }

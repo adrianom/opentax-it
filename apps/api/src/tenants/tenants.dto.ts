@@ -1,4 +1,4 @@
-import { IsBoolean, IsEmail, IsInt, IsOptional, IsString, Length, Matches, Max, MaxLength, Min } from 'class-validator';
+import { IsBoolean, IsEmail, IsInt, IsNumber, IsOptional, IsString, Length, Matches, Max, MaxLength, Min } from 'class-validator';
 
 export class CreateTenantDto {
   @IsString() @Length(1, 120) name!: string;
@@ -17,6 +17,8 @@ export class CreateTenantDto {
   @IsOptional() @IsBoolean() reducedRate?: boolean;
   @IsOptional() @IsBoolean() applyInpsSurcharge?: boolean;
   @IsOptional() @IsBoolean() isaSubject?: boolean;
+  /** Personal revenue limit for the year; null removes it. */
+  @IsOptional() @IsNumber() @Min(1) @Max(1_000_000) revenueLimit?: number | null;
   @IsOptional() @IsBoolean() viesRegistered?: boolean;
   @IsOptional() @IsString() @Matches(/^\d{4}-[a-z0-9-]+$/) inpsOfficeId?: string;
   @IsOptional() @IsString() @Matches(/^(\d{4}-\d{2}-\d{2})?$/) birthDate?: string;
@@ -42,6 +44,8 @@ export class UpdateTenantProfileDto {
   @IsOptional() @IsBoolean() reducedRate?: boolean;
   @IsOptional() @IsBoolean() applyInpsSurcharge?: boolean;
   @IsOptional() @IsBoolean() isaSubject?: boolean;
+  /** Personal revenue limit for the year; null removes it. */
+  @IsOptional() @IsNumber() @Min(1) @Max(1_000_000) revenueLimit?: number | null;
   @IsOptional() @IsBoolean() viesRegistered?: boolean;
   @IsOptional() @IsString() @Matches(/^(\d{4}-\d{2}-\d{2})?$/) birthDate?: string;
   @IsOptional() @IsString() @Matches(/^[MF]?$/) sex?: string;

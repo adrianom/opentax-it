@@ -35,6 +35,14 @@ export default async function TaxesPage({ searchParams }: PageProps<'/taxes'>) {
 
       {!s ? (
         <Card><CardHeader><CardTitle>Calcolo non disponibile</CardTitle><CardDescription>Serve un set di regole attivo per il {year} o il {year + 1} e un profilo fiscale completo.</CardDescription></CardHeader></Card>
+      ) : s.thresholds.exceedsExitThreshold ? (
+        <Alert variant="destructive">
+          <TriangleAlert />
+          <AlertTitle>Regime forfettario cessato nel {year}</AlertTitle>
+          <AlertDescription>
+            Incassato {formatMoney(s.collectedRevenue)}, oltre {formatMoney(s.thresholds.exitThreshold)}: il regime cessa dall&apos;anno stesso, l&apos;IVA è dovuta dalla fattura che ha fatto superare la soglia e il reddito dell&apos;intero anno va determinato in modo ordinario (L. 190/2014 c. 71; Istr. Redditi PF 2026 Fasc. 3). Il calcolo forfettario e il piano F24 non si applicano: rivolgiti a chi ti assiste.
+          </AlertDescription>
+        </Alert>
       ) : (
         <>
           {s.warnings.length > 0 && (

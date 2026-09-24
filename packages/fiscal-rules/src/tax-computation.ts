@@ -153,3 +153,54 @@ export function thresholdStatus(rules: FiscalRuleSet, collectedRevenue: number):
     exceedsExitThreshold: collectedRevenue > exitThreshold,
   };
 }
+
+/** Share of a threshold from which it is shown as "near" (project choice, not a legal value). */
+export const THRESHOLD_NEAR_PCT = 80;
+
+export type ThresholdLevel = 'OK' | 'NEAR' | 'OVER';
+
+export interface ThresholdOutlook extends ThresholdStatus {
+  /** Issued documents not yet collected (EUR): they count when collected (cash basis, par. 54 and 71). */
+  outstanding: number;
+  /** The document being issued, when checking an issue (EUR). */
+  invoiceTotal: number;
+  /** collected + outstanding + invoiceTotal: what the year reaches if everything is collected this year. */
+  projected: number;
+  accessLevel: ThresholdLevel;
+  exitLevel: ThresholdLevel;
+  /** Limit chosen by the taxpayer (e.g. to stay below 85,000), null when not set. */
+  personalLimit: number | null;
+  projectedOverExit: boolean;
+  projectedOverPersonalLimit: boolean;
+}
+
+const level = (value: number, threshold: number): ThresholdLevel =>
+  value > threshold ? 'OVER' : value >= (threshold * THRESHOLD_NEAR_PCT) / 100 ? 'NEAR' : 'OK';
+
+/**
+ * Position against the thresholds on the collected revenue (L. 190/2014 art. 1 par. 54: above 85,000
+ * the regime ends from the following year; par. 71: above 100,000 it ends in the same year and VAT
+ * is due "a partire dalle operazioni effettuate che comportano il superamento"), plus a projection
+ * with the documents not yet collected, used to warn before issuing.
+ */
+export function thresholdOutlook(
+  rules: FiscalRuleSet,
+  input: { collectedRevenue: number; outstanding: number; invoiceTotal?: number; personalLimit?: number | null },
+): ThresholdOutlook {
+  const status = thresholdStatus(rules, input.collectedRevenue);
+  const invoiceTotal = round2(input.invoiceTotal ?? 0);
+  const outstanding = round2(input.outstanding);
+  const projected = round2(input.collectedRevenue + outstanding + invoiceTotal);
+  const personalLimit = input.personalLimit ?? null;
+  return {
+    ...status,
+    outstanding,
+    invoiceTotal,
+    projected,
+    accessLevel: level(input.collectedRevenue, status.accessThreshold),
+    exitLevel: level(input.collectedRevenue, status.exitThreshold),
+    personalLimit,
+    projectedOverExit: projected > status.exitThreshold,
+    projectedOverPersonalLimit: personalLimit !== null && projected > personalLimit,
+  };
+}

@@ -1,6 +1,6 @@
-import { BadRequestException, Injectable, Logger, NotFoundException, UnprocessableEntityException } from '@nestjs/common';
+import { BadRequestException, ConflictException, Injectable, Logger, NotFoundException, UnprocessableEntityException } from '@nestjs/common';
 import { buildInvoiceXml, invoiceFileName, parseInvoiceXml, type FlatRateInvoice } from '@opentax-it/fatturapa';
-import type { FiscalRuleSet } from '@opentax-it/fiscal-rules';
+import { thresholdOutlook, type FiscalRuleSet, type ThresholdOutlook } from '@opentax-it/fiscal-rules';
 import { FiscalRulesService } from '../fiscal-rules/fiscal-rules.service.js';
 import type { Customer, Invoice, InvoiceLine, TenantProfile } from '../generated/prisma/client.js';
 import { PrismaService } from '../prisma/prisma.service.js';
@@ -167,12 +167,47 @@ export class InvoicesService {
    * serializes concurrent issues (double click, two tabs, invoice and credit note together),
    * which would otherwise read the same progressive and transmission numbers.
    */
-  async issue(tenantId: string, id: string, dto?: { payment?: CreateInvoiceDto['payment'] }) {
+  /**
+   * Revenue thresholds for the current year (L. 190/2014 par. 54 and 71), on the cash basis: collected
+   * revenue, plus issued documents not yet collected and, with `invoiceId`, the draft being issued.
+   * Credit notes are left out of the outstanding amount, so the projection errs on the high side.
+   */
+  async thresholds(tenantId: string, invoiceId?: string): Promise<ThresholdOutlook> {
+    const year = new Date().getFullYear();
+    const [rules, { profile }, collected, open, draft] = await Promise.all([
+      this.rules.getActive(year),
+      this.tenants.getWithProfile(tenantId),
+      this.prisma.payment.aggregate({ where: { tenantId, date: { gte: new Date(Date.UTC(year, 0, 1)), lt: new Date(Date.UTC(year + 1, 0, 1)) } }, _sum: { amountEur: true } }),
+      this.prisma.invoice.findMany({
+        where: { tenantId, status: { notIn: ['DRAFT', 'CANCELLED'] }, type: { not: 'TD04' } },
+        select: { total: true, exchangeRate: true, payments: { select: { amountEur: true } } },
+      }),
+      invoiceId ? this.get(tenantId, invoiceId) : Promise.resolve(null),
+    ]);
+    const outstanding = open.reduce((s, i) => {
+      const due = Number(i.total) * Number(i.exchangeRate) - i.payments.reduce((p, x) => p + Number(x.amountEur), 0);
+      return s + Math.max(0, due);
+    }, 0);
+    return thresholdOutlook(rules, {
+      collectedRevenue: Number(collected._sum.amountEur ?? 0),
+      outstanding,
+      invoiceTotal: draft && draft.type !== 'TD04' ? Number(draft.total) * Number(draft.exchangeRate) : 0,
+      personalLimit: profile.revenueLimit !== null ? Number(profile.revenueLimit) : null,
+    });
+  }
+
+  async issue(tenantId: string, id: string, dto?: { payment?: CreateInvoiceDto['payment']; confirmThresholds?: boolean }) {
     const existing = await this.get(tenantId, id);
     if (existing.status !== 'DRAFT') throw new BadRequestException('Invoice already issued');
     // SDI rejects an invoice dated after its receipt (error 00403): the date must not be in the future.
     const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Rome' }).format(new Date());
     if (existing.date.toISOString().slice(0, 10) > today) throw new BadRequestException('The invoice date cannot be in the future');
+    if (!dto?.confirmThresholds) {
+      const t = await this.thresholds(tenantId, id);
+      const eur = (n: number | null) => new Intl.NumberFormat('it-IT', { style: 'currency', currency: 'EUR' }).format(n ?? 0);
+      if (t.projectedOverExit) throw new ConflictException(`Con questa fattura incassato e da incassare nell'anno arrivano a ${eur(t.projected)}, oltre ${eur(t.exitThreshold)}: se incassati nell'anno il regime forfettario cessa subito e l'IVA è dovuta dalla fattura che fa superare la soglia (L. 190/2014 c. 71). Conferma per emettere comunque.`);
+      if (t.projectedOverPersonalLimit) throw new ConflictException(`Con questa fattura incassato e da incassare nell'anno arrivano a ${eur(t.projected)}, oltre il tuo limite personale di ${eur(t.personalLimit)}. Conferma per emettere comunque.`);
+    }
     const rules = await this.rules.getActive(existing.year);
     const { profile } = await this.tenants.getWithProfile(tenantId);
 

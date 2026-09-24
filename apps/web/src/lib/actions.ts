@@ -47,6 +47,7 @@ export async function createTenant(_prev: ActionState, formData: FormData): Prom
       birthProvince: f('birthProvince').toUpperCase(),
       applyInpsSurcharge: formData.get('applyInpsSurcharge') === 'on',
       viesRegistered: formData.get('viesRegistered') === 'on',
+      revenueLimit: f('revenueLimit') ? Number(f('revenueLimit').replace(/\./g, '').replace(',', '.')) : null,
       inpsOfficeId: f('inpsOfficeId') || undefined,
       pecAddress: f('pecAddress') || undefined,
     });
@@ -124,7 +125,10 @@ export async function issueInvoice(_prev: ActionState, formData: FormData): Prom
   const dueDate = String(formData.get('dueDate') ?? '').trim();
   const iban = String(formData.get('iban') ?? '').trim();
   try {
-    await api.issueInvoice(id, { payment: dueDate || iban ? { dueDate: dueDate || undefined, iban: iban || undefined, method: 'MP05' } : undefined });
+    await api.issueInvoice(id, {
+      payment: dueDate || iban ? { dueDate: dueDate || undefined, iban: iban || undefined, method: 'MP05' } : undefined,
+      confirmThresholds: formData.get('confirmThresholds') === 'on',
+    });
   } catch (e) {
     return { error: errorMessage(e) };
   }
@@ -163,6 +167,7 @@ export async function updateTenantProfile(_prev: ActionState, formData: FormData
       birthProvince: f('birthProvince').toUpperCase(),
       applyInpsSurcharge: formData.get('applyInpsSurcharge') === 'on',
       viesRegistered: formData.get('viesRegistered') === 'on',
+      revenueLimit: f('revenueLimit') ? Number(f('revenueLimit').replace(/\./g, '').replace(',', '.')) : null,
       pecAddress: f('pecAddress') || undefined,
       inpsOfficeId: f('inpsOfficeId'),
     });

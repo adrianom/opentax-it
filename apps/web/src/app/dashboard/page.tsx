@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { api, currentTenantId, customerLabel, fetchOrNull, formatDate, formatMoney, type Deadline, type Invoice } from '@/lib/api';
+import { api, currentTenantId, customerLabel, fetchOrNull, formatDate, formatMoney, type Deadline, type Invoice, type ThresholdLevel } from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -34,16 +34,40 @@ function StatTile({ label, value, hint }: { label: string; value: string; hint?:
   );
 }
 
+const LEVEL_BADGE: Record<ThresholdLevel, { label: string; className: string }> = {
+  OK: { label: 'ok', className: 'bg-secondary text-secondary-foreground' },
+  NEAR: { label: 'vicina', className: 'bg-amber-100 text-amber-900 dark:bg-amber-950 dark:text-amber-100' },
+  OVER: { label: 'superata', className: 'bg-destructive/10 text-destructive' },
+};
+
+/** Collected revenue against one threshold: bar, amount and level badge. */
+function ThresholdMeter({ label, value, limit, level, note }: { label: string; value: number; limit: number; level: ThresholdLevel; note: string }) {
+  const pct = Math.min(100, Math.round((value / limit) * 100));
+  return (
+    <div className="space-y-1.5">
+      <div className="flex items-center justify-between gap-2 text-sm">
+        <span>{label}</span>
+        <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${LEVEL_BADGE[level].className}`}>{LEVEL_BADGE[level].label} · {pct}%</span>
+      </div>
+      <div className="h-2 w-full overflow-hidden rounded-full bg-muted" role="meter" aria-valuemin={0} aria-valuemax={limit} aria-valuenow={value} aria-label={`Incassato rispetto a ${label}`}>
+        <div className={`h-full rounded-full ${level === 'OVER' ? 'bg-destructive' : level === 'NEAR' ? 'bg-amber-500' : 'bg-primary'}`} style={{ width: `${pct}%` }} />
+      </div>
+      {level !== 'OK' && <p className="text-xs text-muted-foreground">{note}</p>}
+    </div>
+  );
+}
+
 export default async function DashboardPage() {
   if (!(await currentTenantId())) return <NoTenant />;
   const year = new Date().getFullYear();
   const today = new Date().toISOString().slice(0, 10);
-  const [invoices, deadlines, ruleSet, ruleStatus, taxes] = await Promise.all([
+  const [invoices, deadlines, ruleSet, ruleStatus, taxes, thresholds] = await Promise.all([
     fetchOrNull(() => api.invoices(year)),
     fetchOrNull(() => api.deadlines(year)),
     fetchOrNull(() => api.ruleSets(year)),
     fetchOrNull(() => api.ruleSetStatus(year)),
     fetchOrNull(() => api.taxSummary(year)),
+    fetchOrNull(() => api.thresholds()),
   ]);
   const all: Invoice[] = invoices ?? [];
   const issued = all.filter((i) => i.status !== 'DRAFT' && i.status !== 'CANCELLED');
@@ -53,8 +77,6 @@ export default async function DashboardPage() {
   const toSend = issued.filter((i) => i.status === 'ISSUED').length;
   const stamps = issued.filter((i) => i.virtualStamp).length;
   const collected = taxes?.collectedRevenue ?? 0;
-  const threshold = taxes?.thresholds.accessThreshold ?? 85_000;
-  const pct = Math.min(100, Math.round((collected / threshold) * 100));
   const upcoming = (deadlines ?? []).filter((d) => d.date >= today).slice(0, 6);
   const active = ruleSet?.find((r) => r.status === 'ACTIVE');
 
@@ -77,18 +99,22 @@ export default async function DashboardPage() {
       <div className="grid gap-4 lg:grid-cols-3">
         <Card className="lg:col-span-1">
           <CardHeader>
-            <CardTitle>Soglia forfettario</CardTitle>
-            <CardDescription>85.000 € di ricavi/compensi incassati (L. 190/2014 c. 54). {taxes ? <>Imposta stimata {formatMoney(taxes.result.substituteTax)}, INPS {formatMoney(taxes.result.inpsContribution)} — <Link href="/taxes" className="underline">dettaglio</Link>.</> : null}</CardDescription>
+            <CardTitle>Soglie forfettario</CardTitle>
+            <CardDescription>Ricavi/compensi incassati nell&apos;anno: {formatMoney(collected)} (L. 190/2014 c. 54 e 71). {taxes ? <>Imposta stimata {formatMoney(taxes.result.substituteTax)}, INPS {formatMoney(taxes.result.inpsContribution)} — <Link href="/taxes" className="underline">dettaglio</Link>.</> : null}</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-2">
-            <div className="flex items-baseline justify-between text-sm">
-              <span className="font-mono">{formatMoney(collected)}</span>
-              <span className="text-muted-foreground">{pct}%</span>
-            </div>
-            <div className="h-2 w-full overflow-hidden rounded-full bg-muted" role="meter" aria-valuemin={0} aria-valuemax={threshold} aria-valuenow={collected} aria-label="Incassato rispetto alla soglia">
-              <div className="h-full rounded-full bg-primary" style={{ width: `${pct}%` }} />
-            </div>
-            {collected > threshold && <p className="text-sm font-medium">⚠ Soglia superata: uscita dal regime dall&apos;anno successivo (c. 71).</p>}
+          <CardContent className="space-y-4">
+            {thresholds ? (
+              <>
+                <ThresholdMeter label={formatMoney(thresholds.accessThreshold)} value={thresholds.collectedRevenue} limit={thresholds.accessThreshold} level={thresholds.accessLevel} note="Oltre questa soglia il regime cessa dall'anno successivo (c. 71)." />
+                <ThresholdMeter label={formatMoney(thresholds.exitThreshold)} value={thresholds.collectedRevenue} limit={thresholds.exitThreshold} level={thresholds.exitLevel} note="Oltre questa soglia il regime cessa subito e l'IVA è dovuta dalla fattura che la fa superare (c. 71)." />
+                {thresholds.personalLimit !== null && (
+                  <ThresholdMeter label={`Limite personale ${formatMoney(thresholds.personalLimit)}`} value={thresholds.collectedRevenue} limit={thresholds.personalLimit} level={thresholds.collectedRevenue > thresholds.personalLimit ? 'OVER' : thresholds.collectedRevenue >= thresholds.personalLimit * 0.8 ? 'NEAR' : 'OK'} note="Impostato in Impostazioni: oltre il limite l'emissione chiede conferma." />
+                )}
+                <p className="text-xs text-muted-foreground">Con le fatture emesse non ancora incassate ({formatMoney(thresholds.outstanding)}) l&apos;anno arriverebbe a <span className="font-medium text-foreground">{formatMoney(thresholds.projected)}</span>.</p>
+              </>
+            ) : (
+              <p className="text-sm text-muted-foreground">Soglie non disponibili: serve un set di regole attivo per il {year}.</p>
+            )}
           </CardContent>
         </Card>
 
