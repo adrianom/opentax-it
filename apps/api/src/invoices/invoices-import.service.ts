@@ -83,7 +83,9 @@ export class InvoicesImportService {
     const clash = await this.prisma.invoice.findFirst({ where: { tenantId, year, type, sequence } });
     if (clash) throw new BadRequestException(`Progressive ${sequence}/${year} already used by document ${clash.number}`);
 
-    const customer = await this.findOrCreateCustomer(tenantId, p.customer, p.recipientCode, p.recipientPec);
+    // A foreign customer invoiced with N2.2 (made in Italy) is a private customer (art. 7-ter par. 1 lett. b).
+    const privateForeign = [...p.summaryNatures, ...p.lines.map((l) => l.nature)].includes('N2.2');
+    const customer = await this.findOrCreateCustomer(tenantId, p.customer, p.recipientCode, p.recipientPec, privateForeign);
     const amounts = deriveAmounts(p);
     const refInvoice = p.relatedDocuments[0]
       ? await this.prisma.invoice.findFirst({ where: { tenantId, number: p.relatedDocuments[0].number, type: 'TD01' } })
@@ -135,7 +137,7 @@ export class InvoicesImportService {
     return { file: f.name, status: 'IMPORTED', number: p.number, invoiceId: inv.id, customer: customer.businessName ?? `${customer.firstName ?? ''} ${customer.lastName ?? ''}`.trim() };
   }
 
-  private async findOrCreateCustomer(tenantId: string, c: ParsedParty, recipientCode?: string, recipientPec?: string) {
+  private async findOrCreateCustomer(tenantId: string, c: ParsedParty, recipientCode?: string, recipientPec?: string, privateForeign = false) {
     const countryCode = c.countryCode ?? (c.country ?? 'IT');
     const foreign = countryCode !== 'IT';
     const found = await this.prisma.customer.findFirst({
@@ -148,7 +150,9 @@ export class InvoicesImportService {
       },
     });
     if (found) return found;
-    const kind: CustomerKind = foreign ? (isEuMemberState(countryCode) ? 'EU' : 'NON_EU') : recipientCode && /^[A-Z0-9]{6}$/.test(recipientCode) ? 'IT_PA' : c.vatNumber ? 'IT_B2B' : 'IT_B2C';
+    const kind: CustomerKind = foreign
+      ? isEuMemberState(countryCode) ? (privateForeign ? 'EU_B2C' : 'EU') : privateForeign ? 'NON_EU_B2C' : 'NON_EU'
+      : recipientCode && /^[A-Z0-9]{6}$/.test(recipientCode) ? 'IT_PA' : c.vatNumber ? 'IT_B2B' : 'IT_B2C';
     return this.prisma.customer.create({
       data: {
         tenantId,

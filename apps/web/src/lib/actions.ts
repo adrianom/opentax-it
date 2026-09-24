@@ -63,9 +63,10 @@ export async function saveCustomer(_prev: ActionState, formData: FormData): Prom
   const f = (k: string) => String(formData.get(k) ?? '').trim();
   const id = f('id');
   const kind = f('kind');
-  const foreign = kind === 'EU' || kind === 'NON_EU';
+  const foreign = kind === 'EU' || kind === 'EU_B2C' || kind === 'NON_EU' || kind === 'NON_EU_B2C';
   const data = {
     kind,
+    art7SeptiesServices: kind === 'NON_EU_B2C' && formData.get('art7SeptiesServices') === 'on',
     businessName: f('businessName') || undefined,
     firstName: f('firstName') || undefined,
     lastName: f('lastName') || undefined,

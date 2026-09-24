@@ -158,7 +158,9 @@ enum CustomerKind {
   IT_B2C
   IT_PA
   EU // EU taxable person: art. 7-ter, Natura N2.1, "inversione contabile"
-  NON_EU // art. 7-ter, Natura N2.1, "operazione non soggetta"
+  EU_B2C // EU private customer: made in Italy (art. 7-ter par. 1 lett. b), Natura N2.2
+  NON_EU // non-EU taxable person: art. 7-ter, Natura N2.1, "operazione non soggetta"
+  NON_EU_B2C // non-EU private customer: N2.1 only for art. 7-septies services (art7SeptiesServices), else N2.2
 }
 
 model Customer {
@@ -181,6 +183,9 @@ model Customer {
   recipientCode String       @default("0000000")
   recipientPec  String?
   currency      String       @default("EUR")
+  /// NON_EU_B2C only: the services rendered are listed in art. 7-septies DPR 633/72 (e.g. consulting,
+  /// data processing), so they are outside the territorial scope (N2.1, "operazione non soggetta").
+  art7SeptiesServices Boolean @default(false)
   notes         String?
   createdAt     DateTime     @default(now())
   updatedAt     DateTime     @updatedAt

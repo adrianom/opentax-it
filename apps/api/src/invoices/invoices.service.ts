@@ -1,6 +1,6 @@
 import { BadRequestException, ConflictException, Injectable, Logger, NotFoundException, UnprocessableEntityException } from '@nestjs/common';
 import { buildInvoiceXml, invoiceFileName, parseInvoiceXml, type FlatRateInvoice } from '@opentax-it/fatturapa';
-import { thresholdOutlook, type FiscalRuleSet, type ThresholdOutlook } from '@opentax-it/fiscal-rules';
+import { customerTreatment, thresholdOutlook, type FiscalRuleSet, type ThresholdOutlook } from '@opentax-it/fiscal-rules';
 import { FiscalRulesService } from '../fiscal-rules/fiscal-rules.service.js';
 import type { Customer, Invoice, InvoiceLine, TenantProfile } from '../generated/prisma/client.js';
 import { PrismaService } from '../prisma/prisma.service.js';
@@ -94,8 +94,9 @@ export class InvoicesService {
     const applySurcharge = dto.applyInpsSurcharge ?? profile.applyInpsSurcharge;
     const inpsSurcharge = applySurcharge ? round2((linesTotal * rules.inps.surchargePct) / 100) : 0;
 
-    const foreign = customer.kind === 'EU' || customer.kind === 'NON_EU';
-    const vatNature = foreign ? 'N2_1' : 'N2_2';
+    // Natura, annotation and INVCONT by place of supply (art. 7-ter / 7-septies): see customerTreatment.
+    const treatment = customerTreatment(rules, customer.kind, customer.art7SeptiesServices);
+    const vatNature = treatment.nature === 'N2.1' ? 'N2_1' : 'N2_2';
 
     // Stamp duty applies when the total of non-subject operations exceeds the threshold (fund contribution included).
     const nonSubjectTotal = round2(linesTotal + inpsSurcharge);
@@ -104,8 +105,7 @@ export class InvoicesService {
     const total = round2(nonSubjectTotal + stampAmount);
 
     const notes = [rules.eInvoice.regimeNote, rules.eInvoice.noWithholdingNote];
-    if (customer.kind === 'EU') notes.push(rules.eInvoice.euAnnotation);
-    if (customer.kind === 'NON_EU') notes.push(rules.eInvoice.nonEuAnnotation);
+    if (treatment.annotation) notes.push(treatment.annotation);
 
     return {
       rules,
@@ -460,7 +460,8 @@ export class InvoicesService {
     payment?: CreateInvoiceDto['payment'],
   ): FlatRateInvoice {
     const c = inv.customer;
-    const foreign = c.kind === 'EU' || c.kind === 'NON_EU';
+    const treatment = customerTreatment(rules, c.kind, c.art7SeptiesServices);
+    const foreign = treatment.foreign;
     const vatNature = inv.vatNature === 'N2_1' ? 'N2.1' : 'N2.2';
     const isPa = c.kind === 'IT_PA';
     const total = Number(inv.total);
@@ -502,10 +503,11 @@ export class InvoicesService {
       date: inv.date.toISOString().slice(0, 10),
       currency: inv.currency,
       vatNature,
-      legalReference: foreign ? 'Art. 7-ter DPR 633/72' : 'Art. 1, commi 54-89, L. 190/2014',
+      // Follows the nature stored on the document; the customer's treatment only picks 7-ter or 7-septies.
+      legalReference: inv.vatNature !== 'N2_1' ? 'Art. 1, commi 54-89, L. 190/2014' : treatment.nature === 'N2.1' ? treatment.legalReference : 'Art. 7-ter DPR 633/72',
       notes: inv.notes,
       // AdE compilation guide v1.10 (code N2.1): art. 21 par. 6-bis lett. a) operations carry "INVCONT" in AltriDatiGestionali.
-      lineManagementData: c.kind === 'EU' ? [{ type: 'INVCONT' }] : undefined,
+      lineManagementData: treatment.reverseChargeLines ? [{ type: 'INVCONT' }] : undefined,
       lines: inv.lines.map((l) => ({
         description: l.description,
         quantity: Number(l.quantity),

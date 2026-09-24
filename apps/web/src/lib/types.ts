@@ -54,7 +54,7 @@ export interface TenantWithProfile extends Tenant {
   profile: TenantProfile;
 }
 
-export type CustomerKind = 'IT_B2B' | 'IT_B2C' | 'IT_PA' | 'EU' | 'NON_EU';
+export type CustomerKind = 'IT_B2B' | 'IT_B2C' | 'IT_PA' | 'EU' | 'EU_B2C' | 'NON_EU' | 'NON_EU_B2C';
 
 export interface Customer {
   id: string;
@@ -73,6 +73,7 @@ export interface Customer {
   recipientCode: string;
   recipientPec: string | null;
   currency: string;
+  art7SeptiesServices: boolean;
   notes: string | null;
 }
 

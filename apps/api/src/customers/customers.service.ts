@@ -14,12 +14,13 @@ export class CustomersService {
   constructor(private readonly prisma: PrismaService) {}
 
   private normalize(dto: CreateCustomerDto) {
-    const foreign = dto.kind === 'EU' || dto.kind === 'NON_EU';
+    const foreign = dto.kind === 'EU' || dto.kind === 'EU_B2C' || dto.kind === 'NON_EU' || dto.kind === 'NON_EU_B2C';
+    const eu = dto.kind === 'EU' || dto.kind === 'EU_B2C';
     const countryCode = dto.countryCode ?? (foreign ? undefined : 'IT');
-    if (foreign && (!countryCode || countryCode === 'IT')) throw new BadRequestException('EU/NON_EU customers need a non-IT countryCode');
+    if (foreign && (!countryCode || countryCode === 'IT')) throw new BadRequestException('Foreign customers need a non-IT countryCode');
     // The kind drives Natura, annotations, INVCONT and Intrastat: it must match the country (GB and XI are non-EU for services).
-    if (dto.kind === 'EU' && !isEuMemberState(countryCode ?? '')) throw new BadRequestException(`${countryCode} non è uno Stato membro dell'UE: scegli "Extra UE" (Regno Unito, GB, e Irlanda del Nord, XI, sono fuori dall'UE per i servizi)`);
-    if (dto.kind === 'NON_EU' && isEuMemberState(countryCode ?? '')) throw new BadRequestException(`${countryCode} è uno Stato membro dell'UE: scegli "Unione Europea"`);
+    if (eu && !isEuMemberState(countryCode ?? '')) throw new BadRequestException(`${countryCode} non è uno Stato membro dell'UE: scegli un tipo "Extra UE" (Regno Unito, GB, e Irlanda del Nord, XI, sono fuori dall'UE per i servizi)`);
+    if (foreign && !eu && isEuMemberState(countryCode ?? '')) throw new BadRequestException(`${countryCode} è uno Stato membro dell'UE: scegli un tipo "Unione Europea"`);
     if (!foreign && !dto.vatNumber && !dto.fiscalCode) throw new BadRequestException('Italian customers need a VAT number or a fiscal code');
     // AdE FAQ (fatture verso soggetti stranieri): foreign customers are identified with IdCodice (max 28 chars, not validated by SDI).
     if (foreign && !dto.vatNumber) throw new BadRequestException('Foreign customers need an identifier (VAT id or other code) in vatNumber');
@@ -28,6 +29,7 @@ export class CustomersService {
     const { kind, businessName, firstName, lastName, vatNumber, fiscalCode, address, city, province, recipientPec, currency, notes } = dto;
     return {
       kind, businessName, firstName, lastName, vatNumber, fiscalCode, address, city, province, recipientPec, currency, notes,
+      art7SeptiesServices: kind === 'NON_EU_B2C' && dto.art7SeptiesServices === true,
       countryCode: countryCode ?? 'IT',
       country: dto.country ?? countryCode ?? 'IT',
       postalCode: dto.postalCode ?? (foreign ? '00000' : undefined),

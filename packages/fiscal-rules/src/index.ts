@@ -9,3 +9,4 @@ export * from './inps-offices.js';
 export * from './tax-computation.js';
 export * from './f24-schedule.js';
 export * from './eu.js';
+export * from './customer-treatment.js';

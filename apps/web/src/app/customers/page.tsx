@@ -9,7 +9,7 @@ import { NoTenant } from '@/components/no-tenant';
 import { Pencil } from 'lucide-react';
 import { DeleteRowAction, RowAction, RowActions } from '@/components/row-actions';
 
-const KIND_LABELS: Record<string, string> = { IT_B2B: 'Italia B2B', IT_B2C: 'Italia privato', IT_PA: 'PA', EU: 'UE', NON_EU: 'Extra UE' };
+const KIND_LABELS: Record<string, string> = { IT_B2B: 'Italia B2B', IT_B2C: 'Italia privato', IT_PA: 'PA', EU: 'UE B2B', EU_B2C: 'UE privato', NON_EU: 'Extra UE B2B', NON_EU_B2C: 'Extra UE privato' };
 
 export default async function CustomersPage() {
   if (!(await currentTenantId())) return <NoTenant />;

@@ -153,6 +153,8 @@ describe('buildInvoiceXml', () => {
   it.skipIf(!isXmllintAvailable())('validates against the official XSD (xmllint)', () => {
     expect(validateWithXsd(buildInvoiceXml(domestic))).toEqual([]);
     expect(validateWithXsd(buildInvoiceXml(foreign))).toEqual([]);
+    // Foreign private customer with a service made in Italy (art. 7-ter par. 1 lett. b): N2.2, no annotation.
+    expect(validateWithXsd(buildInvoiceXml({ ...foreign, customer: { ...foreign.customer, businessName: undefined, firstName: 'Hans', lastName: 'Muster', vatNumber: 'X123' }, vatNature: 'N2.2', legalReference: 'Art. 1, commi 54-89, L. 190/2014', notes, lineManagementData: undefined }))).toEqual([]);
     expect(validateWithXsd(buildInvoiceXml({ ...domestic, documentType: 'TD04', relatedDocuments: [{ number: '1/2026' }] }))).toEqual([]);
   });
 });
