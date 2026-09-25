@@ -65,10 +65,15 @@ export async function logoutAction(): Promise<void> {
 
 export async function selectTenant(formData: FormData) {
   const id = String(formData.get('tenantId') ?? '');
-  if (!/^[a-z0-9]{20,32}$/.test(id)) redirect('/setup'); // tenant ids are cuids
+  if (!/^[a-z0-9]{20,32}$/.test(id)) {
+    redirect('/setup?error=' + encodeURIComponent('Identificativo partita IVA non valido'));
+  }
   try {
     await api.selectTenant(id);
-  } catch {}
+  } catch (e) {
+    redirect('/setup?error=' + encodeURIComponent(errorMessage(e)));
+  }
+  revalidatePath('/', 'layout');
   redirect('/invoices');
 }
 

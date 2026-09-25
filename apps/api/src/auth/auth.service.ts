@@ -50,26 +50,36 @@ export class AuthService {
       throw new ConflictException('Un utente con questo indirizzo email è già registrato');
     }
 
-    const userCount = await this.prisma.user.count();
-    // The very first user of the instance becomes PLATFORM_ADMIN
-    const role = userCount === 0 ? UserRole.PLATFORM_ADMIN : UserRole.TENANT_ADMIN;
+    // Explicit admin role: only if a valid SETUP_TOKEN is configured in environment and provided
+    const isSetupAdmin =
+      Boolean(process.env.SETUP_TOKEN) &&
+      dto.setupToken?.trim() === process.env.SETUP_TOKEN;
+    const role = isSetupAdmin ? UserRole.PLATFORM_ADMIN : UserRole.TENANT_USER;
 
     const passwordHash = await this.passwordService.hash(dto.password);
-    const user = await this.prisma.user.create({
-      data: {
-        email,
-        passwordHash,
-        name: dto.name?.trim() || null,
-        role,
-      },
-      include: {
-        memberships: {
-          include: {
-            tenant: { select: { id: true, name: true } },
+    let user;
+    try {
+      user = await this.prisma.user.create({
+        data: {
+          email,
+          passwordHash,
+          name: dto.name?.trim() || null,
+          role,
+        },
+        include: {
+          memberships: {
+            include: {
+              tenant: { select: { id: true, name: true } },
+            },
           },
         },
-      },
-    });
+      });
+    } catch (err: unknown) {
+      if ((err as { code?: string })?.code === 'P2002') {
+        throw new ConflictException('Un utente con questo indirizzo email è già registrato');
+      }
+      throw err;
+    }
 
     const token = randomBytes(32).toString('hex');
     const tokenHash = this.hashToken(token);
@@ -228,12 +238,20 @@ export class AuthService {
       return null;
     }
 
+    let activeTenantId = session.activeTenantId;
+    if (activeTenantId && session.user.role !== UserRole.PLATFORM_ADMIN) {
+      const isMember = session.user.memberships.some((m) => m.tenantId === activeTenantId);
+      if (!isMember) {
+        activeTenantId = null;
+      }
+    }
+
     return {
       user: session.user,
       session: {
         id: session.id,
         userId: session.userId,
-        activeTenantId: session.activeTenantId,
+        activeTenantId,
         expiresAt: session.expiresAt,
       },
     };

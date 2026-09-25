@@ -46,14 +46,17 @@ export class TenantsService {
         });
       }
 
-      await this.auditLog.log({
-        tenantId: tenant.id,
-        userId: userId ?? null,
-        action: 'TENANT_CREATE',
-        entityType: 'Tenant',
-        entityId: tenant.id,
-        data: { name: tenant.name },
-      });
+      await this.auditLog.log(
+        {
+          tenantId: tenant.id,
+          userId: userId ?? null,
+          action: 'TENANT_CREATE',
+          entityType: 'Tenant',
+          entityId: tenant.id,
+          data: { name: tenant.name },
+        },
+        tx,
+      );
 
       return tenant;
     });

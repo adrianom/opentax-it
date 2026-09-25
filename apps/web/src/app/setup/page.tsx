@@ -6,7 +6,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { NativeSelect } from '@/components/native-select';
 import { TenantForm } from './tenant-form';
 
-export default async function SetupPage() {
+export default async function SetupPage({
+  searchParams,
+}: {
+  searchParams?: Promise<{ error?: string }>;
+}) {
+  const { error } = (await searchParams) ?? {};
   const year = new Date().getFullYear();
   const [tenants, offices, me, rules] = await Promise.all([
     fetchOrNull(() => api.tenants()),
@@ -19,6 +24,11 @@ export default async function SetupPage() {
   return (
     <main className="mx-auto w-full max-w-6xl space-y-6 p-6">
       <h1 className="text-2xl font-semibold">Impostazioni</h1>
+      {error ? (
+        <div className="rounded-md border border-destructive/50 bg-destructive/10 p-3 text-sm text-destructive" role="alert">
+          {error}
+        </div>
+      ) : null}
       <div className="flex justify-end gap-2"><Button render={<Link href="/setup/new" />}>Nuova partita IVA</Button></div>
 
       <Card>

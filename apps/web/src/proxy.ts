@@ -35,6 +35,14 @@ export function proxy(request: NextRequest) {
   const isProtected = PROTECTED_PREFIXES.some((prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`));
   const hasSession = Boolean(request.cookies.get('opentax_session')?.value);
 
+  if (pathname === '/login') {
+    if (request.cookies.has('opentax_session')) {
+      const response = NextResponse.next();
+      response.cookies.delete('opentax_session');
+      return response;
+    }
+  }
+
   if (isProtected && !hasSession) {
     const loginUrl = new URL('/login', request.url);
     return NextResponse.redirect(loginUrl);

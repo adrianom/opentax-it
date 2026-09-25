@@ -1,9 +1,9 @@
 import { redirect } from 'next/navigation';
-import { currentSessionToken } from '@/lib/api';
+import { currentUser } from '@/lib/api';
 
 export default async function HomePage() {
-  const token = await currentSessionToken();
-  if (token) {
+  const user = await currentUser();
+  if (user) {
     redirect('/dashboard');
   }
   redirect('/login');

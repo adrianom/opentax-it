@@ -48,15 +48,14 @@ describe('AuthService', () => {
   });
 
   describe('register', () => {
-    it('creates first user as PLATFORM_ADMIN and creates a session', async () => {
+    it('creates new user as TENANT_USER and creates a session', async () => {
       prismaMock.user.findUnique.mockResolvedValue(null);
-      prismaMock.user.count.mockResolvedValue(0);
 
       const fakeUser = {
         id: 'u1',
-        email: 'admin@opentax.it',
-        name: 'Admin',
-        role: UserRole.PLATFORM_ADMIN,
+        email: 'user@opentax.it',
+        name: 'User',
+        role: UserRole.TENANT_USER,
         memberships: [],
       };
       prismaMock.user.create.mockResolvedValue(fakeUser);
@@ -71,13 +70,13 @@ describe('AuthService', () => {
       prismaMock.session.create.mockResolvedValue(fakeSession);
 
       const res = await authService.register({
-        email: 'Admin@OpenTax.it',
+        email: 'User@OpenTax.it',
         password: 'password123',
-        name: 'Admin',
+        name: 'User',
       });
 
-      expect(res.user.email).toBe('admin@opentax.it');
-      expect(res.user.role).toBe(UserRole.PLATFORM_ADMIN);
+      expect(res.user.email).toBe('user@opentax.it');
+      expect(res.user.role).toBe(UserRole.TENANT_USER);
       expect(res.token).toHaveLength(64);
       expect(auditLogMock.log).toHaveBeenCalledWith(
         expect.objectContaining({ action: 'AUTH_REGISTER', userId: 'u1' }),
@@ -89,8 +88,20 @@ describe('AuthService', () => {
 
       await expect(
         authService.register({
-          email: 'admin@opentax.it',
+          email: 'user@opentax.it',
           password: 'password123',
+        }),
+      ).rejects.toThrow(ConflictException);
+    });
+
+    it('throws ConflictException on concurrent registration with same email (P2002)', async () => {
+      prismaMock.user.findUnique.mockResolvedValue(null);
+      prismaMock.user.create.mockRejectedValue({ code: 'P2002' });
+
+      await expect(
+        authService.register({
+          email: 'dup@opentax.it',
+          password: 'Password123!',
         }),
       ).rejects.toThrow(ConflictException);
     });
@@ -181,6 +192,53 @@ describe('AuthService', () => {
         }, '127.0.0.1'),
       ).rejects.toThrow(HttpException);
     });
+
+    it('isolates rate limiting by client IP so one client cannot lock out another', async () => {
+      prismaMock.user.findUnique.mockResolvedValue(null);
+
+      const attackerIp = '198.51.100.5';
+      const legitimateIp = '203.0.113.10';
+
+      // Attacker attempts 5 failed logins from attackerIp
+      for (let i = 0; i < 5; i++) {
+        await expect(
+          authService.login(
+            { email: 'victim@test.it', password: 'bad' },
+            attackerIp,
+          ),
+        ).rejects.toThrow(UnauthorizedException);
+      }
+
+      // Attacker is now rate limited (429)
+      await expect(
+        authService.login(
+          { email: 'victim@test.it', password: 'bad' },
+          attackerIp,
+        ),
+      ).rejects.toThrow(HttpException);
+
+      // Legitimate user from a different IP is NOT blocked
+      const user = {
+        id: 'u1',
+        email: 'victim@test.it',
+        passwordHash: await passwordService.hash('correct_password'),
+        role: UserRole.TENANT_USER,
+        memberships: [],
+      };
+      prismaMock.user.findUnique.mockResolvedValue(user);
+      prismaMock.session.create.mockResolvedValue({
+        id: 's2',
+        userId: 'u1',
+        activeTenantId: null,
+        expiresAt: new Date(),
+      });
+
+      const res = await authService.login(
+        { email: 'victim@test.it', password: 'correct_password' },
+        legitimateIp,
+      );
+      expect(res.user.email).toBe('victim@test.it');
+    });
   });
 
   describe('selectTenant', () => {
@@ -249,7 +307,7 @@ describe('AuthService', () => {
       expect(res).toBeNull();
     });
 
-    it('returns user and session if session is active', async () => {
+    it('returns user and session if session is active and user is a member of the active tenant', async () => {
       const now = new Date();
       const fakeSession = {
         id: 's1',
@@ -260,7 +318,14 @@ describe('AuthService', () => {
           id: 'u1',
           email: 'user@test.it',
           role: UserRole.TENANT_USER,
-          memberships: [],
+          memberships: [
+            {
+              id: 'm1',
+              tenantId: 't1',
+              role: UserRole.TENANT_USER,
+              tenant: { id: 't1', name: 'T1' },
+            },
+          ],
         },
       };
       prismaMock.session.findUnique.mockResolvedValue(fakeSession);
@@ -269,6 +334,35 @@ describe('AuthService', () => {
       expect(res).not.toBeNull();
       expect(res?.user.id).toBe('u1');
       expect(res?.session.activeTenantId).toBe('t1');
+    });
+
+    it('resets activeTenantId to null if user is not a member of the active tenant', async () => {
+      const now = new Date();
+      const fakeSession = {
+        id: 's1',
+        userId: 'u1',
+        activeTenantId: 'unauthorized_tenant',
+        expiresAt: new Date(now.getTime() + 100000),
+        user: {
+          id: 'u1',
+          email: 'user@test.it',
+          role: UserRole.TENANT_USER,
+          memberships: [
+            {
+              id: 'm1',
+              tenantId: 'other_tenant',
+              role: UserRole.TENANT_USER,
+              tenant: { id: 'other_tenant', name: 'Other' },
+            },
+          ],
+        },
+      };
+      prismaMock.session.findUnique.mockResolvedValue(fakeSession);
+
+      const res = await authService.validateSession('token');
+      expect(res).not.toBeNull();
+      expect(res?.user.id).toBe('u1');
+      expect(res?.session.activeTenantId).toBeNull();
     });
   });
 });

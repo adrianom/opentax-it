@@ -13,4 +13,8 @@ export class RegisterDto {
   @IsString()
   @MaxLength(100)
   name?: string;
+
+  @IsOptional()
+  @IsString()
+  setupToken?: string;
 }
