@@ -14,7 +14,7 @@ const base = {
 describe('buildPaymentSchedule – real 2026 forms (5 installments from 20 July, INPS office 5500)', () => {
   const { forms, warnings } = buildPaymentSchedule(ruleSet2026, {
     ...base,
-    amounts: { taxBalance: 6527, taxFirstAdvance: 3263.5, taxSecondAdvance: 4895, inpsBalance: 6379.5, inpsFirstAdvance: 4537.2, inpsSecondAdvance: 4537 },
+    amounts: { taxBalance: 6527, taxFirstAdvance: 3263.5, taxSecondAdvance: 3263.5, inpsBalance: 6379.5, inpsFirstAdvance: 4537.2, inpsSecondAdvance: 4537.2 },
     firstDueDate: d('2026-07-20'),
     installments: 5,
   });
@@ -29,6 +29,22 @@ describe('buildPaymentSchedule – real 2026 forms (5 installments from 20 July,
       'INSTALLMENT 2026-11-16',
       'SECOND_ADVANCE 2026-11-30',
     ]);
+  });
+
+  it('installment 2 of 5 (20/8) matches the F24 prepared by the intermediary line by line: interest 0.29%', () => {
+    const f = forms[1];
+    const rows = f.lines.map((l) => [l.section, l.code, l.installmentCode ?? '', l.officeCode ?? '', l.periodFrom ?? '', l.periodTo ?? '', l.referenceYear, l.debitAmount]);
+    expect(rows).toEqual([
+      ['TREASURY', '1792', '0205', '', '', '', 2025, 1305.4],
+      ['TREASURY', '1790', '0205', '', '', '', 2026, 652.7],
+      ['INPS', 'PXXR', '', '5500', '01/2025', '12/2025', 2025, 1275.9],
+      ['INPS', 'PXXR', '', '5500', '01/2026', '12/2026', 2026, 907.44],
+      ['TREASURY', '1668', '', '', '', '', 2025, 3.79],
+      ['TREASURY', '1668', '', '', '', '', 2026, 1.89],
+      ['INPS', 'DPPI', '', '5500', '01/2025', '12/2025', 2025, 3.7],
+      ['INPS', 'DPPI', '', '5500', '01/2026', '12/2026', 2026, 2.63],
+    ]);
+    expect(f.totalDebit).toBe(4153.45); // 1,963.78 (Erario) + 2,189.67 (INPS)
   });
 
   it('installment 3 of 5 matches the F24 prepared by the intermediary line by line', () => {
@@ -49,11 +65,36 @@ describe('buildPaymentSchedule – real 2026 forms (5 installments from 20 July,
     expect(f.totalDebit).toBe(4167.12); // 1,970.24 (Erario) + 2,196.88 (INPS)
   });
 
-  it('installment 4 of 5: interest 12.40 / 6.20 / 12.12 / 8.62 as on the second real form', () => {
+  it('installment 4 of 5 matches the F24 prepared by the intermediary line by line: interest 0.95%', () => {
     const f = forms[3];
-    const interest = f.lines.filter((l) => l.code === '1668' || l.code === 'DPPI').map((l) => l.debitAmount);
-    expect(interest).toEqual([12.4, 6.2, 12.12, 8.62]);
-    expect(f.lines[0].installmentCode).toBe('0405');
+    const rows = f.lines.map((l) => [l.section, l.code, l.installmentCode ?? '', l.officeCode ?? '', l.periodFrom ?? '', l.periodTo ?? '', l.referenceYear, l.debitAmount]);
+    expect(rows).toEqual([
+      ['TREASURY', '1792', '0405', '', '', '', 2025, 1305.4],
+      ['TREASURY', '1790', '0405', '', '', '', 2026, 652.7],
+      ['INPS', 'PXXR', '', '5500', '01/2025', '12/2025', 2025, 1275.9],
+      ['INPS', 'PXXR', '', '5500', '01/2026', '12/2026', 2026, 907.44],
+      ['TREASURY', '1668', '', '', '', '', 2025, 12.4],
+      ['TREASURY', '1668', '', '', '', '', 2026, 6.2],
+      ['INPS', 'DPPI', '', '5500', '01/2025', '12/2025', 2025, 12.12],
+      ['INPS', 'DPPI', '', '5500', '01/2026', '12/2026', 2026, 8.62],
+    ]);
+    expect(f.totalDebit).toBe(4180.78); // 1,976.70 (Erario) + 2,204.08 (INPS)
+  });
+
+  it('installment 5 of 5 matches the F24 prepared by the intermediary line by line: interest 1.28%', () => {
+    const f = forms[4];
+    const rows = f.lines.map((l) => [l.section, l.code, l.installmentCode ?? '', l.officeCode ?? '', l.periodFrom ?? '', l.periodTo ?? '', l.referenceYear, l.debitAmount]);
+    expect(rows).toEqual([
+      ['TREASURY', '1792', '0505', '', '', '', 2025, 1305.4],
+      ['TREASURY', '1790', '0505', '', '', '', 2026, 652.7],
+      ['INPS', 'PXXR', '', '5500', '01/2025', '12/2025', 2025, 1275.9],
+      ['INPS', 'PXXR', '', '5500', '01/2026', '12/2026', 2026, 907.44],
+      ['TREASURY', '1668', '', '', '', '', 2025, 16.71],
+      ['TREASURY', '1668', '', '', '', '', 2026, 8.35],
+      ['INPS', 'DPPI', '', '5500', '01/2025', '12/2025', 2025, 16.33],
+      ['INPS', 'DPPI', '', '5500', '01/2026', '12/2026', 2026, 11.62],
+    ]);
+    expect(f.totalDebit).toBe(4194.45); // 1,983.16 (Erario) + 2,211.29 (INPS)
   });
 
   it('first installment matches the real first form (paid early on 29/6): no interest rows, total 4,141.44', () => {
@@ -69,9 +110,19 @@ describe('buildPaymentSchedule – real 2026 forms (5 installments from 20 July,
   it('second advance: 1791 and PXX without installment code, reference year 2026', () => {
     const f = forms[5];
     expect(f.lines.map((l) => [l.code, l.installmentCode, l.referenceYear, l.periodFrom, l.debitAmount])).toEqual([
-      ['1791', undefined, 2026, undefined, 4895],
-      ['PXX', undefined, 2026, '01/2026', 4537],
+      ['1791', undefined, 2026, undefined, 3263.5],
+      ['PXX', undefined, 2026, '01/2026', 4537.2],
     ]);
+    expect(f.totalDebit).toBe(7800.7);
+  });
+
+  it('matches the installment summary prepared by the intermediary: totals, interest and grand total', () => {
+    const installmentForms = forms.filter((f) => f.kind === 'INSTALLMENT');
+    const interest = (f: (typeof forms)[number]) => f.lines.filter((l) => l.role === 'INTEREST').reduce((s, l) => s + l.debitAmount, 0);
+    expect(installmentForms.map((f) => f.totalDebit)).toEqual([4141.44, 4153.45, 4167.12, 4180.78, 4194.45]);
+    // 4,141.44 × 0.29% (4% × 26 commercial days from 20/7 to 16/8), then +0.33% per month.
+    expect(installmentForms.map((f) => Math.round(interest(f) * 100) / 100)).toEqual([0, 12.01, 25.68, 39.34, 53.01]);
+    expect(Math.round(installmentForms.reduce((s, f) => s + f.totalDebit, 0) * 100) / 100).toBe(20837.24);
   });
 
   it('I24 cancellation: third-to-last business day before the debit date', () => {
