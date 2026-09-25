@@ -5,32 +5,36 @@ import type { CustomerKind, DocumentType, VatNature } from '../generated/prisma/
 import { PrismaService } from '../prisma/prisma.service.js';
 import { StorageService } from '../storage/storage.service.js';
 import { TenantsService } from '../tenants/tenants.service.js';
+import { extractXmlEntries } from './invoice-archive.js';
+import type { ImportPreviewRow } from './types/import-preview-row.js';
+import type { ImportResult } from './types/import-result.js';
+import type { UploadedFile } from './types/uploaded-file.js';
+import type { XmlEntry } from './types/xml-entry.js';
 
 /**
- * Imports invoices issued with other software from their FatturaPA XML files, so that
- * the year's numbering, stamp duty and collections are complete. Imported documents
- * are stored as ISSUED with the original number and the original XML file.
+ * Imports invoices issued with other software from their FatturaPA XML files, loose or in ZIP
+ * archives (see invoice-archive.ts), so that the year's numbering, stamp duty and collections are
+ * complete. Imported documents are stored as ISSUED with the original number and the original XML file.
+ *
+ * Two steps on the same files, with nothing kept on the server in between: preview() analyses them
+ * without writing, importFiles() writes the selected ones after analysing them again.
  *
  * Checks: the CedentePrestatore must be the tenant (same VAT number); a document with the
  * same year, type and number is skipped; only TD01/TD04/TD05/TD06 are accepted.
  */
 
-export interface ImportFile {
-  name: string;
-  xml: string;
-}
-
-export interface ImportResult {
-  file: string;
-  status: 'IMPORTED' | 'SKIPPED' | 'ERROR';
-  number?: string;
-  invoiceId?: string;
-  customer?: string;
-  message?: string;
+/** A document that passed the checks, with what is needed to store it. */
+interface AnalyzedInvoice {
+  parsed: ParsedInvoice;
+  year: number;
+  type: DocumentType;
+  sequence: number;
+  existingId?: string;
 }
 
 const round2 = (n: number) => Math.round((n + Number.EPSILON) * 100) / 100;
 const ACCEPTED: DocumentType[] = ['TD01', 'TD04', 'TD05', 'TD06'];
+const UNEXPECTED = 'Errore imprevisto durante l\'import di questo file';
 
 @Injectable()
 export class InvoicesImportService {
@@ -42,46 +46,96 @@ export class InvoicesImportService {
     private readonly storage: StorageService,
   ) {}
 
-  async importFiles(tenantId: string, files: ImportFile[]): Promise<ImportResult[]> {
+  /** What an import of these files would do, without writing anything. */
+  async preview(tenantId: string, files: UploadedFile[]): Promise<ImportPreviewRow[]> {
     const { profile } = await this.tenants.getWithProfile(tenantId);
-    const results: ImportResult[] = [];
-    for (const f of files) {
+    const { entries, ignored } = extractXmlEntries(files);
+    const rows: ImportPreviewRow[] = [];
+    // Documents met earlier in the same upload, which the import would find already stored.
+    const numbers = new Set<string>();
+    const sequences = new Map<string, string>();
+    for (const e of entries) {
+      let p: ParsedInvoice;
       try {
-        results.push(await this.importOne(tenantId, profile.vatNumber, f));
-      } catch (e) {
-        // Only our own validation messages reach the client; anything else (database, file system) is logged.
-        if (!(e instanceof HttpException)) this.logger.error(`Import of ${f.name} failed`, e as Error);
-        const message = e instanceof HttpException ? e.message : 'Unexpected error while importing this file';
-        results.push({ file: f.name, status: 'ERROR', message });
+        p = parse(e.xml);
+      } catch (err) {
+        rows.push({ file: e.name, status: 'ERROR', message: this.errorMessage(e.name, err) });
+        continue;
+      }
+      // The document data is shown even when a check fails, so that the user can tell which one it is.
+      const row: ImportPreviewRow = {
+        file: e.name,
+        status: 'NEW',
+        documentType: p.documentType,
+        number: p.number.slice(0, 40),
+        date: p.date,
+        customer: partyName(p.customer),
+        total: deriveAmounts(p).total,
+      };
+      rows.push(row);
+      try {
+        const a = await this.check(tenantId, profile.vatNumber, p);
+        const numberKey = `${a.year}|${a.type}|${p.number}`;
+        const sequenceKey = `${a.year}|${a.type}|${a.sequence}`;
+        if (a.existingId) Object.assign(row, { status: 'DUPLICATE', invoiceId: a.existingId, message: 'Già presente' });
+        else if (numbers.has(numberKey)) Object.assign(row, { status: 'DUPLICATE', message: 'Compare più volte nei file caricati' });
+        else if (sequences.has(sequenceKey)) Object.assign(row, { status: 'ERROR', message: `Progressivo ${a.sequence}/${a.year} già usato dal documento ${sequences.get(sequenceKey)} nei file caricati` });
+        numbers.add(numberKey);
+        if (!sequences.has(sequenceKey)) sequences.set(sequenceKey, p.number);
+      } catch (err) {
+        Object.assign(row, { status: 'ERROR', message: this.errorMessage(e.name, err) });
+      }
+    }
+    return [...rows, ...ignored.map((i): ImportPreviewRow => ({ file: i.name, status: 'IGNORED', message: i.message }))];
+  }
+
+  /** Imports the documents in the files; with `selected`, only the entries with those names. */
+  async importFiles(tenantId: string, files: UploadedFile[], selected?: string[]): Promise<ImportResult[]> {
+    const { profile } = await this.tenants.getWithProfile(tenantId);
+    const only = selected ? new Set(selected) : undefined;
+    const results: ImportResult[] = [];
+    for (const e of extractXmlEntries(files).entries) {
+      if (only && !only.has(e.name)) continue;
+      try {
+        results.push(await this.importOne(tenantId, profile.vatNumber, e));
+      } catch (err) {
+        results.push({ file: e.name, status: 'ERROR', message: this.errorMessage(e.name, err) });
       }
     }
     return results;
   }
 
-  private async importOne(tenantId: string, tenantVat: string, f: ImportFile): Promise<ImportResult> {
-    let p: ParsedInvoice;
-    try {
-      p = parseInvoiceXml(f.xml);
-    } catch (e) {
-      throw new BadRequestException((e as Error).message); // malformed or unsupported file
-    }
+  /** Only our own validation messages reach the client; anything else (database, file system) is logged. */
+  private errorMessage(file: string, e: unknown): string {
+    if (e instanceof HttpException) return e.message;
+    this.logger.error(`Import of ${file} failed`, e as Error);
+    return UNEXPECTED;
+  }
+
+  /** Checks a parsed document against the tenant and the invoices already stored. */
+  private async check(tenantId: string, tenantVat: string, p: ParsedInvoice): Promise<AnalyzedInvoice> {
     if (p.supplier.vatNumber !== tenantVat) {
-      throw new BadRequestException(`CedentePrestatore ${p.supplier.countryCode ?? ''}${p.supplier.vatNumber ?? ''} is not this VAT number (${tenantVat})`);
+      throw new BadRequestException(`Il cedente ${p.supplier.countryCode ?? ''}${p.supplier.vatNumber ?? ''} non è la partita IVA attiva (${tenantVat})`);
     }
-    if (!ACCEPTED.includes(p.documentType as DocumentType)) throw new BadRequestException(`Document type ${p.documentType} not supported for import`);
+    if (!ACCEPTED.includes(p.documentType as DocumentType)) throw new BadRequestException(`Tipo documento ${p.documentType} non importabile (solo TD01, TD04, TD05, TD06)`);
     // Numero: String20Type of the FatturaPA XSD (Basic Latin, 1-20 characters).
-    if (!/^[\x20-\x7E]{1,20}$/.test(p.number)) throw new BadRequestException(`Invalid document number "${p.number.slice(0, 40)}"`);
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(p.date)) throw new BadRequestException(`Invalid document date "${p.date}"`);
+    if (!/^[\x20-\x7E]{1,20}$/.test(p.number)) throw new BadRequestException(`Numero documento non valido "${p.number.slice(0, 40)}"`);
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(p.date)) throw new BadRequestException(`Data documento non valida "${p.date}"`);
     const year = Number(p.date.slice(0, 4));
     const type = p.documentType as DocumentType;
 
     const existing = await this.prisma.invoice.findFirst({ where: { tenantId, year, type, number: p.number } });
-    if (existing) return { file: f.name, status: 'SKIPPED', number: p.number, invoiceId: existing.id, message: 'Already present' };
-
     const sequence = parseSequence(p.number);
-    if (sequence === undefined) throw new BadRequestException(`Cannot derive a progressive number from "${p.number}"`);
+    if (existing) return { parsed: p, year, type, sequence: sequence ?? existing.sequence ?? 0, existingId: existing.id };
+    if (sequence === undefined) throw new BadRequestException(`Impossibile ricavare un progressivo dal numero "${p.number}"`);
     const clash = await this.prisma.invoice.findFirst({ where: { tenantId, year, type, sequence } });
-    if (clash) throw new BadRequestException(`Progressive ${sequence}/${year} already used by document ${clash.number}`);
+    if (clash) throw new BadRequestException(`Progressivo ${sequence}/${year} già usato dal documento ${clash.number}`);
+    return { parsed: p, year, type, sequence };
+  }
+
+  private async importOne(tenantId: string, tenantVat: string, f: XmlEntry): Promise<ImportResult> {
+    const { parsed: p, year, type, sequence, existingId } = await this.check(tenantId, tenantVat, parse(f.xml));
+    if (existingId) return { file: f.name, status: 'SKIPPED', number: p.number, invoiceId: existingId, message: 'Già presente' };
 
     // A foreign customer invoiced with N2.2 (made in Italy) is a private customer (art. 7-ter par. 1 lett. b).
     const privateForeign = [...p.summaryNatures, ...p.lines.map((l) => l.nature)].includes('N2.2');
@@ -91,7 +145,7 @@ export class InvoicesImportService {
       ? await this.prisma.invoice.findFirst({ where: { tenantId, number: p.relatedDocuments[0].number, type: 'TD01' } })
       : null;
 
-    const xmlFileName = f.name.replace(/[^A-Za-z0-9._-]/g, '_');
+    const xmlFileName = f.fileName.replace(/[^A-Za-z0-9._-]/g, '_');
 
     // The stored XML is the archived copy of the document: its path carries the invoice id so that
     // two imports with the same file name never share a file, and it is never overwritten. The
@@ -118,7 +172,7 @@ export class InvoicesImportService {
           status: 'ISSUED',
           refInvoiceId: refInvoice?.id ?? null,
           xmlFileName,
-          internalNotes: `Imported from ${f.name}`,
+          internalNotes: `Importata da ${f.name}`,
           lines: {
             create: p.lines.map((l) => ({
               lineNumber: l.lineNumber,
@@ -134,7 +188,7 @@ export class InvoicesImportService {
       const xmlPath = await this.storage.write(`${tenantId}/invoices/${year}/imported/${created.id}_${xmlFileName}`, f.xml, { exclusive: true });
       return tx.invoice.update({ where: { id: created.id }, data: { xmlPath } });
     });
-    return { file: f.name, status: 'IMPORTED', number: p.number, invoiceId: inv.id, customer: customer.businessName ?? `${customer.firstName ?? ''} ${customer.lastName ?? ''}`.trim() };
+    return { file: f.name, status: 'IMPORTED', number: p.number, invoiceId: inv.id, customer: partyName(customer) };
   }
 
   private async findOrCreateCustomer(tenantId: string, c: ParsedParty, recipientCode?: string, recipientPec?: string, privateForeign = false) {
@@ -174,6 +228,19 @@ export class InvoicesImportService {
       },
     });
   }
+}
+
+/** Parses the XML; a malformed or unsupported file is a validation error shown to the user. */
+function parse(xml: string): ParsedInvoice {
+  try {
+    return parseInvoiceXml(xml);
+  } catch (e) {
+    throw new BadRequestException(`XML non valido: ${(e as Error).message}`);
+  }
+}
+
+function partyName(c: { businessName?: string | null; firstName?: string | null; lastName?: string | null }): string {
+  return c.businessName ?? `${c.firstName ?? ''} ${c.lastName ?? ''}`.trim();
 }
 
 /** "12/2026", "12", "FPA 12", "2026-12" → 12. Undefined when no digits are found. */

@@ -34,7 +34,7 @@ export default async function InvoicesPage({ searchParams }: PageProps<'/invoice
       <div className="flex flex-wrap items-center justify-between gap-2">
         <YearSelect path="/invoices" value={year} years={years} />
         <div className="flex gap-2">
-          <Button variant="outline" render={<Link href="/invoices/import" />}>Importa XML</Button>
+          <Button variant="outline" render={<Link href="/invoices/import" />}>Importa XML o ZIP</Button>
           <Button render={<Link href="/invoices/new" />}>Nuova fattura</Button>
         </div>
       </div>

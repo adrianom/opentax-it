@@ -1,6 +1,6 @@
 import 'server-only';
 import { cookies } from 'next/headers';
-import type { BankAccount, Customer, Deadline, RuleSetDetail, SourceDetail, SourceSummary, F24, ImportResult, InstallmentPlan, Invoice, InvoiceDetail, Payment, ThresholdOutlook, PaymentTerms, PlanOptions, PlanPreview, RuleSetSummary, TaxCredit, TaxSummary, TaxYearData, Tenant, TenantWithProfile } from './types';
+import type { BankAccount, Customer, Deadline, RuleSetDetail, SourceDetail, SourceSummary, F24, ImportFile, ImportPreviewRow, ImportResult, InstallmentPlan, Invoice, InvoiceDetail, Payment, ThresholdOutlook, PaymentTerms, PlanOptions, PlanPreview, RuleSetSummary, TaxCredit, TaxSummary, TaxYearData, Tenant, TenantWithProfile } from './types';
 
 export * from './types';
 export * from './format';
@@ -112,7 +112,8 @@ export const api = {
   createPlan: (taxYear: number, data: unknown) => tenantRequest<InstallmentPlan>(`/f24/plans/${taxYear}`, { method: 'POST', body: JSON.stringify(data) }),
   deletePlan: (taxYear: number) => tenantRequest<void>(`/f24/plans/${taxYear}`, { method: 'DELETE' }),
   updateF24Status: (id: string, data: unknown) => tenantRequest<F24>(`/f24/${seg(id)}/status`, { method: 'PATCH', body: JSON.stringify(data) }),
-  importInvoices: (files: Array<{ name: string; xml: string }>) => tenantRequest<ImportResult[]>('/invoices/import', { method: 'POST', body: JSON.stringify({ files }) }),
+  previewInvoiceImport: (files: ImportFile[]) => tenantRequest<ImportPreviewRow[]>('/invoices/import/preview', { method: 'POST', body: JSON.stringify({ files }) }),
+  importInvoices: (files: ImportFile[], selected: string[]) => tenantRequest<ImportResult[]>('/invoices/import', { method: 'POST', body: JSON.stringify({ files, selected }) }),
   f24Pdf: async (id: string) => {
     const tenantId = await currentTenantId();
     const res = await fetch(`${API_URL}/f24/${seg(id)}/pdf`, { headers: tenantId ? { 'x-tenant-id': tenantId } : {}, cache: 'no-store' });

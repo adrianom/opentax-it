@@ -50,16 +50,6 @@ export class ListInvoicesQuery {
   @IsOptional() @IsIn(['DRAFT', 'ISSUED', 'SENT', 'DELIVERED', 'NOT_DELIVERED', 'REJECTED', 'CANCELLED']) status?: string;
 }
 
-export class ImportFileDto {
-  @IsString() @Length(1, 200) name!: string;
-  /** XML content (max 5 MB per SDI rules). */
-  @IsString() @MaxLength(5 * 1024 * 1024) xml!: string;
-}
-
-export class ImportInvoicesDto {
-  @ValidateNested({ each: true }) @Type(() => ImportFileDto) @ArrayMinSize(1) @ArrayMaxSize(200) files!: ImportFileDto[];
-}
-
 export interface CourtesyInvoiceParty {
   name: string;
   taxRegime?: string;

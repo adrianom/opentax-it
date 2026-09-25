@@ -4,7 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { api, ApiError, TENANT_COOKIE } from './api';
-import type { ImportResult } from './types';
+import type { ImportFile, ImportPreviewRow, ImportResult } from './types';
 
 export type ActionState = { error?: string } | undefined;
 
@@ -244,16 +244,40 @@ export async function saveTaxYearData(_prev: ActionState, formData: FormData): P
   return undefined;
 }
 
-export async function importInvoiceFiles(files: Array<{ name: string; xml: string }>): Promise<{ results?: ImportResult[]; error?: string }> {
+/** Same limits as the API: at most 200 files of 20 MB each. */
+const MAX_IMPORT_FILES = 200;
+const MAX_IMPORT_FILE_BYTES = 20 * 1024 * 1024;
+
+async function importFilesFrom(formData: FormData): Promise<ImportFile[]> {
+  const files = formData.getAll('files').filter((f): f is File => f instanceof File && f.size > 0);
+  if (files.length === 0) throw new Error('Scegli almeno un file .xml o .zip');
+  if (files.length > MAX_IMPORT_FILES) throw new Error(`Al massimo ${MAX_IMPORT_FILES} file per volta`);
+  const tooLarge = files.find((f) => f.size > MAX_IMPORT_FILE_BYTES);
+  if (tooLarge) throw new Error(`${tooLarge.name} supera 20 MB: dividilo in archivi più piccoli`);
+  return Promise.all(files.map(async (f) => ({ name: f.name, contentBase64: Buffer.from(await f.arrayBuffer()).toString('base64') })));
+}
+
+/** First step of the import: what would happen, without writing anything. */
+export async function previewInvoiceImport(formData: FormData): Promise<{ rows?: ImportPreviewRow[]; error?: string }> {
   try {
-    const results = await api.importInvoices(files);
+    return { rows: await api.previewInvoiceImport(await importFilesFrom(formData)) };
+  } catch (e) {
+    return { error: e instanceof ApiError ? e.message : e instanceof Error ? e.message : 'Errore inatteso' };
+  }
+}
+
+/** Second step: the same files again, with the preview rows chosen by the user in "selected". */
+export async function importInvoiceFiles(formData: FormData): Promise<{ results?: ImportResult[]; error?: string }> {
+  try {
+    const selected = formData.getAll('selected').map(String);
+    const results = await api.importInvoices(await importFilesFrom(formData), selected);
     revalidatePath('/invoices');
     revalidatePath('/customers');
     revalidatePath('/dashboard');
     revalidatePath('/deadlines');
     return { results };
   } catch (e) {
-    return { error: errorMessage(e) };
+    return { error: e instanceof ApiError ? e.message : e instanceof Error ? e.message : 'Errore inatteso' };
   }
 }
 

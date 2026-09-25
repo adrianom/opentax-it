@@ -194,6 +194,24 @@ export interface TaxYearData {
   inpsReducedRate: boolean;
 }
 
+/** A file sent to the invoice import: an XML file or a ZIP archive of them. */
+export interface ImportFile {
+  name: string;
+  contentBase64: string;
+}
+
+export interface ImportPreviewRow {
+  file: string;
+  status: 'NEW' | 'DUPLICATE' | 'ERROR' | 'IGNORED';
+  documentType?: string;
+  number?: string;
+  date?: string;
+  customer?: string;
+  total?: number;
+  invoiceId?: string;
+  message?: string;
+}
+
 export interface ImportResult {
   file: string;
   status: 'IMPORTED' | 'SKIPPED' | 'ERROR';

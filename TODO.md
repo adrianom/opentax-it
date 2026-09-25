@@ -112,7 +112,9 @@ Emissione e XML sono pronti; manca la trasmissione. Normativa verificata in [doc
 
 ### Import da altri strumenti
 - Fatto: import di XML FatturaPA emessi altrove (numero originale, XML conservato).
-- Da fare: import massivo dallo zip scaricato dal portale AdE "Fatture e Corrispettivi" (emesse e ricevute), con riconciliazione degli incassi.
+- Fatto (25/09/2026): import delle emesse da archivi ZIP (es. scaricati dal portale "Fatture e Corrispettivi"), aperti nell'API con limiti contro gli zip bomb (5 MB per file come da Spec. 1.9.1, 2.000 file, 200 MB estratti), e preview prima dell'import con le fatture da scegliere; file di metadati SDI ignorati. Nessuna fonte ufficiale descrive la struttura dello zip del portale: le voci sono riconosciute dal contenuto.
+- Da fare: fatture firmate `.xml.p7m` (CAdES, Spec. 1.9.1 §1.2.1; se il file possa arrivare anche in base64 **da verificare**); IdentificativoSdI dai file di metadati (`FileMetadati` AdE e `MetadatiInvioFile` fatturapa.gov.it, quale usi il portale **da verificare**); fatture ricevute; riconciliazione degli incassi.
+- Da archiviare nel [registro delle fonti](docs/fonti/README.md): specifiche "Consultazioni e Download Massivi" v2.4 (ivaservizi.agenziaentrate.gov.it), pagina di assistenza "Consultare le fatture elettroniche", XSD `MessaggiFatturaTypes_v1.0`.
 - OCR per fatture cartacee/PDF: bassa priorità (dal 2019 ogni fattura emessa esiste come XML; l'OCR servirebbe solo per documenti precedenti o per fatture ricevute da soggetti esclusi).
 
 ### Fatture ricevute (acquisti)

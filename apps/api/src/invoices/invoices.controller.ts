@@ -1,8 +1,14 @@
 import { Body, Controller, Delete, Get, Header, HttpCode, Param, Post, Put, Query, Res, StreamableFile } from '@nestjs/common';
+import { ApiCreatedResponse, ApiOkResponse } from '@nestjs/swagger';
 import type { Response } from 'express';
 import { attachment } from '../common/content-disposition.js';
 import { TenantId } from '../common/tenant.decorator.js';
-import { CreateInvoiceDto, ImportInvoicesDto, IssueInvoiceDto, ListInvoicesQuery, UpdateInvoiceDto } from './invoices.dto.js';
+import { CreateInvoiceDto, IssueInvoiceDto, ListInvoicesQuery, UpdateInvoiceDto } from './invoices.dto.js';
+import { ImportInvoicesDto } from './dto/request/import-invoices.dto.js';
+import { PreviewImportDto } from './dto/request/preview-import.dto.js';
+import { ImportPreviewRowDto } from './dto/response/import-preview-row.dto.js';
+import { ImportResultDto } from './dto/response/import-result.dto.js';
+import { toImportPreviewRowDto, toImportResultDto, toUploadedFiles } from './invoice-import.mapper.js';
 import { InvoicesImportService } from './invoices-import.service.js';
 import { InvoicesService } from './invoices.service.js';
 
@@ -10,9 +16,20 @@ import { InvoicesService } from './invoices.service.js';
 export class InvoicesController {
   constructor(private readonly service: InvoicesService, private readonly importer: InvoicesImportService) {}
 
-  /** Import FatturaPA XML files issued elsewhere (declared before ':id' routes). */
+  /** What importing these XML or ZIP files would do, without writing anything (declared before ':id' routes). */
+  @Post('import/preview')
+  @HttpCode(200)
+  @ApiOkResponse({ type: [ImportPreviewRowDto] })
+  async previewImport(@TenantId() tenantId: string, @Body() dto: PreviewImportDto): Promise<ImportPreviewRowDto[]> {
+    return (await this.importer.preview(tenantId, toUploadedFiles(dto.files))).map(toImportPreviewRowDto);
+  }
+
+  /** Import FatturaPA XML files issued elsewhere, loose or in ZIP archives (declared before ':id' routes). */
   @Post('import')
-  importXml(@TenantId() tenantId: string, @Body() dto: ImportInvoicesDto) { return this.importer.importFiles(tenantId, dto.files); }
+  @ApiCreatedResponse({ type: [ImportResultDto] })
+  async importXml(@TenantId() tenantId: string, @Body() dto: ImportInvoicesDto): Promise<ImportResultDto[]> {
+    return (await this.importer.importFiles(tenantId, toUploadedFiles(dto.files), dto.selected)).map(toImportResultDto);
+  }
 
   /** Revenue thresholds of the current year (declared before ':id' routes). */
   @Get('thresholds') thresholds(@TenantId() tenantId: string) { return this.service.thresholds(tenantId); }
