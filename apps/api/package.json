@@ -18,7 +18,7 @@
     "test:debug": "vitest --inspect-brk --no-file-parallelism",
     "test:e2e": "vitest run --config ./vitest.config.e2e.ts",
     "demo:seed": "node scripts/seed-demo.ts",
-    "dev": "nest start --watch",
+    "dev": "prisma generate && nest start --watch",
     "prisma:generate": "prisma generate"
   },
   "dependencies": {

@@ -64,6 +64,16 @@ pnpm dev            # api (http://localhost:3000/api) + web (http://localhost:30
 
 > **Solo uso locale.** L'autenticazione non c'è ancora ([TODO.md](TODO.md)): chi raggiunge l'API può leggere e modificare i dati di qualunque partita IVA. Per questo API, web e database ascoltano solo su `127.0.0.1` e rifiutano le richieste con un host diverso da quelli in `ALLOWED_HOSTS` (protezione contro il DNS rebinding). Non esporli in rete, nemmeno su un NAS, finché l'autenticazione non è pronta.
 
+Dopo ogni `git pull`:
+
+```bash
+pnpm install        # nuove dipendenze
+pnpm db:migrate     # nuove migrazioni del database
+pnpm dev            # rigenera il client Prisma e riavvia api e web
+```
+
+Se l'aggiornamento porta nuovi set di regole, in **Regole fiscali** (`/rules`) caricali, controlla cosa cambia e attivali.
+
 Al primo avvio apri http://localhost:3001/setup/new e crea la partita IVA (profilo fiscale). Poi in **Regole fiscali** (`/rules`) carica i set forniti con l'applicazione e attiva quello di ogni anno; conti bancari e profili di scadenza si aggiungono nelle pagine **Banche** (`/banks`) e **Profili di scadenza** (`/payment-terms`). Lo stesso vale ogni volta che un aggiornamento del codice porta un nuovo set: viene proposto come nuova versione in bozza, con il confronto rispetto al set attivo, e non è mai attivato automaticamente.
 
 Per vedere il flusso con dati inventati: `pnpm demo:seed` (con `pnpm dev` attivo) crea la partita IVA "Demo Forfettario" con clienti, fatture e incassi dell'anno scorso e di quest'anno, due crediti e il piano rate F24; selezionala in `/setup` e apri `/taxes` e `/f24`. `pnpm demo:seed --reset` la cancella e la ricrea con le regole attive. Il seed carica prima i set di regole forniti con il codice e si ferma se c'è una bozza più recente di quella attiva: non attiva mai nulla da solo.
