@@ -215,7 +215,7 @@ export class InvoicesService {
     if (existing.date.toISOString().slice(0, 10) > today) throw new BadRequestException('The invoice date cannot be in the future');
     if (!dto?.confirmThresholds) {
       const t = await this.thresholds(tenantId, id);
-      const eur = (n: number | null) => new Intl.NumberFormat('it-IT', { style: 'currency', currency: 'EUR' }).format(n ?? 0);
+      const eur = (n: number | null) => new Intl.NumberFormat('it-IT', { style: 'currency', currency: 'EUR', useGrouping: 'always' }).format(n ?? 0);
       if (t.projectedOverExit) throw new ConflictException(`Con questa fattura incassato e da incassare nell'anno arrivano a ${eur(t.projected)}, oltre ${eur(t.exitThreshold)}: se incassati nell'anno il regime forfettario cessa subito e l'IVA è dovuta dalla fattura che fa superare la soglia (L. 190/2014 c. 71). Conferma per emettere comunque.`);
       if (t.projectedOverPersonalLimit) throw new ConflictException(`Con questa fattura incassato e da incassare nell'anno arrivano a ${eur(t.projected)}, oltre il tuo limite personale di ${eur(t.personalLimit)}. Conferma per emettere comunque.`);
     }

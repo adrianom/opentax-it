@@ -19,8 +19,12 @@ export function formatPct(value: number): string {
   return `${value.toLocaleString('it-IT')}%`;
 }
 
+/**
+ * Amount in Italian notation, e.g. 3367 → "3.367,00 €". `useGrouping: 'always'` because the
+ * Italian locale leaves four-digit numbers without the thousands separator ("3367,00 €").
+ */
 export function formatMoney(value: string | number, currency = 'EUR'): string {
-  return new Intl.NumberFormat('it-IT', { style: 'currency', currency }).format(Number(value));
+  return new Intl.NumberFormat('it-IT', { style: 'currency', currency, useGrouping: 'always' }).format(Number(value));
 }
 
 /** Years from `from` to `to`, newest first, always including `selected` (e.g. a year typed in the URL). */

@@ -140,7 +140,7 @@ export function ruleValueLabel(key: string, value: unknown): string | null {
   if (typeof value === 'number') {
     const n = value.toLocaleString('it-IT');
     if (/Pct$/.test(key)) return `${n}%`;
-    if (/Threshold$|Ceiling$|Floor$|notDueBelow|AtMost$|\.amount$|\.threshold$/.test(key)) return `${value.toLocaleString('it-IT', { minimumFractionDigits: Number.isInteger(value) ? 0 : 2 })} €`;
+    if (/Threshold$|Ceiling$|Floor$|notDueBelow|AtMost$|\.amount$|\.threshold$/.test(key)) return `${value.toLocaleString('it-IT', { minimumFractionDigits: Number.isInteger(value) ? 0 : 2, useGrouping: 'always' })} €`;
     return NUMBER_FORMATS[key]?.(n) ?? n;
   }
   if (isMonthDay(value)) return `${String(value.day).padStart(2, '0')}/${String(value.month).padStart(2, '0')}`;
