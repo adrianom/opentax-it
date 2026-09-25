@@ -24,7 +24,7 @@ export default async function SetupPage() {
       <Card>
         <CardHeader>
           <CardTitle>Partita IVA attiva</CardTitle>
-          <CardDescription>Finché non c&apos;è l&apos;autenticazione, la partita IVA attiva è salvata in un cookie del browser.</CardDescription>
+          <CardDescription>Scegli quale partita IVA gestire nella sessione corrente.</CardDescription>
         </CardHeader>
         <CardContent>
           {list.length > 0 ? (
