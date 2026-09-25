@@ -8,6 +8,7 @@ import {
   Req,
 } from '@nestjs/common';
 import type { Request } from 'express';
+import { Throttle } from '@nestjs/throttler';
 import { AuthService } from './auth.service.js';
 import { CurrentUser } from './current-user.decorator.js';
 import { LoginDto } from './dto/request/login.dto.js';
@@ -24,6 +25,10 @@ export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
   @Public()
+  @Throttle({
+    default: { limit: 5, ttl: 15 * 60_000 },
+    'auth-email': { limit: 5, ttl: 15 * 60_000 },
+  })
   @Post('register')
   register(@Body() dto: RegisterDto, @Req() req: Request): Promise<AuthResponseDto> {
     const ip = req.ip || req.socket.remoteAddress;
@@ -32,6 +37,10 @@ export class AuthController {
   }
 
   @Public()
+  @Throttle({
+    default: { limit: 5, ttl: 15 * 60_000 },
+    'auth-email': { limit: 5, ttl: 15 * 60_000 },
+  })
   @Post('login')
   @HttpCode(HttpStatus.OK)
   login(@Body() dto: LoginDto, @Req() req: Request): Promise<AuthResponseDto> {

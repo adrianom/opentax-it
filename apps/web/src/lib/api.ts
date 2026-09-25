@@ -1,7 +1,5 @@
 import 'server-only';
-import { isIP } from 'node:net';
 import { cookies, headers } from 'next/headers';
-import { redirect } from 'next/navigation';
 import type {
   AuthResponse,
   BankAccount,
@@ -64,32 +62,6 @@ export async function currentTenantId(): Promise<string | null> {
   return user?.activeTenantId ?? null;
 }
 
-/**
- * Reliably extracts client IP from reverse proxy headers.
- * Takes the rightmost IP in X-Forwarded-For (the one appended by the immediate upstream proxy)
- * or explicit reverse proxy headers (X-Real-IP, CF-Connecting-IP), preventing client spoofing.
- */
-function extractClientIp(headersList: Headers): string | null {
-  const cf = headersList.get('cf-connecting-ip')?.trim();
-  if (cf && isIP(cf)) return cf;
-
-  const real = headersList.get('x-real-ip')?.trim();
-  if (real && isIP(real)) return real;
-
-  const forwarded = headersList.get('x-forwarded-for');
-  if (forwarded) {
-    const ips = forwarded
-      .split(',')
-      .map((ip) => ip.trim())
-      .filter((ip) => isIP(ip) !== 0);
-    if (ips.length > 0) {
-      return ips[ips.length - 1];
-    }
-  }
-
-  return null;
-}
-
 async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
   const reqHeaders: Record<string, string> = { ...(init.headers as Record<string, string>) };
   // The API accepts state-changing requests only as JSON (CSRF protection), with or without a body.
@@ -102,9 +74,9 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
 
   try {
     const headersList = await headers();
-    const clientIp = extractClientIp(headersList);
-    if (clientIp) {
-      reqHeaders['x-forwarded-for'] = clientIp;
+    const forwardedFor = headersList.get('x-forwarded-for');
+    if (forwardedFor) {
+      reqHeaders['x-forwarded-for'] = forwardedFor;
     }
     const userAgent = headersList.get('user-agent');
     if (userAgent) {
@@ -118,15 +90,6 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
   if (res.status === 204) return undefined as T;
   const body = await res.json().catch(() => null);
   if (!res.ok) {
-    if (res.status === 401 && path !== '/auth/login' && path !== '/auth/register') {
-      try {
-        const store = await cookies();
-        store.delete(SESSION_COOKIE);
-      } catch {
-        // cookies() mutation only works in Server Actions or Route Handlers
-      }
-      redirect('/login');
-    }
     const message = Array.isArray(body?.message) ? body.message.join('; ') : (body?.message ?? res.statusText);
     throw new ApiError(res.status, message);
   }

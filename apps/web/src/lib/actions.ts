@@ -12,6 +12,15 @@ function errorMessage(e: unknown): string {
   return e instanceof ApiError ? e.message : 'Errore inatteso';
 }
 
+async function handleActionError(e: unknown): Promise<ActionState> {
+  if (e instanceof ApiError && e.status === 401) {
+    const store = await cookies();
+    store.delete(SESSION_COOKIE);
+    redirect('/login');
+  }
+  return { error: errorMessage(e) };
+}
+
 /** The session cookie is only read on the server: not readable by page scripts, HTTPS-only in production. */
 const SESSION_COOKIE_OPTIONS = {
   path: '/',
@@ -57,7 +66,9 @@ export async function registerAction(_prev: ActionState, formData: FormData): Pr
 export async function logoutAction(): Promise<void> {
   try {
     await api.logout();
-  } catch {}
+  } catch (err) {
+    console.warn('Logout API call failed:', err);
+  }
   const store = await cookies();
   store.delete(SESSION_COOKIE);
   redirect('/login');
@@ -71,6 +82,11 @@ export async function selectTenant(formData: FormData) {
   try {
     await api.selectTenant(id);
   } catch (e) {
+    if (e instanceof ApiError && e.status === 401) {
+      const store = await cookies();
+      store.delete(SESSION_COOKIE);
+      redirect('/login');
+    }
     redirect('/setup?error=' + encodeURIComponent(errorMessage(e)));
   }
   revalidatePath('/', 'layout');
@@ -80,7 +96,7 @@ export async function selectTenant(formData: FormData) {
 export async function createTenant(_prev: ActionState, formData: FormData): Promise<ActionState> {
   const f = (k: string) => String(formData.get(k) ?? '').trim();
   try {
-    const tenant = await api.createTenant({
+    await api.createTenant({
       name: f('name'),
       businessName: f('businessName') || undefined,
       firstName: f('firstName'),
@@ -106,9 +122,8 @@ export async function createTenant(_prev: ActionState, formData: FormData): Prom
       inpsOfficeId: f('inpsOfficeId') || undefined,
       pecAddress: f('pecAddress') || undefined,
     });
-    await api.selectTenant(tenant.id);
   } catch (e) {
-    return { error: errorMessage(e) };
+    return handleActionError(e);
   }
   redirect('/invoices');
 }

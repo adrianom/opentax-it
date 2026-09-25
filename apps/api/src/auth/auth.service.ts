@@ -2,13 +2,13 @@ import {
   BadRequestException,
   ConflictException,
   ForbiddenException,
-  HttpException,
-  HttpStatus,
   Injectable,
+  Logger,
   UnauthorizedException,
 } from '@nestjs/common';
-import { createHash, randomBytes } from 'node:crypto';
+import { createHash, randomBytes, timingSafeEqual } from 'node:crypto';
 import { AuditLogService } from '../audit-log/audit-log.service.js';
+import { Prisma } from '../generated/prisma/client.js';
 import { UserRole } from '../generated/prisma/enums.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { AuthMapper, type UserWithMemberships } from './auth.mapper.js';
@@ -17,18 +17,28 @@ import type { RegisterDto } from './dto/request/register.dto.js';
 import type { AuthResponseDto } from './dto/response/auth-response.dto.js';
 import type { UserResponseDto } from './dto/response/user-response.dto.js';
 import { PasswordService } from './password.service.js';
-import { RateLimiterService } from './rate-limiter.service.js';
 
 const SESSION_LIFETIME_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
-const LOGIN_RATE_LIMIT = 5;
-const LOGIN_RATE_WINDOW_MS = 15 * 60 * 1000; // 15 minutes
+
+// Pre-computed scrypt hash to equalize timing against account enumeration when user does not exist
+const DUMMY_PASSWORD_HASH =
+  'scrypt$16384$8$1$0123456789abcdef0123456789abcdef$0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef';
+
+function safeCompareTokens(provided?: string, expected?: string): boolean {
+  if (!provided || !expected) return false;
+  const a = Buffer.from(provided);
+  const b = Buffer.from(expected);
+  if (a.length !== b.length) return false;
+  return timingSafeEqual(a, b);
+}
 
 @Injectable()
 export class AuthService {
+  private readonly logger = new Logger(AuthService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly passwordService: PasswordService,
-    private readonly rateLimiter: RateLimiterService,
     private readonly auditLog: AuditLogService,
   ) {}
 
@@ -51,49 +61,53 @@ export class AuthService {
     }
 
     // Explicit admin role: only if a valid SETUP_TOKEN is configured in environment and provided
-    const isSetupAdmin =
-      Boolean(process.env.SETUP_TOKEN) &&
-      dto.setupToken?.trim() === process.env.SETUP_TOKEN;
+    const isSetupAdmin = safeCompareTokens(dto.setupToken?.trim(), process.env.SETUP_TOKEN);
     const role = isSetupAdmin ? UserRole.PLATFORM_ADMIN : UserRole.TENANT_USER;
 
     const passwordHash = await this.passwordService.hash(dto.password);
-    let user;
+    const token = randomBytes(32).toString('hex');
+    const tokenHash = this.hashToken(token);
+    const expiresAt = new Date(Date.now() + SESSION_LIFETIME_MS);
+
+    let result;
     try {
-      user = await this.prisma.user.create({
-        data: {
-          email,
-          passwordHash,
-          name: dto.name?.trim() || null,
-          role,
-        },
-        include: {
-          memberships: {
-            include: {
-              tenant: { select: { id: true, name: true } },
+      result = await this.prisma.$transaction(async (tx) => {
+        const user = await tx.user.create({
+          data: {
+            email,
+            passwordHash,
+            name: dto.name?.trim() || null,
+            role,
+          },
+          include: {
+            memberships: {
+              include: {
+                tenant: { select: { id: true, name: true } },
+              },
             },
           },
-        },
+        });
+
+        const session = await tx.session.create({
+          data: {
+            tokenHash,
+            userId: user.id,
+            expiresAt,
+            ipAddress: ipAddress ?? null,
+            userAgent: userAgent ?? null,
+          },
+        });
+
+        return { user, session };
       });
     } catch (err: unknown) {
-      if ((err as { code?: string })?.code === 'P2002') {
+      if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2002') {
         throw new ConflictException('Un utente con questo indirizzo email è già registrato');
       }
       throw err;
     }
 
-    const token = randomBytes(32).toString('hex');
-    const tokenHash = this.hashToken(token);
-    const expiresAt = new Date(Date.now() + SESSION_LIFETIME_MS);
-
-    const session = await this.prisma.session.create({
-      data: {
-        tokenHash,
-        userId: user.id,
-        expiresAt,
-        ipAddress: ipAddress ?? null,
-        userAgent: userAgent ?? null,
-      },
-    });
+    const { user, session } = result;
 
     await this.auditLog.log({
       userId: user.id,
@@ -112,23 +126,6 @@ export class AuthService {
     userAgent?: string,
   ): Promise<AuthResponseDto> {
     const email = dto.email.trim().toLowerCase();
-    const rateLimitKey = `login:${ipAddress ?? 'unknown'}:${email}`;
-    const rateLimit = this.rateLimiter.check(
-      rateLimitKey,
-      LOGIN_RATE_LIMIT,
-      LOGIN_RATE_WINDOW_MS,
-    );
-
-    if (!rateLimit.allowed) {
-      throw new HttpException(
-        {
-          statusCode: HttpStatus.TOO_MANY_REQUESTS,
-          message: 'Troppi tentativi falliti. Riprova più tardi.',
-          retryAfter: rateLimit.retryAfter,
-        },
-        HttpStatus.TOO_MANY_REQUESTS,
-      );
-    }
 
     const user = await this.prisma.user.findUnique({
       where: { email },
@@ -142,6 +139,8 @@ export class AuthService {
     });
 
     if (!user) {
+      // Run dummy password verification to equalize timing against account enumeration
+      await this.passwordService.verify(dto.password, DUMMY_PASSWORD_HASH);
       await this.auditLog.log({
         action: 'AUTH_LOGIN_FAILED',
         entityType: 'User',
@@ -161,9 +160,6 @@ export class AuthService {
       });
       throw new UnauthorizedException('Credenziali non valide');
     }
-
-    // Reset rate limiter on successful authentication
-    this.rateLimiter.reset(rateLimitKey);
 
     // Pick active tenant: first tenant membership or legacy user.tenantId
     const activeTenantId = user.memberships[0]?.tenantId ?? user.tenantId ?? null;
@@ -233,7 +229,9 @@ export class AuthService {
     if (!session || session.expiresAt < new Date()) {
       if (session) {
         // Clean up expired session asynchronously
-        Promise.resolve(this.prisma.session.delete({ where: { id: session.id } })).catch(() => {});
+        Promise.resolve(this.prisma.session.delete({ where: { id: session.id } })).catch((err) => {
+          this.logger.warn(`Failed to clean up expired session ${session.id}:`, err);
+        });
       }
       return null;
     }

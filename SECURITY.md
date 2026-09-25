@@ -9,10 +9,14 @@ Stato attuale:
 
 Protezioni presenti:
 - header di sicurezza (helmet nell'API; divieto di incorporare le pagine web in altri siti, `nosniff`);
+- autenticazione con rate limiting duale su `/auth/register` e `/auth/login` (5 tentativi ogni 15 minuti per IP e per email tramite `@nestjs/throttler`);
+- mitigazione timing attack: hash fittizio `scrypt` su utente non trovato in fase di login;
+- registrazione con risposta esplicita HTTP 409 Conflict se l'email è già presente (scelta di usabilità per partite IVA individuali, protetta dal rate limiting rigoroso);
+- reverse proxy: in produzione è necessario che il reverse proxy fidato (es. Nginx, Caddy, Traefik) sovrascriva o imposti `X-Forwarded-For` e che la variabile `TRUST_PROXY` sia configurata di conseguenza (default `loopback`), prevenendo IP spoofing e garantendo l'accuratezza di audit log e rate limiter;
 - body JSON limitato a 1 MB, 50 MB solo per l'import degli XML;
 - validazione degli input con limiti su importi, righe e lunghezze; errori imprevisti non esposti ai client;
 - file nello storage con permessi del solo proprietario e percorsi confinati nella cartella di storage;
-- cookie della partita IVA `httpOnly`;
+- cookie della partita IVA e di sessione `httpOnly`, `sameSite: lax`;
 - modello F24 usato solo se lo SHA-256 coincide con quello di riferimento;
 - CI con permessi di sola lettura e action fissate a un commit.
 

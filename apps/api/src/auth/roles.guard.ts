@@ -1,4 +1,10 @@
-import { CanActivate, ExecutionContext, Injectable } from '@nestjs/common';
+import {
+  CanActivate,
+  ExecutionContext,
+  ForbiddenException,
+  Injectable,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import type { Request } from 'express';
 import type { UserRole } from '../generated/prisma/enums.js';
@@ -23,9 +29,13 @@ export class RolesGuard implements CanActivate {
     const user = (req as unknown as { user?: UserWithMemberships }).user;
 
     if (!user) {
-      return false;
+      throw new UnauthorizedException('Autenticazione richiesta');
     }
 
-    return requiredRoles.includes(user.role as UserRole);
+    if (!requiredRoles.includes(user.role as UserRole)) {
+      throw new ForbiddenException('Permessi insufficienti per accedere a questa risorsa');
+    }
+
+    return true;
   }
 }

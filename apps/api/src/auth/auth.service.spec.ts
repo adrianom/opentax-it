@@ -1,21 +1,21 @@
-import { ConflictException, ForbiddenException, HttpException, UnauthorizedException } from '@nestjs/common';
+import { ConflictException, ForbiddenException, UnauthorizedException } from '@nestjs/common';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { AuditLogService } from '../audit-log/audit-log.service.js';
+import { Prisma } from '../generated/prisma/client.js';
 import { UserRole } from '../generated/prisma/enums.js';
 import type { PrismaService } from '../prisma/prisma.service.js';
 import { AuthService } from './auth.service.js';
 import { PasswordService } from './password.service.js';
-import { RateLimiterService } from './rate-limiter.service.js';
 
 describe('AuthService', () => {
   let authService: AuthService;
   let prismaMock: any;
   let auditLogMock: any;
   let passwordService: PasswordService;
-  let rateLimiter: RateLimiterService;
 
   beforeEach(() => {
     prismaMock = {
+      $transaction: vi.fn().mockImplementation(async (cb) => cb(prismaMock)),
       user: {
         findUnique: vi.fn(),
         count: vi.fn(),
@@ -37,12 +37,10 @@ describe('AuthService', () => {
     };
 
     passwordService = new PasswordService();
-    rateLimiter = new RateLimiterService();
 
     authService = new AuthService(
       prismaMock as unknown as PrismaService,
       passwordService,
-      rateLimiter,
       auditLogMock as unknown as AuditLogService,
     );
   });
@@ -78,9 +76,47 @@ describe('AuthService', () => {
       expect(res.user.email).toBe('user@opentax.it');
       expect(res.user.role).toBe(UserRole.TENANT_USER);
       expect(res.token).toHaveLength(64);
+      expect(prismaMock.$transaction).toHaveBeenCalled();
       expect(auditLogMock.log).toHaveBeenCalledWith(
         expect.objectContaining({ action: 'AUTH_REGISTER', userId: 'u1' }),
       );
+    });
+
+    it('assigns PLATFORM_ADMIN role when matching setupToken is provided', async () => {
+      process.env.SETUP_TOKEN = 'super-secret-token';
+      prismaMock.user.findUnique.mockResolvedValue(null);
+
+      const fakeUser = {
+        id: 'u-admin',
+        email: 'admin@opentax.it',
+        name: 'Admin',
+        role: UserRole.PLATFORM_ADMIN,
+        memberships: [],
+      };
+      prismaMock.user.create.mockResolvedValue(fakeUser);
+
+      const fakeSession = {
+        id: 's-admin',
+        tokenHash: 'hash',
+        userId: 'u-admin',
+        activeTenantId: null,
+        expiresAt: new Date(Date.now() + 100000),
+      };
+      prismaMock.session.create.mockResolvedValue(fakeSession);
+
+      const res = await authService.register({
+        email: 'admin@opentax.it',
+        password: 'password123',
+        setupToken: 'super-secret-token',
+      });
+
+      expect(res.user.role).toBe(UserRole.PLATFORM_ADMIN);
+      expect(prismaMock.user.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({ role: UserRole.PLATFORM_ADMIN }),
+        }),
+      );
+      delete process.env.SETUP_TOKEN;
     });
 
     it('rejects duplicate email', async () => {
@@ -96,7 +132,12 @@ describe('AuthService', () => {
 
     it('throws ConflictException on concurrent registration with same email (P2002)', async () => {
       prismaMock.user.findUnique.mockResolvedValue(null);
-      prismaMock.user.create.mockRejectedValue({ code: 'P2002' });
+      prismaMock.user.create.mockRejectedValue(
+        new Prisma.PrismaClientKnownRequestError('Unique constraint failed', {
+          code: 'P2002',
+          clientVersion: '7.10.0',
+        }),
+      );
 
       await expect(
         authService.register({
@@ -171,73 +212,21 @@ describe('AuthService', () => {
       );
     });
 
-    it('enforces rate limiting on repeated failures', async () => {
+    it('rejects non-existent user and logs failure with constant-time dummy verification', async () => {
       prismaMock.user.findUnique.mockResolvedValue(null);
+      const verifySpy = vi.spyOn(passwordService, 'verify');
 
-      // Attempt 5 failures
-      for (let i = 0; i < 5; i++) {
-        await expect(
-          authService.login({
-            email: 'brute@test.it',
-            password: 'bad',
-          }, '127.0.0.1'),
-        ).rejects.toThrow(UnauthorizedException);
-      }
-
-      // 6th attempt must be rate limited with 429
       await expect(
         authService.login({
-          email: 'brute@test.it',
-          password: 'bad',
-        }, '127.0.0.1'),
-      ).rejects.toThrow(HttpException);
-    });
+          email: 'notfound@test.it',
+          password: 'password123',
+        }),
+      ).rejects.toThrow(UnauthorizedException);
 
-    it('isolates rate limiting by client IP so one client cannot lock out another', async () => {
-      prismaMock.user.findUnique.mockResolvedValue(null);
-
-      const attackerIp = '198.51.100.5';
-      const legitimateIp = '203.0.113.10';
-
-      // Attacker attempts 5 failed logins from attackerIp
-      for (let i = 0; i < 5; i++) {
-        await expect(
-          authService.login(
-            { email: 'victim@test.it', password: 'bad' },
-            attackerIp,
-          ),
-        ).rejects.toThrow(UnauthorizedException);
-      }
-
-      // Attacker is now rate limited (429)
-      await expect(
-        authService.login(
-          { email: 'victim@test.it', password: 'bad' },
-          attackerIp,
-        ),
-      ).rejects.toThrow(HttpException);
-
-      // Legitimate user from a different IP is NOT blocked
-      const user = {
-        id: 'u1',
-        email: 'victim@test.it',
-        passwordHash: await passwordService.hash('correct_password'),
-        role: UserRole.TENANT_USER,
-        memberships: [],
-      };
-      prismaMock.user.findUnique.mockResolvedValue(user);
-      prismaMock.session.create.mockResolvedValue({
-        id: 's2',
-        userId: 'u1',
-        activeTenantId: null,
-        expiresAt: new Date(),
-      });
-
-      const res = await authService.login(
-        { email: 'victim@test.it', password: 'correct_password' },
-        legitimateIp,
+      expect(verifySpy).toHaveBeenCalled();
+      expect(auditLogMock.log).toHaveBeenCalledWith(
+        expect.objectContaining({ action: 'AUTH_LOGIN_FAILED' }),
       );
-      expect(res.user.email).toBe('victim@test.it');
     });
   });
 

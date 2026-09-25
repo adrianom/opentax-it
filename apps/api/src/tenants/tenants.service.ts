@@ -19,8 +19,8 @@ export class TenantsService {
       throw new BadRequestException('Unknown INPS office (see the AdE "Tabella codici sede INPS")');
     }
 
-    return this.prisma.$transaction(async (tx) => {
-      const tenant = await tx.tenant.create({
+    const tenant = await this.prisma.$transaction(async (tx) => {
+      const created = await tx.tenant.create({
         data: {
           name,
           profile: { create: { ...profile, ...personalData(profile) } },
@@ -42,24 +42,23 @@ export class TenantsService {
         const tokenHash = createHash('sha256').update(sessionToken).digest('hex');
         await tx.session.updateMany({
           where: { tokenHash, userId },
-          data: { activeTenantId: tenant.id },
+          data: { activeTenantId: created.id },
         });
       }
 
-      await this.auditLog.log(
-        {
-          tenantId: tenant.id,
-          userId: userId ?? null,
-          action: 'TENANT_CREATE',
-          entityType: 'Tenant',
-          entityId: tenant.id,
-          data: { name: tenant.name },
-        },
-        tx,
-      );
-
-      return tenant;
+      return created;
     });
+
+    await this.auditLog.log({
+      tenantId: tenant.id,
+      userId: userId ?? null,
+      action: 'TENANT_CREATE',
+      entityType: 'Tenant',
+      entityId: tenant.id,
+      data: { name: tenant.name },
+    });
+
+    return tenant;
   }
 
   async updateProfile(tenantId: string, dto: UpdateTenantProfileDto) {
